@@ -1,0 +1,1120 @@
+@model SEN_T_PAZAR.Models.CreateListingViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = "Ücretsiz İlan Ver - " + L["publishTitle"];
+    var cities = (ViewData["PublishCities"] as List<string>) ?? [];
+    var types = (ViewData["PublishTypes"] as List<string>) ?? [];
+    var categories = (ViewData["PublishCategories"] as List<string>) ?? [];
+}
+
+@section Styles {
+    <style>
+        .publish-page { background: #f8f9fa; min-height: 100vh; padding: 2rem 0; }
+        .publish-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+        .publish-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 2rem; text-align: center; }
+        .publish-header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 600; }
+        .publish-header p { opacity: 0.9; margin: 0; }
+        .publish-form { padding: 2rem; }
+        .form-section { margin-bottom: 2rem; border-bottom: 1px solid #e9ecef; padding-bottom: 2rem; }
+        .form-section:last-child { border-bottom: none; }
+        .section-title { display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 600; color: #495057; margin-bottom: 1.5rem; }
+        .section-title i { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #495057; margin-bottom: 0.5rem; }
+        .form-group label .required { color: #dc3545; }
+        .form-control, .form-select { border: 2px solid #e9ecef; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.95rem; transition: all 0.2s; width: 100%; }
+        .form-control:focus, .form-select:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); outline: none; }
+        .form-control::placeholder { color: #adb5bd; }
+        textarea.form-control { resize: vertical; min-height: 120px; }
+        .input-group { display: flex; gap: 0.5rem; }
+        .input-group .form-control { flex: 1; }
+        .input-group .form-select { width: auto; min-width: 80px; }
+        .price-input { display: flex; align-items: center; gap: 0.5rem; }
+        .price-input .form-control { flex: 1; }
+        .currency-symbol { background: #e9ecef; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; color: #495057; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem; }
+        .checkbox-item { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 6px; transition: background 0.2s; }
+        .checkbox-item:hover { background: #f8f9fa; }
+        .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: #667eea; }
+        .category-selector { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.55rem; margin-bottom: 1.5rem; }
+        .category-option { position: relative; }
+        .category-option input { position: absolute; opacity: 0; }
+        .category-option label { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 0.8rem 0.45rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.2s; text-align: center; min-height: 72px; justify-content: center; }
+        .category-option label i { font-size: 1.2rem; color: #6c757d; }
+        .category-option label span { font-size: 0.8rem; font-weight: 600; color: #495057; line-height: 1.2; }
+        .category-option input:checked + label { border-color: #667eea; background: #f8f9ff; }
+        .category-option input:checked + label i { color: #667eea; }
+        .dynamic-fields { display: none; background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-top: 1rem; }
+        .dynamic-fields.active { display: block; animation: fadeIn 0.3s ease; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+        .feature-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-radius: 6px; transition: background 0.2s; }
+        .feature-item:hover { background: #f8f9fa; }
+        .feature-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #667eea; }
+        .image-upload { border: 2px dashed #dee2e6; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .image-upload:hover { border-color: #667eea; background: #f8f9ff; }
+        .image-upload.dragover { border-color: #667eea; background: #f8f9ff; }
+        .image-upload i { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
+        .image-upload p { color: #6c757d; margin: 0; }
+        .image-upload input { display: none; }
+        .image-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .preview-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid #e9ecef; }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-item .remove-btn { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: #dc3545; color: #fff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
+        .preview-item .cover-badge { position: absolute; bottom: 4px; left: 4px; background: #28a745; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        .preview-item input[type="radio"] { position: absolute; bottom: 4px; right: 4px; width: 20px; height: 20px; }
+        .contact-options { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .contact-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .contact-option:hover { border-color: #667eea; }
+        .contact-option input { display: none; }
+        .contact-option input:checked + i { color: #667eea; }
+        .contact-option input:checked + i + span { color: #667eea; font-weight: 600; }
+        .submit-btn { width: 100%; padding: 1rem 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 1rem; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.3); }
+        .submit-btn:active { transform: translateY(0); }
+        .text-danger { color: #dc3545; font-size: 0.8rem; margin-top: 0.25rem; }
+        .progress-bar { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+        .progress-step { flex: 1; text-align: center; padding: 0.75rem; background: #e9ecef; border-radius: 8px; font-size: 0.85rem; color: #6c757d; position: relative; }
+        .progress-step.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+        .progress-step.completed { background: #28a745; color: #fff; }
+        .char-counter { text-align: right; font-size: 0.8rem; color: #6c757d; margin-top: 0.25rem; }
+        .char-counter.warning { color: #ffc107; }
+        .char-counter.danger { color: #dc3545; }
+        .info-box { background: #e7f3ff; border-left: 4px solid #667eea; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .info-box p { margin: 0; color: #495057; font-size: 0.9rem; }
+        .category-brief { background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%); border: 1px solid #d8e4ff; border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 1.25rem; }
+        .category-brief h4 { color: #304b7f; font-size: 1rem; margin: 0 0 0.4rem; font-weight: 700; }
+        .category-brief p { margin: 0; color: #607189; font-size: 0.9rem; }
+        .category-guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .category-guide-card { background: #fff; border: 1px solid #e3ebf7; border-radius: 12px; padding: 0.85rem; min-height: 100%; }
+        .category-guide-card strong { display: block; color: #304b7f; font-size: 0.9rem; margin-bottom: 0.3rem; }
+        .category-guide-card span { color: #6b7280; font-size: 0.82rem; line-height: 1.45; }
+        .helper-text { display: block; margin-top: 0.35rem; color: #6b7280; font-size: 0.78rem; }
+        @@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-navigation { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
+        .form-navigation .btn { padding: 0.75rem 2rem; border-radius: 8px; font-weight: 500; cursor: pointer; }
+        .btn-secondary { background: #6c757d; color: #fff; border: none; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; }
+        @@media (max-width: 768px) {
+            .publish-form { padding: 1rem; }
+            .category-selector { grid-template-columns: repeat(3, 1fr); }
+            .form-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .progress-step { font-size: 0.7rem; padding: 0.5rem; }
+        }
+        @@media (max-width: 540px) {
+            .category-selector { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+}
+
+<div class="publish-page">
+    <div class="publish-container">
+        <div class="publish-header">
+            <h1>Ücretsiz İlan Ver</h1>
+            <p>İlanınız dakikalar içinde yayında! Tüm kategorilerde profesyonel ilan yönetimi.</p>
+        </div>
+
+        <div class="publish-form">
+            @if (TempData["PublishSuccess"] is string message)
+            {
+                <div class="alert alert-success" role="alert">@message</div>
+            }
+
+            <form asp-action="Publish" asp-controller="Home" method="post" enctype="multipart/form-data" id="publishForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="progress-bar">
+                    <div class="progress-step active" data-step="1">1. Kategori</div>
+                    <div class="progress-step" data-step="2">2. Bilgiler</div>
+                    <div class="progress-step" data-step="3">3. Konum</div>
+                    <div class="progress-step" data-step="4">4. Görseller</div>
+                    <div class="progress-step" data-step="5">5. İletişim</div>
+                </div>
+
+                <div class="form-section" id="step1">
+                    <div class="section-title">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        Kategori Seçimi
+                    </div>
+                    
+                    <div class="info-box">
+                        <p><i class="bi bi-info-circle"></i> İlan vermek istediğiniz kategoriyi seçin. Her kategori için farklı bilgiler istenecektir.</p>
+                    </div>
+
+                    <div class="category-selector">
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-estate" value="estate" required>
+                            <label for="cat-estate">
+                                <i class="bi bi-house-door"></i>
+                                <span>Emlak</span>
+                            </label>
+                        </div>
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-vehicle" value="vehicle" required>
+                            <label for="cat-vehicle">
+                                <i class="bi bi-car-front"></i>
+                                <span>Vasıta</span>
+                            </label>
+                        </div>
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-electronics" value="electronics" required>
+                            <label for="cat-electronics">
+                                <i class="bi bi-laptop"></i>
+                                <span>Elektronik</span>
+                            </label>
+                        </div>
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-furniture" value="furniture" required>
+                            <label for="cat-furniture">
+                                <i class="bi bi-sofa"></i>
+                                <span>Eşya</span>
+                            </label>
+                        </div>
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-services" value="services" required>
+                            <label for="cat-services">
+                                <i class="bi bi-briefcase"></i>
+                                <span>Hizmet</span>
+                            </label>
+                        </div>
+                        <div class="category-option">
+                            <input type="radio" asp-for="Category" id="cat-other" value="other" required>
+                            <label for="cat-other">
+                                <i class="bi bi-box"></i>
+                                <span>Diğer</span>
+                            </label>
+                        </div>
+                    </div>
+                    <span asp-validation-for="Category" class="text-danger"></span>
+
+                    <div class="form-group">
+                        <label asp-for="Type">İlan Tipi <span class="required">*</span></label>
+                        <select asp-for="Type" class="form-select" required>
+                            <option value="">Seçiniz...</option>
+                            @foreach (var type in types)
+                            {
+                                <option value="@type">@L.TypeLabel(type)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Type" class="text-danger"></span>
+                    </div>
+
+                    <div id="estate-fields" class="dynamic-fields">
+                        <div class="section-title">
+                            <i class="bi bi-house"></i>
+                            Emlak Özellikleri
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="EstateNetArea">Net M²</label>
+                                <input asp-for="EstateNetArea" type="number" class="form-control" placeholder="örn: 120" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EstateGrossArea">Brüt M²</label>
+                                <input asp-for="EstateGrossArea" type="number" class="form-control" placeholder="örn: 140" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EstateRoomCount">Oda Sayısı</label>
+                                <select asp-for="EstateRoomCount" asp-items="Html.GetEnumSelectList<EstateRoomCount>()" class="form-select">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EstateBuildingAge">Bina Yaşı</label>
+                                <select asp-for="EstateBuildingAge" asp-items="Html.GetEnumSelectList<EstateBuildingAge>()" class="form-select">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EstateTotalFloors">Kat Sayısı</label>
+                                <input asp-for="EstateTotalFloors" type="number" class="form-control" placeholder="örn: 10" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EstateFloorLocation">Bulunduğu Kat</label>
+                                <select asp-for="EstateFloorLocation" asp-items="Html.GetEnumSelectList<EstateFloorLocation>()" class="form-select">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="HeatingType">Isıtma Tipi</label>
+                                <select asp-for="HeatingType" asp-items="Html.GetEnumSelectList<HeatingType>()" class="form-select">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="DuesAmount">Aidat (₺)</label>
+                                <input asp-for="DuesAmount" type="number" class="form-control" placeholder="örn: 500" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="DepositAmount">Depozito (₺)</label>
+                                <input asp-for="DepositAmount" type="number" class="form-control" placeholder="Kiralık için" />
+                            </div>
+                        </div>
+                        <div class="features-grid mt-3">
+                            <label class="feature-item">
+                                <input asp-for="EstateFurnished" type="checkbox" />
+                                <span>Eşyalı</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="InSite" type="checkbox" />
+                                <span>Site İçinde</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="HasBalcony" type="checkbox" />
+                                <span>Balkon</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="HasElevator" type="checkbox" />
+                                <span>Asansör</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="HasParking" type="checkbox" />
+                                <span>Otopark</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="HasPool" type="checkbox" />
+                                <span>Havuz</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="HasSecurity" type="checkbox" />
+                                <span>Güvenlik</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="vehicle-fields" class="dynamic-fields">
+                        <div class="section-title">
+                            <i class="bi bi-car-front"></i>
+                            Araç Bilgileri
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="VehicleBrand">Marka <span class="required">*</span></label>
+                                <input asp-for="VehicleBrand" class="form-control" placeholder="örn: BMW" required />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleModel">Model <span class="required">*</span></label>
+                                <input asp-for="VehicleModel" class="form-control" placeholder="örn: 3.20i" required />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleYear">Model Yılı <span class="required">*</span></label>
+                                <input asp-for="VehicleYear" type="number" class="form-control" placeholder="örn: 2020" min="1950" max="2030" required />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleKM">Kilometre <span class="required">*</span></label>
+                                <input asp-for="VehicleKM" type="number" class="form-control" placeholder="örn: 45000" required />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleFuelType">Yakıt Tipi <span class="required">*</span></label>
+                                <select asp-for="VehicleFuelType" asp-items="Html.GetEnumSelectList<FuelType>()" class="form-select" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleTransmission">Vites Tipi <span class="required">*</span></label>
+                                <select asp-for="VehicleTransmission" asp-items="Html.GetEnumSelectList<TransmissionType>()" class="form-select" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleBodyType">Kasa Tipi</label>
+                                <select asp-for="VehicleBodyType" asp-items="Html.GetEnumSelectList<BodyType>()" class="form-select">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EngineCapacity">Motor Hacmi (cc)</label>
+                                <input asp-for="EngineCapacity" type="number" class="form-control" placeholder="örn: 1998" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="EnginePower">Motor Gücü (HP)</label>
+                                <input asp-for="EnginePower" type="number" class="form-control" placeholder="örn: 184" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehicleColor">Renk</label>
+                                <input asp-for="VehicleColor" class="form-control" placeholder="örn: Beyaz" />
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="VehiclePlate">Plaka / Uyruk</label>
+                                <input asp-for="VehiclePlate" class="form-control" placeholder="örn: TR / Yabancı" />
+                            </div>
+                        </div>
+                        <div class="features-grid mt-3">
+                            <label class="feature-item">
+                                <input asp-for="UnderWarranty" type="checkbox" />
+                                <span>Garantili</span>
+                            </label>
+                            <label class="feature-item">
+                                <input asp-for="TradeIn" type="checkbox" />
+                                <span>Takas Olur</span>
+                            </label>
+                        </div>
+                        <div class="form-group mt-3">
+                            <label asp-for="AccidentRecord">Kaza Kaydı</label>
+                            <select asp-for="AccidentRecord" class="form-select">
+                                <option value="">Seçiniz</option>
+                                <option value="none">Kazasız</option>
+                                <option value="minor">Hafif Hasarlı</option>
+                                <option value="major">Ağır Hasarlı</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="product-fields" class="dynamic-fields">
+                        <div class="section-title">
+                            <i class="bi bi-box-seam"></i>
+                            <span id="productSectionTitle">Ürün Bilgileri</span>
+                        </div>
+                        <div class="category-brief">
+                            <h4 id="categoryBriefTitle">Kategoriye özel alanlar</h4>
+                            <p id="categoryBriefText">Doğru alt kategori, model ve teslim bilgileri ilanınızın daha hızlı bulunmasını sağlar.</p>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="SubCategory" id="subCategoryLabel">Alt Kategori <span class="required">*</span></label>
+                                <select asp-for="SubCategory" class="form-select" id="subCategorySelect" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                                <small class="helper-text" id="subCategoryHelp">İlanınızın doğru kitleye ulaşması için en yakın alt kategoriyi seçin.</small>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="ProductBrand" id="productBrandLabel">Marka</label>
+                                <input asp-for="ProductBrand" class="form-control" id="productBrandInput" placeholder="örn: Apple" />
+                                <small class="helper-text" id="productBrandHelp">Biliniyorsa marka veya sağlayıcı adını yazın.</small>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="ProductModel" id="productModelLabel">Model</label>
+                                <input asp-for="ProductModel" class="form-control" id="productModelInput" placeholder="örn: iPhone 15 Pro" />
+                                <small class="helper-text" id="productModelHelp">Model, paket adı veya ürün takım adını yazın.</small>
+                            </div>
+                            <div class="form-group" id="productConditionGroup">
+                                <label asp-for="ProductCondition" id="productConditionLabel">Durumu <span class="required">*</span></label>
+                                <select asp-for="ProductCondition" asp-items="Html.GetEnumSelectList<ConditionState>()" class="form-select" id="productConditionSelect">
+                                    <option value="">Seçiniz</option>
+                                </select>
+                                <small class="helper-text" id="productConditionHelp">Fiziksel durum ve kullanım seviyesi güven oluşturur.</small>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="WarrantyPeriod" id="warrantyLabel">Garanti Süresi</label>
+                                <input asp-for="WarrantyPeriod" class="form-control" id="warrantyInput" placeholder="örn: 2 Yıl" />
+                                <small class="helper-text" id="warrantyHelp">Teslimat, uygunluk veya garanti bilgisini ekleyin.</small>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="SerialNumber" id="serialNumberLabel">Seri Numarası</label>
+                                <input asp-for="SerialNumber" class="form-control" id="serialNumberInput" placeholder="Ürün seri numarası" />
+                                <small class="helper-text" id="serialNumberHelp">İsterseniz seri no, lisans no ya da ölçü bilgisi paylaşın.</small>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="UsageDuration" id="usageDurationLabel">Kullanım Süresi</label>
+                                <input asp-for="UsageDuration" class="form-control" id="usageDurationInput" placeholder="örn: 6 Ay" />
+                                <small class="helper-text" id="usageDurationHelp">Kullanım süresi, teslim süresi veya hizmet süresi gibi net bilgi verin.</small>
+                            </div>
+                        </div>
+                        <div class="category-guide-grid">
+                            <div class="category-guide-card">
+                                <strong id="guideCardTitle1">Alt kategori seçin</strong>
+                                <span id="guideCardText1">Doğru sınıflandırma, ilanın filtrelerde daha görünür olmasını sağlar.</span>
+                            </div>
+                            <div class="category-guide-card">
+                                <strong id="guideCardTitle2">Detay ekleyin</strong>
+                                <span id="guideCardText2">Marka, model, ölçü veya paket adı güven verir ve karar süresini kısaltır.</span>
+                            </div>
+                            <div class="category-guide-card">
+                                <strong id="guideCardTitle3">Teslim bilgisini yazın</strong>
+                                <span id="guideCardText3">Teslimat, randevu, garanti veya uygunluk bilgisi dönüşüm oranını artırır.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="step2">
+                    <div class="section-title">
+                        <i class="bi bi-file-text"></i>
+                        İlan Bilgileri
+                    </div>
+                    
+                    <div class="form-group">
+                        <label asp-for="Title">İlan Başlığı <span class="required">*</span></label>
+                        <input asp-for="Title" class="form-control" placeholder="Örn: Satılık 3+1 Daire - Merkezi Konum" maxlength="100" required />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                        <div class="char-counter" id="titleCounter">0 / 100</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Description">Açıklama <span class="required">*</span></label>
+                        <textarea asp-for="Description" class="form-control" rows="8" placeholder="İlanınızı detaylı bir şekilde açıklayın. Özellikler, avantajlar, konum bilgileri..." minlength="40" maxlength="5000" required></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                        <div class="char-counter" id="descCounter">0 / 5000 (minimum 40)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Tags">Anahtar Kelimeler</label>
+                        <input asp-for="Tags" class="form-control" placeholder="Virgülle ayırarak yazın: daire, merkez, metro, okul" />
+                        <small class="text-muted">Aramalarda çıkması için önemli kelimeler ekleyin</small>
+                    </div>
+
+                    <div class="form-grid mt-3">
+                        <div class="form-group">
+                            <label asp-for="PriceAmount">Fiyat <span class="required">*</span></label>
+                            <div class="price-input">
+                                <input asp-for="PriceAmount" type="number" class="form-control" placeholder="0" min="1" required />
+                                <select asp-for="PriceCurrency" class="form-select" style="width: 100px;">
+                                    <option value="TL">₺ TL</option>
+                                    <option value="USD">$ USD</option>
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="GBP">£ GBP</option>
+                                </select>
+                            </div>
+                            <span asp-validation-for="PriceAmount" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="PriceType">Fiyat Tipi</label>
+                            <select asp-for="PriceType" asp-items="Html.GetEnumSelectList<PriceType>()" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="PriceDescription">Fiyat Açıklaması</label>
+                        <input asp-for="PriceDescription" class="form-control" placeholder="Örn: Son fiyat, pazarlık payı yok" />
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input asp-for="Negotiable" type="checkbox" checked />
+                            <span>Pazarlık Payı Var</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input asp-for="TradeIn" type="checkbox" />
+                            <span>Takas Olur</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label asp-for="AdvertiserType">Kimden <span class="required">*</span></label>
+                        <select asp-for="AdvertiserType" asp-items="Html.GetEnumSelectList<AdvertiserType>()" class="form-select"></select>
+                    </div>
+                </div>
+
+                <div class="form-section" id="step3">
+                    <div class="section-title">
+                        <i class="bi bi-geo-alt"></i>
+                        Konum Bilgileri
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label asp-for="City">Şehir <span class="required">*</span></label>
+                            <select asp-for="City" class="form-select" required>
+                                <option value="">Seçiniz...</option>
+                                @foreach (var city in cities)
+                                {
+                                    <option value="@city">@city</option>
+                                }
+                            </select>
+                            <span asp-validation-for="City" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="District">İlçe <span class="required">*</span></label>
+                            <input asp-for="District" class="form-control" placeholder="örn: Kadıköy" required />
+                            <span asp-validation-for="District" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Neighborhood">Mahalle / Semt</label>
+                            <input asp-for="Neighborhood" class="form-control" placeholder="örn: Moda" />
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label asp-for="Address">Açık Adres</label>
+                        <textarea asp-for="Address" class="form-control" rows="3" placeholder="Tam adres bilgisi (opsiyonel, sadece ilan sahibine görünür)"></textarea>
+                    </div>
+
+                    <div class="info-box">
+                        <p><i class="bi bi-info-circle"></i> Konum bilgileri harita üzerinde gösterilecektir. Tam adres ilan sahibine özel mesajla iletilebilir.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="VideoUrl">YouTube Video Linki</label>
+                        <input asp-for="VideoUrl" type="url" class="form-control" placeholder="https://youtube.com/watch?v=..." />
+                        <small class="text-muted">İlanınıza video eklemek isterseniz YouTube linki ekleyin</small>
+                    </div>
+                </div>
+
+                <div class="form-section" id="step4">
+                    <div class="section-title">
+                        <i class="bi bi-images"></i>
+                        Görseller
+                    </div>
+
+                    <div class="info-box">
+                        <p><i class="bi bi-camera"></i> İlanınızın görünürlüğünü artırmak için en az 3, en fazla 20 fotoğraf yükleyin. İlk fotoğraf kapak fotoğrafı olarak kullanılacaktır.</p>
+                    </div>
+
+                    <div class="image-upload" id="dropZone">
+                        <i class="bi bi-cloud-upload"></i>
+                        <p><strong>Fotoğrafları sürükleyin</strong> veya tıklayarak seçin</p>
+                        <p style="font-size: 0.8rem; color: #adb5bd;">JPEG, PNG formatında, max 10MB</p>
+                        <input asp-for="ImageFiles" type="file" multiple accept="image/jpeg,image/png,image/webp" id="fileInput" />
+                    </div>
+
+                    <div class="image-preview" id="imagePreview"></div>
+                    <input type="hidden" asp-for="CoverImageIndex" id="coverImageIndex" value="0" />
+
+                    <span asp-validation-for="ImageFiles" class="text-danger"></span>
+                </div>
+
+                <div class="form-section" id="step5">
+                    <div class="section-title">
+                        <i class="bi bi-person"></i>
+                        İletişim Bilgileri
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label asp-for="FullName">Ad Soyad <span class="required">*</span></label>
+                            <input asp-for="FullName" class="form-control" placeholder="Adınız Soyadınız" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Phone">Telefon <span class="required">*</span></label>
+                            <input asp-for="Phone" type="tel" class="form-control" placeholder="05xx xxx xx xx" required />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label>İletişim Tercihleri</label>
+                        <div class="contact-options">
+                            <label class="contact-option">
+                                <input asp-for="AllowWhatsApp" type="checkbox" checked />
+                                <i class="bi bi-whatsapp"></i>
+                                <span>WhatsApp</span>
+                            </label>
+                            <label class="contact-option">
+                                <input asp-for="AllowMessages" type="checkbox" checked />
+                                <i class="bi bi-chat-dots"></i>
+                                <span>Siteden Mesaj</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="info-box mt-3">
+                        <p><i class="bi bi-shield-check"></i> İletişim bilgileriniz sadece ilanınızla ilgilenen kullanıcılara gösterilecektir.</p>
+                    </div>
+                </div>
+
+                <div class="form-navigation">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">Önceki</button>
+                    <button type="button" class="btn btn-primary" id="nextBtn">Sonraki</button>
+                    <button type="submit" class="submit-btn" id="submitBtn" style="display: none;">
+                        <i class="bi bi-check-circle"></i> İlanımı Yayınla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('publishForm');
+            const categoryInputs = document.querySelectorAll('input[name="Category"]');
+            const estateFields = document.getElementById('estate-fields');
+            const vehicleFields = document.getElementById('vehicle-fields');
+            const productFields = document.getElementById('product-fields');
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const coverImageIndex = document.getElementById('coverImageIndex');
+            const titleInput = document.querySelector('[name="Title"]');
+            const descInput = document.querySelector('[name="Description"]');
+            const titleCounter = document.getElementById('titleCounter');
+            const descCounter = document.getElementById('descCounter');
+            const productSectionTitle = document.getElementById('productSectionTitle');
+            const categoryBriefTitle = document.getElementById('categoryBriefTitle');
+            const categoryBriefText = document.getElementById('categoryBriefText');
+            const subCategoryLabel = document.getElementById('subCategoryLabel');
+            const subCategorySelect = document.getElementById('subCategorySelect');
+            const subCategoryHelp = document.getElementById('subCategoryHelp');
+            const productBrandLabel = document.getElementById('productBrandLabel');
+            const productBrandInput = document.getElementById('productBrandInput');
+            const productBrandHelp = document.getElementById('productBrandHelp');
+            const productModelLabel = document.getElementById('productModelLabel');
+            const productModelInput = document.getElementById('productModelInput');
+            const productModelHelp = document.getElementById('productModelHelp');
+            const productConditionGroup = document.getElementById('productConditionGroup');
+            const productConditionLabel = document.getElementById('productConditionLabel');
+            const productConditionSelect = document.getElementById('productConditionSelect');
+            const productConditionHelp = document.getElementById('productConditionHelp');
+            const warrantyLabel = document.getElementById('warrantyLabel');
+            const warrantyInput = document.getElementById('warrantyInput');
+            const warrantyHelp = document.getElementById('warrantyHelp');
+            const serialNumberLabel = document.getElementById('serialNumberLabel');
+            const serialNumberInput = document.getElementById('serialNumberInput');
+            const serialNumberHelp = document.getElementById('serialNumberHelp');
+            const usageDurationLabel = document.getElementById('usageDurationLabel');
+            const usageDurationInput = document.getElementById('usageDurationInput');
+            const usageDurationHelp = document.getElementById('usageDurationHelp');
+            const guideCardTitle1 = document.getElementById('guideCardTitle1');
+            const guideCardText1 = document.getElementById('guideCardText1');
+            const guideCardTitle2 = document.getElementById('guideCardTitle2');
+            const guideCardText2 = document.getElementById('guideCardText2');
+            const guideCardTitle3 = document.getElementById('guideCardTitle3');
+            const guideCardText3 = document.getElementById('guideCardText3');
+            
+            let currentStep = 1;
+            const totalSteps = 5;
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const categoryFieldConfig = {
+                electronics: {
+                    title: 'Elektronik Ürün Bilgileri',
+                    briefTitle: 'Teknik ve güven bilgilerini güçlendirin',
+                    briefText: 'Model, kondisyon ve garanti detayları elektronik ilanlarının güvenilirliğini belirgin biçimde artırır.',
+                    subCategoryLabel: 'Elektronik Türü',
+                    subCategoryHelp: 'Telefon, tablet, bilgisayar ya da aksesuar gibi en yakın türü seçin.',
+                    subCategoryOptions: [
+                        { value: 'telefon', text: 'Telefon' },
+                        { value: 'tablet', text: 'Tablet' },
+                        { value: 'bilgisayar', text: 'Bilgisayar' },
+                        { value: 'oyun-konsolu', text: 'Oyun Konsolu' },
+                        { value: 'kamera-ses', text: 'Kamera / Ses Sistemi' },
+                        { value: 'aksesuar', text: 'Aksesuar' }
+                    ],
+                    brandLabel: 'Marka',
+                    brandPlaceholder: 'örn: Apple, Samsung, Sony',
+                    brandHelp: 'Marka bilgisi filtrelerde daha iyi görünmenizi sağlar.',
+                    modelLabel: 'Model',
+                    modelPlaceholder: 'örn: iPhone 15 Pro 256 GB',
+                    modelHelp: 'Model, kapasite ve versiyon bilgilerini tek satırda yazabilirsiniz.',
+                    conditionLabel: 'Cihaz Durumu',
+                    conditionHelp: 'Kozmetik ve teknik durumu dürüst şekilde belirtin.',
+                    conditionRequired: true,
+                    warrantyLabel: 'Garanti / Fatura',
+                    warrantyPlaceholder: 'örn: 8 ay distribütör garantili, faturalı',
+                    warrantyHelp: 'Resmi garanti, servis geçmişi veya fatura bilgisini ekleyin.',
+                    serialLabel: 'IMEI / Seri No',
+                    serialPlaceholder: 'opsiyonel - son 4 hane yeterli',
+                    serialHelp: 'Tam seri numarası yerine doğrulama için kısmi bilgi girebilirsiniz.',
+                    usageLabel: 'Kullanım Süresi',
+                    usagePlaceholder: 'örn: 10 ay',
+                    usageHelp: 'Ne kadar süredir kullanıldığını net belirtin.',
+                    guide1Title: 'Modeli net yazın',
+                    guide1Text: 'Depolama, renk veya sürüm bilgisi aramalarda öne çıkar.',
+                    guide2Title: 'Kondisyonu dürüst anlatın',
+                    guide2Text: 'Çizik, pil sağlığı ve servis geçmişi mesaj trafiğini azaltır.',
+                    guide3Title: 'Garanti bilgisini ekleyin',
+                    guide3Text: 'Garanti ve fatura bilgisi güven oluşturur.'
+                },
+                furniture: {
+                    title: 'Eşya Detayları',
+                    briefTitle: 'Ölçü ve teslim bilgilerini görünür kılın',
+                    briefText: 'Eşya ilanlarında malzeme, takım adı ve teslimat açıklaması alıcının karar süresini ciddi şekilde kısaltır.',
+                    subCategoryLabel: 'Eşya Türü',
+                    subCategoryHelp: 'Mobilya, beyaz eşya ya da dekorasyon gibi doğru sınıflandırmayı seçin.',
+                    subCategoryOptions: [
+                        { value: 'koltuk', text: 'Koltuk / Oturma Grubu' },
+                        { value: 'yemek-odasi', text: 'Yemek Odası' },
+                        { value: 'yatak-odasi', text: 'Yatak Odası' },
+                        { value: 'beyaz-esya', text: 'Beyaz Eşya' },
+                        { value: 'dekorasyon', text: 'Dekorasyon' },
+                        { value: 'ofis-esyasi', text: 'Ofis Eşyası' }
+                    ],
+                    brandLabel: 'Marka / Üretici',
+                    brandPlaceholder: 'örn: IKEA, Bellona, özel yapım',
+                    brandHelp: 'Bilinmiyorsa malzeme veya üretici bilgisi de yazabilirsiniz.',
+                    modelLabel: 'Ürün / Takım Adı',
+                    modelPlaceholder: 'örn: 3+2 koltuk takımı, 6 kişilik masa',
+                    modelHelp: 'Takım içeriğini kısa ve net şekilde özetleyin.',
+                    conditionLabel: 'Eşya Durumu',
+                    conditionHelp: 'Çizik, deformasyon veya yenilenmiş parça varsa belirtin.',
+                    conditionRequired: true,
+                    warrantyLabel: 'Teslimat / Kurulum',
+                    warrantyPlaceholder: 'örn: Aynı gün teslim, kurulum dahil',
+                    warrantyHelp: 'Nakliye, kurulum ya da kat teslimi bilgisini ekleyin.',
+                    serialLabel: 'Ölçü / Boyut',
+                    serialPlaceholder: 'örn: 240x95x85 cm',
+                    serialHelp: 'Mobilya ve eşya ilanlarında ölçü bilgisi çok önemlidir.',
+                    usageLabel: 'Kullanım Süresi',
+                    usagePlaceholder: 'örn: 1 yıl',
+                    usageHelp: 'Ne kadar aktif kullanıldığını veya depoda beklediğini yazın.',
+                    guide1Title: 'Ölçü verin',
+                    guide1Text: 'Ölçü bilgisi eşya ilanlarında ilk sorulan konudur.',
+                    guide2Title: 'Takım içeriğini yazın',
+                    guide2Text: 'Kaç parçadan oluştuğunu ve eksik olup olmadığını belirtin.',
+                    guide3Title: 'Teslimat planını ekleyin',
+                    guide3Text: 'Nakliye ve kurulum bilgisi dönüşüm oranını artırır.'
+                },
+                services: {
+                    title: 'Hizmet Detayları',
+                    briefTitle: 'Kapsamı ve uygunluğu netleştirin',
+                    briefText: 'Hizmet ilanlarında uzmanlık alanı, paket adı ve müsaitlik bilgisi güven verir ve hızlı talep toplar.',
+                    subCategoryLabel: 'Hizmet Türü',
+                    subCategoryHelp: 'En yakın hizmet sınıfını seçerek doğru kitleye ulaşın.',
+                    subCategoryOptions: [
+                        { value: 'temizlik', text: 'Temizlik' },
+                        { value: 'tasima', text: 'Taşıma / Nakliye' },
+                        { value: 'tamir', text: 'Tamir / Teknik Servis' },
+                        { value: 'egitim', text: 'Eğitim / Özel Ders' },
+                        { value: 'danismanlik', text: 'Danışmanlık' },
+                        { value: 'organizasyon', text: 'Organizasyon / Etkinlik' }
+                    ],
+                    brandLabel: 'Firma / Uzman Adı',
+                    brandPlaceholder: 'örn: Ada Teknik Servis',
+                    brandHelp: 'Hizmeti veren kişi, ekip veya işletme adını yazın.',
+                    modelLabel: 'Paket / Hizmet Adı',
+                    modelPlaceholder: 'örn: Kombi bakım paketi, detaylı ev temizliği',
+                    modelHelp: 'Teklifinizi tek cümlede anlaşılır biçimde adlandırın.',
+                    conditionLabel: 'Durumu',
+                    conditionHelp: '',
+                    conditionRequired: false,
+                    warrantyLabel: 'Uygunluk / Çalışma Saatleri',
+                    warrantyPlaceholder: 'örn: Hafta içi 09:00-18:00, hafta sonu randevulu',
+                    warrantyHelp: 'Müsaitlik, bölge kapsamı veya çalışma saatlerini yazın.',
+                    serialLabel: 'Lisans / Referans No',
+                    serialPlaceholder: 'opsiyonel - belge, sertifika veya referans kodu',
+                    serialHelp: 'Varsa belge, sertifika veya referans numarası paylaşın.',
+                    usageLabel: 'Tahmini Hizmet Süresi',
+                    usagePlaceholder: 'örn: 2 saat, 1 gün, proje bazlı',
+                    usageHelp: 'İşin ortalama süresini veya teslim terminini belirtin.',
+                    guide1Title: 'Kapsamı netleştirin',
+                    guide1Text: 'Neleri dahil ettiğinizi yazmak yanlış beklentiyi azaltır.',
+                    guide2Title: 'Uygunluk belirtin',
+                    guide2Text: 'Saat, gün veya hizmet bölgesi bilgisini baştan verin.',
+                    guide3Title: 'Güven unsuru ekleyin',
+                    guide3Text: 'Sertifika, referans veya deneyim bilgisi talebi artırır.'
+                },
+                other: {
+                    title: 'Diğer Kategori Detayları',
+                    briefTitle: 'İlanınızı daha anlaşılır hale getirin',
+                    briefText: 'Genel kategorilerde doğru alt tür, kısa tanım ve ölçü/teslim bilgisi ilanınızın kaybolmasını önler.',
+                    subCategoryLabel: 'İlan Türü',
+                    subCategoryHelp: 'Hobi, koleksiyon, spor veya genel ürün gibi en uygun alanı seçin.',
+                    subCategoryOptions: [
+                        { value: 'hobi', text: 'Hobi Ürünleri' },
+                        { value: 'koleksiyon', text: 'Koleksiyon' },
+                        { value: 'spor', text: 'Spor / Outdoor' },
+                        { value: 'anne-bebek', text: 'Anne / Bebek' },
+                        { value: 'bahce', text: 'Bahçe / Yapı Market' },
+                        { value: 'genel', text: 'Genel / Diğer' }
+                    ],
+                    brandLabel: 'Marka / Kaynak',
+                    brandPlaceholder: 'örn: Lego, özel üretim, el yapımı',
+                    brandHelp: 'Marka yoksa üretim biçimi veya kaynak bilgisi girin.',
+                    modelLabel: 'Ürün / Seri Adı',
+                    modelPlaceholder: 'örn: koleksiyon parçası, kamp seti',
+                    modelHelp: 'Alıcıya ne sunduğunuzu tek satırda açıkça anlatın.',
+                    conditionLabel: 'Durumu',
+                    conditionHelp: 'Yeni, az kullanılmış ya da koleksiyonluk gibi durumu belirtin.',
+                    conditionRequired: true,
+                    warrantyLabel: 'Teslimat / Ek Bilgi',
+                    warrantyPlaceholder: 'örn: kutulu, kargo yapılır, elden teslim',
+                    warrantyHelp: 'Teslim şekli, kutu/içerik veya ek notları yazabilirsiniz.',
+                    serialLabel: 'Ölçü / Stok / Kod',
+                    serialPlaceholder: 'örn: 42 numara, 18 parça set, stok kodu',
+                    serialHelp: 'Beden, set içeriği, ölçü veya stok kodu ekleyin.',
+                    usageLabel: 'Kullanım / Saklama Süresi',
+                    usagePlaceholder: 'örn: hiç kullanılmadı, 3 ay, koleksiyonluk',
+                    usageHelp: 'Ürünün geçmişini tek cümlede özetleyin.',
+                    guide1Title: 'Türü net seçin',
+                    guide1Text: 'Genel kategoride doğru alt tür görünürlüğü artırır.',
+                    guide2Title: 'İçeriği yazın',
+                    guide2Text: 'Set ise parça sayısını, koleksiyon ise dönem bilgisini ekleyin.',
+                    guide3Title: 'Teslim şeklini belirtin',
+                    guide3Text: 'Kargo, elden teslim veya takas bilgisini baştan yazın.'
+                }
+            };
+
+            function updateStepIndicator() {
+                document.querySelectorAll('.progress-step').forEach((step, index) => {
+                    step.classList.remove('active', 'completed');
+                    if (index + 1 < currentStep) step.classList.add('completed');
+                    else if (index + 1 === currentStep) step.classList.add('active');
+                });
+            }
+
+            function setCategoryFieldConfig(category) {
+                const config = categoryFieldConfig[category] ?? categoryFieldConfig.electronics;
+
+                productSectionTitle.textContent = config.title;
+                categoryBriefTitle.textContent = config.briefTitle;
+                categoryBriefText.textContent = config.briefText;
+                subCategoryLabel.innerHTML = config.subCategoryLabel + ' <span class="required">*</span>';
+                subCategoryHelp.textContent = config.subCategoryHelp;
+                productBrandLabel.textContent = config.brandLabel;
+                productBrandInput.placeholder = config.brandPlaceholder;
+                productBrandHelp.textContent = config.brandHelp;
+                productModelLabel.textContent = config.modelLabel;
+                productModelInput.placeholder = config.modelPlaceholder;
+                productModelHelp.textContent = config.modelHelp;
+                warrantyLabel.textContent = config.warrantyLabel;
+                warrantyInput.placeholder = config.warrantyPlaceholder;
+                warrantyHelp.textContent = config.warrantyHelp;
+                serialNumberLabel.textContent = config.serialLabel;
+                serialNumberInput.placeholder = config.serialPlaceholder;
+                serialNumberHelp.textContent = config.serialHelp;
+                usageDurationLabel.textContent = config.usageLabel;
+                usageDurationInput.placeholder = config.usagePlaceholder;
+                usageDurationHelp.textContent = config.usageHelp;
+                guideCardTitle1.textContent = config.guide1Title;
+                guideCardText1.textContent = config.guide1Text;
+                guideCardTitle2.textContent = config.guide2Title;
+                guideCardText2.textContent = config.guide2Text;
+                guideCardTitle3.textContent = config.guide3Title;
+                guideCardText3.textContent = config.guide3Text;
+
+                const existingValue = subCategorySelect.value;
+                subCategorySelect.innerHTML = '<option value="">Seçiniz</option>';
+                config.subCategoryOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.text;
+                    if (option.value === existingValue) {
+                        optionElement.selected = true;
+                    }
+                    subCategorySelect.appendChild(optionElement);
+                });
+
+                productConditionLabel.innerHTML = config.conditionRequired
+                    ? config.conditionLabel + ' <span class="required">*</span>'
+                    : config.conditionLabel;
+                productConditionHelp.textContent = config.conditionHelp;
+                productConditionGroup.style.display = config.conditionRequired ? '' : 'none';
+                productConditionSelect.required = config.conditionRequired;
+                if (!config.conditionRequired) {
+                    productConditionSelect.value = '';
+                }
+            }
+
+            function validateCurrentStep() {
+                const currentSection = document.getElementById('step' + currentStep);
+                const requiredFields = currentSection.querySelectorAll('[required]');
+                let valid = true;
+                const checkedRadioGroups = new Set();
+                
+                requiredFields.forEach(field => {
+                    const dynamicParent = field.closest('.dynamic-fields');
+                    const isVisible = !dynamicParent || dynamicParent.classList.contains('active');
+
+                    if (!isVisible || field.offsetParent === null) {
+                        field.style.borderColor = '#e9ecef';
+                        return;
+                    }
+
+                    if (field.type === 'radio') {
+                        if (checkedRadioGroups.has(field.name)) {
+                            return;
+                        }
+
+                        checkedRadioGroups.add(field.name);
+                        const group = currentSection.querySelectorAll(`input[name="${field.name}"]`);
+                        const hasChecked = Array.from(group).some(radio => radio.checked);
+                        if (!hasChecked) {
+                            valid = false;
+                        }
+                        return;
+                    }
+
+                    if (!field.value.trim()) {
+                        valid = false;
+                        field.style.borderColor = '#dc3545';
+                    } else {
+                        field.style.borderColor = '#e9ecef';
+                    }
+                });
+                
+                return valid;
+            }
+
+            nextBtn.addEventListener('click', function() {
+                if (validateCurrentStep()) {
+                    if (currentStep < totalSteps) {
+                        currentStep++;
+                        updateStepIndicator();
+                        
+                        document.querySelectorAll('.form-section').forEach((section, index) => {
+                            section.style.display = index + 1 === currentStep ? 'block' : 'none';
+                        });
+                        
+                        prevBtn.style.display = currentStep > 1 ? 'inline-block' : 'none';
+                        
+                        if (currentStep === totalSteps) {
+                            nextBtn.style.display = 'none';
+                            submitBtn.style.display = 'block';
+                        }
+                    }
+                } else {
+                    alert('Lütfen zorunlu alanları doldurun.');
+                }
+            });
+
+            prevBtn.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateStepIndicator();
+                    
+                    document.querySelectorAll('.form-section').forEach((section, index) => {
+                        section.style.display = index + 1 === currentStep ? 'block' : 'none';
+                    });
+                    
+                    prevBtn.style.display = currentStep > 1 ? 'inline-block' : 'none';
+                    nextBtn.style.display = 'inline-block';
+                    submitBtn.style.display = 'none';
+                }
+            });
+
+            document.querySelectorAll('.form-section').forEach((section, index) => {
+                section.style.display = index === 0 ? 'block' : 'none';
+            });
+
+            function updateCategoryPanels(category) {
+                estateFields.classList.remove('active');
+                vehicleFields.classList.remove('active');
+                productFields.classList.remove('active');
+
+                if (category === 'estate') {
+                    estateFields.classList.add('active');
+                } else if (category === 'vehicle') {
+                    vehicleFields.classList.add('active');
+                } else if (['electronics', 'furniture', 'services', 'other'].includes(category)) {
+                    productFields.classList.add('active');
+                    setCategoryFieldConfig(category);
+                }
+            }
+
+            categoryInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    updateCategoryPanels(this.value);
+                });
+            });
+
+            const selectedCategoryInput = document.querySelector('input[name="Category"]:checked');
+            if (selectedCategoryInput) {
+                updateCategoryPanels(selectedCategoryInput.value);
+            }
+
+            function updateCharCounter(input, counter, max) {
+                const len = input.value.length;
+                counter.textContent = len + ' / ' + max + (input === descInput ? ' (minimum 40)' : '');
+                counter.className = 'char-counter';
+                if (len > max * 0.9) counter.classList.add('danger');
+                else if (len > max * 0.8) counter.classList.add('warning');
+            }
+
+            if (titleInput && titleCounter) {
+                titleInput.addEventListener('input', () => updateCharCounter(titleInput, titleCounter, 100));
+            }
+            if (descInput && descCounter) {
+                descInput.addEventListener('input', () => updateCharCounter(descInput, descCounter, 5000));
+            }
+
+            let uploadedFiles = [];
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            fileInput.addEventListener('change', () => {
+                handleFiles(fileInput.files);
+            });
+
+            function handleFiles(files) {
+                if (uploadedFiles.length + files.length > 20) {
+                    alert('En fazla 20 fotoğraf yükleyebilirsiniz.');
+                    return;
+                }
+                
+                Array.from(files).forEach(file => {
+                    if (file.size > 10 * 1024 * 1024) {
+                        alert(file.name + ' dosyası çok büyük (max 10MB).');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const index = uploadedFiles.length;
+                        uploadedFiles.push(file);
+                        
+                        const div = document.createElement('div');
+                        div.className = 'preview-item';
+                        div.dataset.index = index;
+                        div.innerHTML = `
+                            <img src="${e.target.result}" alt="${file.name}">
+                            <button type="button" class="remove-btn" data-index="${index}">×</button>
+                            ${index === 0 ? '<span class="cover-badge">KAPAK</span>' : ''}
+                            <input type="radio" name="coverSelect" value="${index}" ${index === 0 ? 'checked' : ''} title="Kapak fotoğrafı olarak ayarla">
+                        `;
+                        
+                        imagePreview.appendChild(div);
+                        
+                        div.querySelector('.remove-btn').addEventListener('click', function() {
+                            const idx = parseInt(this.dataset.index);
+                            uploadedFiles.splice(idx, 1);
+                            div.remove();
+                            updateFileInput();
+                            reorderPreviews();
+                        });
+                        
+                        div.querySelector('input[type="radio"]').addEventListener('change', function() {
+                            coverImageIndex.value = this.value;
+                            updateCoverBadge();
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                updateFileInput();
+            }
+
+            function updateFileInput() {
+                const dt = new DataTransfer();
+                uploadedFiles.forEach(file => dt.items.add(file));
+                fileInput.files = dt.files;
+            }
+
+            function reorderPreviews() {
+                const items = imagePreview.querySelectorAll('.preview-item');
+                items.forEach((item, index) => {
+                    item.dataset.index = index;
+                    item.querySelector('.remove-btn').dataset.index = index;
+                    const radio = item.querySelector('input[type="radio"]');
+                    radio.value = index;
+                    const badge = item.querySelector('.cover-badge');
+                    if (badge) badge.remove();
+                });
+                coverImageIndex.value = 0;
+                if (items.length > 0 && !items[0].querySelector('.cover-badge')) {
+                    items[0].insertAdjacentHTML('afterbegin', '<span class="cover-badge">KAPAK</span>');
+                }
+            }
+
+            function updateCoverBadge() {
+                imagePreview.querySelectorAll('.cover-badge').forEach(badge => badge.remove());
+                const selected = imagePreview.querySelector('input[type="radio"]:checked');
+                if (selected) {
+                    selected.closest('.preview-item').insertAdjacentHTML('afterbegin', '<span class="cover-badge">KAPAK</span>');
+                }
+            }
+        });
+    </script>
+}

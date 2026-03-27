@@ -1,0 +1,21 @@
+@model SEN_T_PAZAR.Models.ApplicationUser
+@{
+    ViewData["Title"] = "Hesabım";
+}
+<div class="container" style="max-width:600px;margin:2rem auto;">
+    <h2>Hesap Bilgilerim</h2>
+    <div class="card p-4 mb-4">
+        <dl class="row">
+            <dt class="col-sm-4">Ad Soyad</dt>
+            <dd class="col-sm-8">@Model.FullName</dd>
+            <dt class="col-sm-4">E-posta</dt>
+            <dd class="col-sm-8">@Model.Email</dd>
+            <dt class="col-sm-4">Kullanıcı Adı</dt>
+            <dd class="col-sm-8">@Model.UserName</dd>
+        </dl>
+    </div>
+    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-outline-primary">Çıkış Yap</button>
+    </form>
+</div>

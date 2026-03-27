@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "Giriş Yap";
+}
+@model SEN_T_PAZAR.Models.LoginViewModel
+<div class="container" style="max-width:400px;margin:2rem auto;">
+    <h2>Giriş Yap</h2>
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+        <div class="mb-3 form-check">
+            <input asp-for="RememberMe" class="form-check-input" />
+            <label asp-for="RememberMe" class="form-check-label"></label>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
+    </form>
+</div>

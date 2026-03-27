@@ -1,0 +1,16 @@
+@model SEN_T_PAZAR.Models.ProjectCard
+@{
+    ViewData["Title"] = Model.Name + " Detayları";
+}
+<div class="container">
+    <h1>@Model.Name</h1>
+    <img src="@Model.ImageUrl" alt="@Model.Name" style="max-width:400px;" />
+    <ul>
+        <li><strong>Lokasyon:</strong> @Model.Location</li>
+        <li><strong>Firma:</strong> @Model.Company</li>
+        <li><strong>Teslim Tarihi:</strong> @Model.DeliveryDate</li>
+        <li><strong>Başlangıç Fiyatı:</strong> @Model.PriceFrom</li>
+    </ul>
+    <p>@Model.Description</p>
+    <a asp-action="Index" class="btn btn-secondary">Tüm Projeler</a>
+</div>

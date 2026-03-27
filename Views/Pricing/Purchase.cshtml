@@ -1,0 +1,61 @@
+@model SEN_T_PAZAR.Controllers.PurchaseViewModel
+@{
+    ViewData["Title"] = "Paket Satın Al";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Paket Satın Al</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">@Model.PackageName</h5>
+                    <p class="text-muted">@Model.Description</p>
+                    
+                    <div class="mb-4">
+                        <div class="display-6 fw-bold">
+                            @Model.Price.ToString("N0") @Model.Currency
+                        </div>
+                        <small class="text-muted">@Model.DurationDays gün geçerli</small>
+                    </div>
+
+                    @if (Model.AvailableCount > 0)
+                    {
+                        <div class="alert alert-info">
+                            Bu paketten zaten <strong>@Model.AvailableCount</strong> adet kullanabilirsiniz.
+                        </div>
+                    }
+
+                    <form asp-action="Purchase" method="post">
+                        <input type="hidden" asp-for="PackageId" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Yöntemi</label>
+                            <select asp-for="PaymentMethod" class="form-select">
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                                <option value="wallet">Cüzdan</option>
+                            </select>
+                            <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <small><i class="bi bi-info-circle"></i> Bu bir simülasyon ödemesidir. Gerçek ödeme işlemi entegrasyonu yapılabilir.</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-cart-check"></i> Satın Al
+                            </button>
+                            <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-secondary">
+                                İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

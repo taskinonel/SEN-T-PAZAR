@@ -1,0 +1,123 @@
+@model SEN_T_PAZAR.Controllers.PromoteListingViewModel
+@{
+    ViewData["Title"] = "İlanı Güçlendir";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">İlanı Güçlendir: @Model.ListingTitle</h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Mevcut Durum -->
+                    <div class="mb-4">
+                        <h5>Mevcut Durum</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <div class="card @(Model.CurrentFeatured ? "bg-success text-white" : "bg-light")">
+                                    <div class="card-body">
+                                        <h6>Öne Çıkan</h6>
+                                        <p class="mb-0">
+                                            @(Model.CurrentFeatured ? 
+                                                (Model.FeaturedExpiryDate.HasValue ? "Aktif (Bitiş: " + Model.FeaturedExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : "Aktif") 
+                                                : "Pasif")
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="card @(Model.CurrentVitrin ? "bg-warning text-dark" : "bg-light")">
+                                    <div class="card-body">
+                                        <h6>Vitrin</h6>
+                                        <p class="mb-0">
+                                            @(Model.CurrentVitrin ? 
+                                                (Model.VitrinExpiryDate.HasValue ? "Aktif (Bitiş: " + Model.VitrinExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : "Aktif") 
+                                                : "Pasif")
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!Model.AvailablePackages.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <h5>Paketiniz yok</h5>
+                            <p>İlanınızı güçlendirmek için önce paket satın almanız gerekiyor.</p>
+                            <a href="@Url.Action("Index", "Pricing")" class="btn btn-primary">
+                                Fiyatlandırma Sayfası
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="PromoteListing" method="post">
+                            <input type="hidden" asp-for="ListingId" />
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Kullanılabilir Paketler</label>
+                                <div class="row">
+                                    @foreach (var pkg in Model.AvailablePackages)
+                                    {
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" 
+                                                       name="SelectedPackageId" 
+                                                       id="pkg_@pkg.PackageId" 
+                                                       value="@pkg.PackageId"
+                                                       required>
+                                                <label class="form-check-label w-100" for="pkg_@pkg.PackageId">
+                                                    <div class="card">
+                                                        <div class="card-body py-2">
+                                                            <h6 class="mb-1">@pkg.PackageName</h6>
+                                                            <small class="text-muted">
+                                                                Kalan: @pkg.RemainingUses | 
+                                                                @if (pkg.PackageType == "featured")
+                                                                {
+                                                                    <span class="badge bg-primary">Öne Çıkan</span>
+                                                                }
+                                                                else if (pkg.PackageType == "vitrin")
+                                                                {
+                                                                    <span class="badge bg-warning">Vitrin</span>
+                                                                }
+                                                                else if (pkg.PackageType == "combo")
+                                                                {
+                                                                    <span class="badge bg-success">Kombo</span>
+                                                                }
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <span asp-validation-for="SelectedPackageId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="bi bi-rocket-takeoff"></i> İlanı Güçlendir
+                                </button>
+                                <a href="@Url.Action("Dashboard", "Account", new { tab = "listings" })" class="btn btn-outline-secondary">
+                                    İptal
+                                </a>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

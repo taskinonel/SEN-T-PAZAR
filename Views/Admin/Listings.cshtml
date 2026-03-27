@@ -1,0 +1,42 @@
+@model IEnumerable<SEN_T_PAZAR.Models.Listing>
+@{
+    ViewData["Title"] = "İlan Onay Paneli";
+}
+<h2>İlan Onay Paneli</h2>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Başlık</th>
+            <th>Ad Soyad</th>
+            <th>Telefon</th>
+            <th>Şehir</th>
+            <th>Kategori</th>
+            <th>Fiyat</th>
+            <th>Durum</th>
+            <th>İşlem</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.FullName</td>
+                <td>@item.Phone</td>
+                <td>@item.City</td>
+                <td>@item.Category</td>
+                <td>@item.PriceAmount @item.PriceCurrency</td>
+                <td>@(item.IsApproved ? "Onaylı" : "Bekliyor")</td>
+                <td>
+                    @if (!item.IsApproved)
+                    {
+                        <form asp-action="Approve" asp-controller="Admin" method="post" style="display:inline">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button type="submit" class="btn btn-success btn-sm">Onayla</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

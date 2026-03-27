@@ -1,0 +1,137 @@
+
+@model List<SEN_T_PAZAR.Models.PricingPackage>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@functions {
+    public string T(string tr, string en, string ru, string ar) => L.CultureCode switch
+    {
+        "tr" => tr,
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        _ => tr
+    };
+}
+@{
+    ViewData["Title"] = L["pricingTitle"] ?? "Fiyatlandırma";
+    var userPackages = ViewData["UserPackages"] as List<SEN_T_PAZAR.Controllers.UserPackageInfo>;
+    var selectedType = ViewData["SelectedType"] as string;
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold">@L["pricingTitle"]</h1>
+        <p class="lead text-muted">@L["pricingSubtitle"]</p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Paket Türü Filtreleri -->
+    <div class="text-center mb-4">
+        <div class="btn-group" role="group">
+            <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary @((selectedType == null) ? "active" : "")">@L["allPackages"]</a>
+            <a href="@Url.Action("Index", "Pricing", new { type = "featured" })" class="btn btn-outline-primary @(selectedType == "featured" ? "active" : "")">@L["featured"]</a>
+            <a href="@Url.Action("Index", "Pricing", new { type = "vitrin" })" class="btn btn-outline-primary @(selectedType == "vitrin" ? "active" : "")">@L["showcase"]</a>
+            <a href="@Url.Action("Index", "Pricing", new { type = "combo" })" class="btn btn-outline-primary @(selectedType == "combo" ? "active" : "")">@L["combo"]</a>
+        </div>
+    </div>
+
+    <!-- Kullanıcının Paketleri -->
+    @if (userPackages != null && userPackages.Any())
+    {
+        <div class="card mb-5 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-gift"></i> @L["yourPackages"]</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @foreach (var up in userPackages)
+                    {
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3">
+                                <h6>@up.PackageName</h6>
+                                <p class="mb-1 text-muted">@L["available"]: @up.RemainingUses</p>
+                                @if (up.ExpiryDate.HasValue)
+                                {
+                                    <small class="text-muted">@L["expiry"]: @up.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Paketler -->
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var package in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm @(package.Tier == "gold" || package.Tier == "vip" ? "border-warning" : "")">
+                    @if (package.Tier == "gold" || package.Tier == "vip")
+                    {
+                        <div class="card-header bg-warning text-dark text-center">
+                            <strong>@L["mostPopular"]</strong>
+                        </div>
+                    }
+                    <div class="card-body text-center">
+                        <h5 class="card-title">@package.Name</h5>
+                        <p class="text-muted small">@package.Description</p>
+                        <div class="my-3">
+                            <span class="display-4 fw-bold">@package.Price.ToString("N0")</span>
+                            <span class="text-muted">@package.Currency</span>
+                        </div>
+                        <ul class="list-unstyled mb-3 text-start mx-auto" style="max-width: 200px;">
+                            <li><i class="bi bi-check-circle text-success"></i> @package.DurationDays @L["daysValid"]</li>
+                            <li><i class="bi bi-check-circle text-success"></i> @package.ListingsIncluded @L["listingsValid"]</li>
+                            @if (package.PackageType == "featured")
+                            {
+                                <li><i class="bi bi-check-circle text-success"></i> @L["inFeatured"]</li>
+                            }
+                            @if (package.PackageType == "vitrin")
+                            {
+                                <li><i class="bi bi-check-circle text-success"></i> @L["inShowcase"]</li>
+                            }
+                            @if (package.PackageType == "combo")
+                            {
+                                <li><i class="bi bi-check-circle text-success"></i> @L["inBoth"]</li>
+                            }
+                        </ul>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <a href="@Url.Action("Purchase", "Pricing", new { id = package.Id })" class="btn btn-primary w-100">
+                                @L["buy"]
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Login", "Account")" class="btn btn-outline-primary w-100">
+                                @L["login"]
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            @L["noPackages"]
+        </div>
+    }
+</div>
+
+<style>
+    .btn-group .btn.active {
+        background-color: var(--bs-primary);
+        color: white;
+    }
+</style>

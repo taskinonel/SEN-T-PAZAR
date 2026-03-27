@@ -1,0 +1,176 @@
+@model SEN_T_PAZAR.Models.PropertyCard
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = L["detailsTitle"];
+    var gallery = Model.GalleryImages is { Count: > 0 }
+        ? Model.GalleryImages
+        : new List<string> { Model.ImageUrl };
+}
+
+<section class="section detail-page">
+    <div class="container detail-shell">
+        <div class="detail-hero">
+            <div class="detail-gallery">
+                <div class="detail-main-image">
+                    <img id="detailMainImage" src="@gallery[0]" alt="@Model.Title" loading="eager" referrerpolicy="no-referrer" />
+                    <div class="detail-gallery__overlay">
+                        <div class="detail-gallery__badges">
+                            @foreach (var badge in Model.FeatureBadges.Take(3))
+                            {
+                                <span>@badge</span>
+                            }
+                        </div>
+                        <div class="detail-gallery__count">@gallery.Count fotoğraf</div>
+                    </div>
+                </div>
+
+                @if (gallery.Count > 1)
+                {
+                    <div class="detail-thumbs">
+                        @for (var i = 0; i < gallery.Count; i++)
+                        {
+                            <button type="button"
+                                    class="detail-thumb @(i == 0 ? "is-active" : string.Empty)"
+                                    data-image="@gallery[i]"
+                                    aria-label="Fotoğraf @(i + 1)">
+                                <img src="@gallery[i]" alt="@Model.Title fotoğraf @(i + 1)" loading="lazy" referrerpolicy="no-referrer" />
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <aside class="detail-summary-card">
+                <div class="detail-summary-card__top">
+                    <span class="detail-pill">@L.TypeLabel(Model.Type)</span>
+                    <span class="detail-pill detail-pill--light">@L.CategoryLabel(Model.Category)</span>
+                </div>
+
+                <h1>@Model.Title</h1>
+                <p class="detail-location">@Model.City - @Model.Neighborhood</p>
+                <p class="detail-summary">@Model.Summary</p>
+
+                <div class="detail-price-box">
+                    <small>@L["price"]</small>
+                    <strong>@Model.PriceLabel</strong>
+                    <span>@Model.AvailabilityNote</span>
+                </div>
+
+                <div class="detail-quick-meta">
+                    <div>
+                        <small>İlan no</small>
+                        <strong>@Model.ListingCode</strong>
+                    </div>
+                    <div>
+                        <small>Güncelleme</small>
+                        <strong>@Model.PostedAtLabel</strong>
+                    </div>
+                    <div>
+                        <small>Satıcı</small>
+                        <strong>@Model.SellerRole</strong>
+                    </div>
+                </div>
+
+                <div class="detail-actions">
+                    <a asp-action="Index" asp-controller="Home" class="btn btn-outline-primary">@L["backToList"]</a>
+                    <a asp-action="Publish" asp-controller="Home" class="btn btn-primary">@L["similarPost"]</a>
+                </div>
+            </aside>
+        </div>
+
+        <div class="detail-body-grid">
+            <div class="detail-body-main">
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>İlan Açıklaması</h2>
+                        <p>Detayları mümkün olduğunca açık ve karşılaştırılabilir şekilde sunuyoruz.</p>
+                    </div>
+                    <p class="detail-body-text">@Model.DetailBody</p>
+                </section>
+
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>Temel Bilgiler</h2>
+                        <p>Kategoriye göre en sık sorulan nitelikler burada yer alır.</p>
+                    </div>
+                    <div class="detail-facts-grid">
+                        @foreach (var fact in Model.Facts)
+                        {
+                            <article class="detail-fact-card">
+                                <small>@fact.Label</small>
+                                <strong>@fact.Value</strong>
+                            </article>
+                        }
+                    </div>
+                </section>
+
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>Öne Çıkanlar</h2>
+                        <p>Karar sürecini hızlandıran kritik noktalar.</p>
+                    </div>
+                    <div class="detail-highlights">
+                        @foreach (var highlight in Model.Highlights)
+                        {
+                            <article class="detail-highlight">
+                                <span class="detail-highlight__dot"></span>
+                                <p>@highlight</p>
+                            </article>
+                        }
+                    </div>
+                </section>
+            </div>
+
+            <aside class="detail-side-panel">
+                <section class="detail-section detail-section--compact">
+                    <div class="detail-section__head">
+                        <h2>Satıcı Profili</h2>
+                        <p>İlanla ilgili ilk iletişim noktası.</p>
+                    </div>
+                    <div class="detail-seller-card">
+                        <div class="detail-seller-card__avatar">@Model.SellerName[..1]</div>
+                        <div>
+                            <strong>@Model.SellerName</strong>
+                            <span>@Model.SellerRole</span>
+                            <a href="tel:@Model.SellerPhone">@Model.SellerPhone</a>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="detail-section detail-section--compact">
+                    <div class="detail-section__head">
+                        <h2>Etiketler</h2>
+                        <p>İlanı öne çıkaran kısa anahtarlar.</p>
+                    </div>
+                    <div class="detail-tags">
+                        @foreach (var badge in Model.FeatureBadges)
+                        {
+                            <span>@badge</span>
+                        }
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mainImage = document.getElementById('detailMainImage');
+            const thumbs = document.querySelectorAll('.detail-thumb');
+
+            thumbs.forEach(function (thumb) {
+                thumb.addEventListener('click', function () {
+                    const nextImage = thumb.dataset.image;
+                    if (!nextImage || !mainImage) return;
+
+                    mainImage.src = nextImage;
+                    thumbs.forEach(function (item) { item.classList.remove('is-active'); });
+                    thumb.classList.add('is-active');
+                });
+            });
+        });
+    </script>
+}

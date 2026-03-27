@@ -1,0 +1,44 @@
+@model List<SEN_T_PAZAR.Models.ProjectCard>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    var category = ViewData["Category"] as string ?? "emlak";
+    var fallbackImage = ViewData["FallbackImage"] as string ?? "";
+}
+
+@if (Model != null && Model.Count > 0)
+{
+    <div class="featured-carousel" data-category="@category">
+        <button class="carousel-arrow carousel-arrow--left" aria-label="@L["previous"]">
+            <span aria-hidden="true">&#60;</span>
+        </button>
+        <div class="featured-carousel-viewport">
+            <div class="featured-carousel-track">
+                @for (int i = 0; i < Math.Min(Model.Count, 12); i++)
+                {
+                    var item = Model[i];
+                    <article class="project-card">
+                        <img src="@(string.IsNullOrWhiteSpace(item.ImageUrl) ? fallbackImage : item.ImageUrl)" 
+                             alt="@item.Name" 
+                             loading="lazy" 
+                             referrerpolicy="no-referrer"
+                             onerror="this.src='@fallbackImage'" />
+                        <div class="project-card__body">
+                            <h3>@item.Name</h3>
+                            <p>@item.Location</p>
+                            <ul>
+                                <li>@item.Company</li>
+                                <li>@item.DeliveryDate</li>
+                            </ul>
+                            <p class="project-price">@item.PriceFrom</p>
+                            <a asp-action="Details" asp-controller="Home" asp-route-id="@item.Id" class="project-link">@L["details"]</a>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+        <button class="carousel-arrow carousel-arrow--right" aria-label="@L["next"]">
+            <span aria-hidden="true">&#62;</span>
+        </button>
+    </div>
+}

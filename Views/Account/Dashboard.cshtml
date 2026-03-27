@@ -1,0 +1,229 @@
+@model SEN_T_PAZAR.Models.AccountDashboardViewModel
+@{
+    ViewData["Title"] = "Hesabım";
+    var activeTab = (ViewData["ActiveTab"] as string ?? "overview").ToLowerInvariant();
+}
+
+<div class="account-dashboard container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <img src="@(string.IsNullOrWhiteSpace(Model.User.AvatarUrl) ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.User.FullName) + "&background=1e3a66&color=fff" : Model.User.AvatarUrl)"
+                 alt="Profil fotoğrafı"
+                 class="account-dashboard__avatar" />
+            <div>
+                <h2 class="mb-1">Merhaba, @Model.User.FullName</h2>
+                <div class="text-muted">@Model.User.Email</div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["DashboardSuccess"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="alert alert-success">@success</div>
+    }
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="alert alert-danger"></div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Toplam İlan</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.TotalListings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Yayındaki İlan</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.ApprovedListings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Onay Bekleyen</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.PendingListings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Favoriler</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.FavoritesCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs account-dashboard__tabs mb-3">
+        <li class="nav-item"><a class="nav-link @(activeTab == "overview" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="overview">Genel Bakış</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "profile" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="profile">Profil</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "security" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="security">Güvenlik</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "listings" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="listings">İlanlarım</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "favorites" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="favorites">Favoriler</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "notifications" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="notifications">Bildirimler</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "billing" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="billing">Fatura</a></li>
+    </ul>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            @if (activeTab == "overview")
+            {
+                <h5 class="mb-3">Hesap Özeti</h5>
+                <p class="text-muted mb-0">Profil, güvenlik, ilanlar ve bildirim ayarlarınızı yukarıdaki sekmelerden yönetebilirsiniz.</p>
+            }
+            else if (activeTab == "profile")
+            {
+                <h5 class="mb-3">Profil Bilgileri</h5>
+                <form asp-action="UpdateProfile" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <label asp-for="ProfileForm.FullName" class="form-label"></label>
+                        <input asp-for="ProfileForm.FullName" class="form-control" />
+                        <span asp-validation-for="ProfileForm.FullName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProfileForm.PhoneNumber" class="form-label"></label>
+                        <input asp-for="ProfileForm.PhoneNumber" class="form-control" />
+                        <span asp-validation-for="ProfileForm.PhoneNumber" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProfileForm.City" class="form-label"></label>
+                        <input asp-for="ProfileForm.City" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProfileForm.AvatarUrl" class="form-label"></label>
+                        <input asp-for="ProfileForm.AvatarUrl" class="form-control" />
+                        <span asp-validation-for="ProfileForm.AvatarUrl" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="ProfileForm.AddressLine" class="form-label"></label>
+                        <textarea asp-for="ProfileForm.AddressLine" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                    </div>
+                </form>
+            }
+            else if (activeTab == "security")
+            {
+                <h5 class="mb-3">Güvenlik Ayarları</h5>
+                <form asp-action="ChangePassword" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-4">
+                        <label asp-for="PasswordForm.CurrentPassword" class="form-label"></label>
+                        <input asp-for="PasswordForm.CurrentPassword" class="form-control" />
+                        <span asp-validation-for="PasswordForm.CurrentPassword" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PasswordForm.NewPassword" class="form-label"></label>
+                        <input asp-for="PasswordForm.NewPassword" class="form-control" />
+                        <span asp-validation-for="PasswordForm.NewPassword" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PasswordForm.ConfirmNewPassword" class="form-label"></label>
+                        <input asp-for="PasswordForm.ConfirmNewPassword" class="form-control" />
+                        <span asp-validation-for="PasswordForm.ConfirmNewPassword" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Şifreyi Güncelle</button>
+                    </div>
+                </form>
+            }
+            else if (activeTab == "listings")
+            {
+                <h5 class="mb-3">İlanlarım</h5>
+                @if (Model.MyListings.Count == 0)
+                {
+                    <div class="text-muted">Henüz size ait ilan bulunmuyor.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Başlık</th>
+                                    <th>Şehir</th>
+                                    <th>Fiyat</th>
+                                    <th>Durum</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.MyListings)
+                                {
+                                    <tr>
+                                        <td>@item.Title</td>
+                                        <td>@item.City</td>
+                                        <td>@item.PriceAmount @item.PriceCurrency</td>
+                                        <td>
+                                            <span class="badge @(item.IsApproved ? "text-bg-success" : "text-bg-warning")">
+                                                @(item.IsApproved ? "Yayında" : "Onay Bekliyor")
+                                            </span>
+                                        </td>
+                                        <td>@item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+            else if (activeTab == "favorites")
+            {
+                <h5 class="mb-3">Favoriler</h5>
+                <div class="text-muted">Favori sistemi bir sonraki adımda ilan kartlarıyla entegre edilecek. Altyapı panelde hazırlandı.</div>
+            }
+            else if (activeTab == "notifications")
+            {
+                <h5 class="mb-3">Bildirim Tercihleri</h5>
+                <form asp-action="NotificationSettings" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="form-check form-switch mb-2">
+                        <input asp-for="NotificationForm.EmailNotifications" class="form-check-input" />
+                        <label asp-for="NotificationForm.EmailNotifications" class="form-check-label"></label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="NotificationForm.SmsNotifications" class="form-check-input" />
+                        <label asp-for="NotificationForm.SmsNotifications" class="form-check-label"></label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Tercihleri Kaydet</button>
+                </form>
+            }
+            else if (activeTab == "billing")
+            {
+                <h5 class="mb-3">Fatura ve Ödeme Geçmişi</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Fatura No</th>
+                                <th>Tarih</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.BillingItems)
+                            {
+                                <tr>
+                                    <td>@item.InvoiceNo</td>
+                                    <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                    <td>@item.Amount @item.Currency</td>
+                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

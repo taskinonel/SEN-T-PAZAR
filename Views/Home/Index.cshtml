@@ -1,0 +1,242 @@
+﻿@model SEN_T_PAZAR.Models.HomePageViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    ViewData["Title"] = L["home"];
+    var formAction = Model.IsCategoryPage ? "Category" : "Index";
+    var hasActiveFilters = Model.ListingType != "all"
+        || Model.City != "all"
+        || Model.Category != "all"
+        || Model.PriceRange != "any"
+        || Model.SortBy != "latest"
+        || !string.IsNullOrWhiteSpace(Model.Keyword);
+    string CategoryText(string code) => L.CategoryLabel(code);
+    string PriceText(string code) => code switch
+    {
+        "low" => L["priceLow"],
+        "mid" => L["priceMid"],
+        "high" => L["priceHigh"],
+        _ => L["anyPrice"]
+    };
+}
+<section class="hero">
+    <div class="hero__overlay"></div>
+    <div class="hero__background"
+         data-hero-rotator
+         data-interval="6500"
+         data-images='["/img/arkaplan.png","https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=80","https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1800&q=80","https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1800&q=80"]'
+         style="background-image:url('/img/arkaplan.png')"></div>
+    <div class="container hero__content">
+    <p class="hero__eyebrow">@L["heroEyebrow"]</p>
+    <h1>@L["heroTitle"]</h1>
+    <p class="hero__subtitle">@L["heroSubtitle"]</p>
+    <form class="search-panel wide-panel"
+          role="search"
+          method="get"
+          asp-action="@formAction"
+          asp-controller="Home"
+          data-is-category-page="@Model.IsCategoryPage.ToString().ToLowerInvariant()"
+          data-current-category="@Model.Category"
+          data-home-url="@Url.Action("Index", "Home")">
+            @if (Model.IsCategoryPage)
+            {
+                <input type="hidden" name="slug" value="@Model.CurrentCategorySlug" />
+            }
+            <div class="search-panel__intro">
+                <div class="search-panel__intro-copy">
+                    <span class="search-panel__badge">Akilli Arama</span>
+                    <strong>Sehir, kategori ve ilan tipine gore hizli filtreleme</strong>
+                    <p>Temel filtrelerle ilanlari saniyeler icinde daraltin, detayli arama ile daha net sonuclara ulasin.</p>
+                </div>
+                <div class="search-panel__quick-tags" aria-label="Quick filters">
+                    <span>@L["listingType"]</span>
+                    <span>@L["city"]</span>
+                    <span>@L["category"]</span>
+                </div>
+            </div>
+            <div class="search-panel__grid">
+                <div>
+                    <label for="listingType">@L["listingType"]</label>
+                    <select id="listingType" name="listingType">
+                        @foreach (var option in Model.ListingTypeOptions)
+                        {
+                            <option value="@option" selected="@(option == Model.ListingType)">@L.TypeLabel(option)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="city">@L["city"]</label>
+                    <select id="city" name="city">
+                        @foreach (var city in Model.CityOptions)
+                        {
+                            <option value="@city" selected="@(city == Model.City)">@(city == "all" ? L["allCities"] : city)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="category">@L["category"]</label>
+                    <select id="category" name="category">
+                        <option value="all" data-url="@Url.Action("Index", "Home")" selected="@(Model.Category == "all")">@L["allCategories"]</option>
+                        @foreach (var category in Model.CategoryOptions.Where(x => x != "all"))
+                        {
+                            <option value="@category"
+                                    data-url="@L.BuildCategoryUrl(category)"
+                                    selected="@(category == Model.Category)">
+                                @CategoryText(category)
+                            </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="search-panel__actions">
+                <div class="search-panel__actions-left">
+                    <button type="button" class="btn btn-outline-info btn-sm px-3 py-2 btn-small-40" id="btn-advanced-search">Detaylı Arama</button>
+                    @if (Model.IsCategoryPage)
+                    {
+                        <a asp-action="Category" asp-controller="Home" asp-route-slug="@Model.CurrentCategorySlug" class="btn btn-outline-success btn-sm px-3 py-2 btn-small-40">@L["clearFilters"]</a>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-outline-success btn-sm px-3 py-2 btn-small-40">@L["clearFilters"]</a>
+                    }
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success btn-sm px-3 py-2 btn-small-40">@L["search"]</button>
+                </div>
+            </div>
+            <div id="advanced-search-modal" aria-hidden="true">
+                <div class="advanced-search-content" role="dialog" aria-modal="true" aria-labelledby="advanced-search-title">
+                    <button type="button" class="advanced-search-close" aria-label="Close">&times;</button>
+                    <h3 id="advanced-search-title">@L["search"]</h3>
+                    <div class="advanced-search-grid">
+                        <div>
+                            <label for="priceRange">@L["priceRange"]</label>
+                            <select id="priceRange" name="priceRange">
+                                @foreach (var range in Model.PriceRangeOptions)
+                                {
+                                    <option value="@range" selected="@(range == Model.PriceRange)">@PriceText(range)</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sortBy">@L["sortBy"]</label>
+                            <select id="sortBy" name="sortBy">
+                                @foreach (var sortOption in Model.SortOptions)
+                                {
+                                    <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="advanced-search-grid__full">
+                            <label for="keyword">@L["keyword"]</label>
+                            <input id="keyword" name="keyword" type="text" placeholder="@L["keyword"]" value="@Model.Keyword" />
+                        </div>
+                    </div>
+                    <div class="advanced-search-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-small-40" id="reset-advanced-search">@L["clearFilters"]</button>
+                        <button type="submit" class="btn btn-success btn-small-40">@L["search"]</button>
+                    </div>
+                </div>
+            </div>
+    </form>
+        <!-- hero-stats kaldırıldı -->
+    </div>
+
+<script src="/js/carousel-scroll.js"></script>
+</section>
+
+
+
+
+
+@if (Model.IsCategoryPage)
+{
+    <section class="section category-banner" style="background-image: linear-gradient(105deg, rgba(20,34,59,.88), rgba(20,34,59,.35)), url('@Model.CategoryHeroImage');">
+        <div class="container">
+            <h2>@CategoryText(Model.Category)</h2>
+            <p>@L.Format("resultsCount", Model.FilteredCount, Model.TotalCount)</p>
+            <div class="category-banner__links">
+                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-listingType="sale" asp-route-sortBy="@Model.SortBy">@L["forSale"]</a>
+                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-listingType="rent" asp-route-sortBy="@Model.SortBy">@L["forRent"]</a>
+                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-sortBy="@Model.SortBy">@L["allListings"]</a>
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.FeaturedListings.Count > 0)
+{
+    <section class="section market-board">
+        <div class="container wide-panel">
+            <div class="section__head section__head--light">
+                <h2>@(hasActiveFilters || Model.IsCategoryPage ? L["allListings"] : L["showcase"])</h2>
+                <p>@L.Format("resultsCount", Model.FeaturedListings.Count, Model.FilteredCount)</p>
+            </div>
+            <div class="market-board__grid">
+                @foreach (var listing in Model.FeaturedListings)
+                {
+                    <article class="listing-card">
+                        <a class="listing-card__media" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">
+                            <img src="@listing.ImageUrl" alt="@listing.Title" loading="lazy" referrerpolicy="no-referrer" />
+                            @if (listing.GalleryImages.Count > 1)
+                            {
+                                <span class="listing-card__image-count">@listing.GalleryImages.Count foto</span>
+                            }
+                        </a>
+                        <div class="listing-card__body">
+                            <div class="listing-card__topline">
+                                <span class="badge bg-light text-dark">@L.TypeLabel(listing.Type)</span>
+                                <span class="listing-card__category">@L.CategoryLabel(listing.Category)</span>
+                            </div>
+                            <h3>
+                                <a asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@listing.Title</a>
+                            </h3>
+                            <p class="listing-card__location">@listing.City - @listing.Location</p>
+                            <p class="listing-card__summary">@listing.Summary</p>
+                            <div class="listing-card__meta">
+                                <span>@listing.PrimarySpec</span>
+                                <span>@listing.SecondarySpec</span>
+                            </div>
+                            <div class="listing-card__footer">
+                                <strong class="listing-card__price">@listing.PriceLabel</strong>
+                                <a class="project-link" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@L["details"]</a>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+}
+else if (hasActiveFilters || Model.IsCategoryPage)
+{
+    <section class="section market-board">
+        <div class="container wide-panel">
+            <div class="section__head section__head--light">
+                <h2>@L["noResultsTitle"]</h2>
+                <p>@L["noResultsText"]</p>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Carousel her zaman ana sayfada, popüler bölgelerden önce gösterilecek -->
+<section class="section projects-strip">
+    <div class="container wide-panel">
+        <div class="section__head section__head--light">
+            <h2>@L["projectsTitle"]</h2>
+            <p>@L["projectsSubtitle"]</p>
+        </div>
+        <!-- 5 kategoriye göre 5 viewport - DRY prensibi ile partial view kullanımı -->
+        <div class="carousel-container">
+            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedEmlak, new ViewDataDictionary(ViewData) { ["Category"] = "emlak", ["FallbackImage"] = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=80" })
+            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedVasita, new ViewDataDictionary(ViewData) { ["Category"] = "vasita", ["FallbackImage"] = "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=400&q=80" })
+            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedElektronik, new ViewDataDictionary(ViewData) { ["Category"] = "elektronik", ["FallbackImage"] = "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400&q=80" })
+            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedEvEsya, new ViewDataDictionary(ViewData) { ["Category"] = "evesya", ["FallbackImage"] = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80" })
+            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedHizmet, new ViewDataDictionary(ViewData) { ["Category"] = "hizmet", ["FallbackImage"] = "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80" })
+        </div>
+    </div>
+</section>
+
+
+
+
