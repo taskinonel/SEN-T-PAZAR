@@ -1,0 +1,44 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = L["contactTitle"];
+}
+
+<section class="section info-page" style="background-image: linear-gradient(110deg, rgba(20,34,59,.92), rgba(20,34,59,.55)), url('https://images.unsplash.com/photo-1423666639041-f56000c27a9a?auto=format&fit=crop&w=1200&q=60');">
+    <div class="container info-page__content">
+        <h1>@L["contactTitle"]</h1>
+        <p>@L["contactSubtitle"]</p>
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-8">
+                <div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
+                    <div class="card-body p-4">
+                        <form method="post" asp-action="Contact">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">@L["contactName"]</label>
+                                <input type="text" name="name" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">@L["contactEmail"]</label>
+                                <input type="email" name="email" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">@L["contactSubject"]</label>
+                                <input type="text" name="subject" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">@L["contactMessage"]</label>
+                                <textarea name="message" class="form-control" rows="5" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg w-100">@L["contactSend"]</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a asp-action="Index" asp-controller="Home" class="btn btn-light">@L["home"]</a>
+        </div>
+    </div>
+</section>

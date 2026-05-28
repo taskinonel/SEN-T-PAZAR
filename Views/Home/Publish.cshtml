@@ -2,7 +2,7 @@
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
 
 @{
-    ViewData["Title"] = "Ücretsiz İlan Ver - " + L["publishTitle"];
+    ViewData["Title"] = L["freePostAd"] + " - " + L["publishTitle"];
     var cities = (ViewData["PublishCities"] as List<string>) ?? [];
     var types = (ViewData["PublishTypes"] as List<string>) ?? [];
     var categories = (ViewData["PublishCategories"] as List<string>) ?? [];
@@ -95,7 +95,7 @@
         .form-navigation { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .form-navigation .btn { padding: 0.75rem 2rem; border-radius: 8px; font-weight: 500; cursor: pointer; }
         .btn-secondary { background: #6c757d; color: #fff; border: none; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; }
+        .btn-primary { background: #1e3a66; color: #fff; border: none; }
         @@media (max-width: 768px) {
             .publish-form { padding: 1rem; }
             .category-selector { grid-template-columns: repeat(3, 1fr); }
@@ -112,8 +112,8 @@
 <div class="publish-page">
     <div class="publish-container">
         <div class="publish-header">
-            <h1>Ücretsiz İlan Ver</h1>
-            <p>İlanınız dakikalar içinde yayında! Tüm kategorilerde profesyonel ilan yönetimi.</p>
+            <h1>@L["publishHeaderTitle"]</h1>
+            <p>@L["publishHeaderSubtitle"]</p>
         </div>
 
         <div class="publish-form">
@@ -127,21 +127,21 @@
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <div class="progress-bar">
-                    <div class="progress-step active" data-step="1">1. Kategori</div>
-                    <div class="progress-step" data-step="2">2. Bilgiler</div>
-                    <div class="progress-step" data-step="3">3. Konum</div>
-                    <div class="progress-step" data-step="4">4. Görseller</div>
-                    <div class="progress-step" data-step="5">5. İletişim</div>
+                    <div class="progress-step active" data-step="1">1. @L["stepCategory"]</div>
+                    <div class="progress-step" data-step="2">2. @L["stepInfo"]</div>
+                    <div class="progress-step" data-step="3">3. @L["stepLocation"]</div>
+                    <div class="progress-step" data-step="4">4. @L["stepImages"]</div>
+                    <div class="progress-step" data-step="5">5. @L["stepContact"]</div>
                 </div>
 
                 <div class="form-section" id="step1">
                     <div class="section-title">
                         <i class="bi bi-grid-3x3-gap"></i>
-                        Kategori Seçimi
+                        @L["selectCategory"]
                     </div>
                     
                     <div class="info-box">
-                        <p><i class="bi bi-info-circle"></i> İlan vermek istediğiniz kategoriyi seçin. Her kategori için farklı bilgiler istenecektir.</p>
+                        <p><i class="bi bi-info-circle"></i> @L["selectCategoryInfo"]</p>
                     </div>
 
                     <div class="category-selector">
@@ -149,49 +149,49 @@
                             <input type="radio" asp-for="Category" id="cat-estate" value="estate" required>
                             <label for="cat-estate">
                                 <i class="bi bi-house-door"></i>
-                                <span>Emlak</span>
+                                <span>@L["cat_realestate"]</span>
                             </label>
                         </div>
                         <div class="category-option">
                             <input type="radio" asp-for="Category" id="cat-vehicle" value="vehicle" required>
                             <label for="cat-vehicle">
                                 <i class="bi bi-car-front"></i>
-                                <span>Vasıta</span>
+                                <span>@L["cat_vehicle"]</span>
                             </label>
                         </div>
                         <div class="category-option">
                             <input type="radio" asp-for="Category" id="cat-electronics" value="electronics" required>
                             <label for="cat-electronics">
                                 <i class="bi bi-laptop"></i>
-                                <span>Elektronik</span>
+                                <span>@L["cat_electronics"]</span>
                             </label>
                         </div>
                         <div class="category-option">
                             <input type="radio" asp-for="Category" id="cat-furniture" value="furniture" required>
                             <label for="cat-furniture">
                                 <i class="bi bi-sofa"></i>
-                                <span>Eşya</span>
+                                <span>@L["cat_home"]</span>
                             </label>
                         </div>
                         <div class="category-option">
                             <input type="radio" asp-for="Category" id="cat-services" value="services" required>
                             <label for="cat-services">
                                 <i class="bi bi-briefcase"></i>
-                                <span>Hizmet</span>
+                                <span>@L["cat_services"]</span>
                             </label>
                         </div>
                         <div class="category-option">
                             <input type="radio" asp-for="Category" id="cat-other" value="other" required>
                             <label for="cat-other">
                                 <i class="bi bi-box"></i>
-                                <span>Diğer</span>
+                                <span>@L["allCategories"]</span>
                             </label>
                         </div>
                     </div>
                     <span asp-validation-for="Category" class="text-danger"></span>
 
                     <div class="form-group">
-                        <label asp-for="Type">İlan Tipi <span class="required">*</span></label>
+                        <label asp-for="Type">@L["listingType"] <span class="required">*</span></label>
                         <select asp-for="Type" class="form-select" required>
                             <option value="">Seçiniz...</option>
                             @foreach (var type in types)
@@ -205,35 +205,35 @@
                     <div id="estate-fields" class="dynamic-fields">
                         <div class="section-title">
                             <i class="bi bi-house"></i>
-                            Emlak Özellikleri
+                            @L["estateFeatures"]
                         </div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label asp-for="EstateNetArea">Net M²</label>
+                                <label asp-for="EstateNetArea">@L["netArea"]</label>
                                 <input asp-for="EstateNetArea" type="number" class="form-control" placeholder="örn: 120" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="EstateGrossArea">Brüt M²</label>
+                                <label asp-for="EstateGrossArea">@L["grossArea"]</label>
                                 <input asp-for="EstateGrossArea" type="number" class="form-control" placeholder="örn: 140" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="EstateRoomCount">Oda Sayısı</label>
+                                <label asp-for="EstateRoomCount">@L["roomCount"]</label>
                                 <select asp-for="EstateRoomCount" asp-items="Html.GetEnumSelectList<EstateRoomCount>()" class="form-select">
                                     <option value="">Seçiniz</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="EstateBuildingAge">Bina Yaşı</label>
+                                <label asp-for="EstateBuildingAge">@L["buildingAge"]</label>
                                 <select asp-for="EstateBuildingAge" asp-items="Html.GetEnumSelectList<EstateBuildingAge>()" class="form-select">
                                     <option value="">Seçiniz</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="EstateTotalFloors">Kat Sayısı</label>
+                                <label asp-for="EstateTotalFloors">@L["floorCount"]</label>
                                 <input asp-for="EstateTotalFloors" type="number" class="form-control" placeholder="örn: 10" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="EstateFloorLocation">Bulunduğu Kat</label>
+                                <label asp-for="EstateFloorLocation">@L["floorLocation"]</label>
                                 <select asp-for="EstateFloorLocation" asp-items="Html.GetEnumSelectList<EstateFloorLocation>()" class="form-select">
                                     <option value="">Seçiniz</option>
                                 </select>
@@ -245,42 +245,42 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="DuesAmount">Aidat (₺)</label>
+                                <label asp-for="DuesAmount">@L["dues"] (₺)</label>
                                 <input asp-for="DuesAmount" type="number" class="form-control" placeholder="örn: 500" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="DepositAmount">Depozito (₺)</label>
-                                <input asp-for="DepositAmount" type="number" class="form-control" placeholder="Kiralık için" />
+                                <label asp-for="DepositAmount">@L["deposit"] (₺)</label>
+                                <input asp-for="DepositAmount" type="number" class="form-control" placeholder="@L["forRentOnly"]" />
                             </div>
                         </div>
                         <div class="features-grid mt-3">
                             <label class="feature-item">
                                 <input asp-for="EstateFurnished" type="checkbox" />
-                                <span>Eşyalı</span>
+                                <span>@L["furnished"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="InSite" type="checkbox" />
-                                <span>Site İçinde</span>
+                                <span>@L["inSite"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="HasBalcony" type="checkbox" />
-                                <span>Balkon</span>
+                                <span>@L["balcony"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="HasElevator" type="checkbox" />
-                                <span>Asansör</span>
+                                <span>@L["elevator"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="HasParking" type="checkbox" />
-                                <span>Otopark</span>
+                                <span>@L["parking"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="HasPool" type="checkbox" />
-                                <span>Havuz</span>
+                                <span>@L["pool"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="HasSecurity" type="checkbox" />
-                                <span>Güvenlik</span>
+                                <span>@L["security"]</span>
                             </label>
                         </div>
                     </div>
@@ -288,77 +288,77 @@
                     <div id="vehicle-fields" class="dynamic-fields">
                         <div class="section-title">
                             <i class="bi bi-car-front"></i>
-                            Araç Bilgileri
+                            @L["vehicleInfo"]
                         </div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label asp-for="VehicleBrand">Marka <span class="required">*</span></label>
+                                <label asp-for="VehicleBrand">@L["brand"] <span class="required">*</span></label>
                                 <input asp-for="VehicleBrand" class="form-control" placeholder="örn: BMW" required />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleModel">Model <span class="required">*</span></label>
+                                <label asp-for="VehicleModel">@L["model"] <span class="required">*</span></label>
                                 <input asp-for="VehicleModel" class="form-control" placeholder="örn: 3.20i" required />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleYear">Model Yılı <span class="required">*</span></label>
+                                <label asp-for="VehicleYear">@L["year"] <span class="required">*</span></label>
                                 <input asp-for="VehicleYear" type="number" class="form-control" placeholder="örn: 2020" min="1950" max="2030" required />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleKM">Kilometre <span class="required">*</span></label>
+                                <label asp-for="VehicleKM">@L["kilometer"] <span class="required">*</span></label>
                                 <input asp-for="VehicleKM" type="number" class="form-control" placeholder="örn: 45000" required />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleFuelType">Yakıt Tipi <span class="required">*</span></label>
+                                <label asp-for="VehicleFuelType">@L["fuelType"] <span class="required">*</span></label>
                                 <select asp-for="VehicleFuelType" asp-items="Html.GetEnumSelectList<FuelType>()" class="form-select" required>
                                     <option value="">Seçiniz</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleTransmission">Vites Tipi <span class="required">*</span></label>
+                                <label asp-for="VehicleTransmission">@L["transmission"] <span class="required">*</span></label>
                                 <select asp-for="VehicleTransmission" asp-items="Html.GetEnumSelectList<TransmissionType>()" class="form-select" required>
                                     <option value="">Seçiniz</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleBodyType">Kasa Tipi</label>
+                                <label asp-for="VehicleBodyType">@L["bodyType"]</label>
                                 <select asp-for="VehicleBodyType" asp-items="Html.GetEnumSelectList<BodyType>()" class="form-select">
                                     <option value="">Seçiniz</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label asp-for="EngineCapacity">Motor Hacmi (cc)</label>
+                                <label asp-for="EngineCapacity">@L["engineCapacity"] (cc)</label>
                                 <input asp-for="EngineCapacity" type="number" class="form-control" placeholder="örn: 1998" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="EnginePower">Motor Gücü (HP)</label>
+                                <label asp-for="EnginePower">@L["enginePower"] (HP)</label>
                                 <input asp-for="EnginePower" type="number" class="form-control" placeholder="örn: 184" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehicleColor">Renk</label>
+                                <label asp-for="VehicleColor">@L["color"]</label>
                                 <input asp-for="VehicleColor" class="form-control" placeholder="örn: Beyaz" />
                             </div>
                             <div class="form-group">
-                                <label asp-for="VehiclePlate">Plaka / Uyruk</label>
+                                <label asp-for="VehiclePlate">@L["plate"]</label>
                                 <input asp-for="VehiclePlate" class="form-control" placeholder="örn: TR / Yabancı" />
                             </div>
                         </div>
                         <div class="features-grid mt-3">
                             <label class="feature-item">
                                 <input asp-for="UnderWarranty" type="checkbox" />
-                                <span>Garantili</span>
+                                <span>@L["underWarranty"]</span>
                             </label>
                             <label class="feature-item">
                                 <input asp-for="TradeIn" type="checkbox" />
-                                <span>Takas Olur</span>
+                                <span>@L["tradeIn"]</span>
                             </label>
                         </div>
                         <div class="form-group mt-3">
-                            <label asp-for="AccidentRecord">Kaza Kaydı</label>
+                            <label asp-for="AccidentRecord">@L["accidentRecord"]</label>
                             <select asp-for="AccidentRecord" class="form-select">
                                 <option value="">Seçiniz</option>
-                                <option value="none">Kazasız</option>
-                                <option value="minor">Hafif Hasarlı</option>
-                                <option value="major">Ağır Hasarlı</option>
+                                <option value="none">@L["accidentRecordNone"]</option>
+                                <option value="minor">@L["accidentRecordMinor"]</option>
+                                <option value="major">@L["accidentRecordMajor"]</option>
                             </select>
                         </div>
                     </div>
@@ -437,28 +437,28 @@
                     </div>
                     
                     <div class="form-group">
-                        <label asp-for="Title">İlan Başlığı <span class="required">*</span></label>
+                        <label asp-for="Title">@L["listingTitle"] <span class="required">*</span></label>
                         <input asp-for="Title" class="form-control" placeholder="Örn: Satılık 3+1 Daire - Merkezi Konum" maxlength="100" required />
                         <span asp-validation-for="Title" class="text-danger"></span>
                         <div class="char-counter" id="titleCounter">0 / 100</div>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="Description">Açıklama <span class="required">*</span></label>
+                        <label asp-for="Description">@L["description"] <span class="required">*</span></label>
                         <textarea asp-for="Description" class="form-control" rows="8" placeholder="İlanınızı detaylı bir şekilde açıklayın. Özellikler, avantajlar, konum bilgileri..." minlength="40" maxlength="5000" required></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
                         <div class="char-counter" id="descCounter">0 / 5000 (minimum 40)</div>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="Tags">Anahtar Kelimeler</label>
+                        <label asp-for="Tags">@L["keywords"]</label>
                         <input asp-for="Tags" class="form-control" placeholder="Virgülle ayırarak yazın: daire, merkez, metro, okul" />
                         <small class="text-muted">Aramalarda çıkması için önemli kelimeler ekleyin</small>
                     </div>
 
                     <div class="form-grid mt-3">
                         <div class="form-group">
-                            <label asp-for="PriceAmount">Fiyat <span class="required">*</span></label>
+                            <label asp-for="PriceAmount">@L["price"] <span class="required">*</span></label>
                             <div class="price-input">
                                 <input asp-for="PriceAmount" type="number" class="form-control" placeholder="0" min="1" required />
                                 <select asp-for="PriceCurrency" class="form-select" style="width: 100px;">
@@ -477,23 +477,23 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="PriceDescription">Fiyat Açıklaması</label>
+                        <label asp-for="PriceDescription">@L["priceDescription"]</label>
                         <input asp-for="PriceDescription" class="form-control" placeholder="Örn: Son fiyat, pazarlık payı yok" />
                     </div>
 
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input asp-for="Negotiable" type="checkbox" checked />
-                            <span>Pazarlık Payı Var</span>
+                            <span>@L["negotiable"]</span>
                         </label>
                         <label class="checkbox-item">
                             <input asp-for="TradeIn" type="checkbox" />
-                            <span>Takas Olur</span>
+                            <span>@L["tradeIn"]</span>
                         </label>
                     </div>
 
                     <div class="form-group mt-3">
-                        <label asp-for="AdvertiserType">Kimden <span class="required">*</span></label>
+                        <label asp-for="AdvertiserType">@L["advertiserType"] <span class="required">*</span></label>
                         <select asp-for="AdvertiserType" asp-items="Html.GetEnumSelectList<AdvertiserType>()" class="form-select"></select>
                     </div>
                 </div>
@@ -501,12 +501,12 @@
                 <div class="form-section" id="step3">
                     <div class="section-title">
                         <i class="bi bi-geo-alt"></i>
-                        Konum Bilgileri
+                        @L["locationInfo"]
                     </div>
 
                     <div class="form-grid">
                         <div class="form-group">
-                            <label asp-for="City">Şehir <span class="required">*</span></label>
+                            <label asp-for="City">@L["city"] <span class="required">*</span></label>
                             <select asp-for="City" class="form-select" required>
                                 <option value="">Seçiniz...</option>
                                 @foreach (var city in cities)
@@ -517,18 +517,18 @@
                             <span asp-validation-for="City" class="text-danger"></span>
                         </div>
                         <div class="form-group">
-                            <label asp-for="District">İlçe <span class="required">*</span></label>
+                            <label asp-for="District">@L["district"] <span class="required">*</span></label>
                             <input asp-for="District" class="form-control" placeholder="örn: Kadıköy" required />
                             <span asp-validation-for="District" class="text-danger"></span>
                         </div>
                         <div class="form-group">
-                            <label asp-for="Neighborhood">Mahalle / Semt</label>
+                            <label asp-for="Neighborhood">@L["neighborhood"]</label>
                             <input asp-for="Neighborhood" class="form-control" placeholder="örn: Moda" />
                         </div>
                     </div>
 
                     <div class="form-group mt-3">
-                        <label asp-for="Address">Açık Adres</label>
+                        <label asp-for="Address">@L["address"]</label>
                         <textarea asp-for="Address" class="form-control" rows="3" placeholder="Tam adres bilgisi (opsiyonel, sadece ilan sahibine görünür)"></textarea>
                     </div>
 
@@ -537,25 +537,25 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="VideoUrl">YouTube Video Linki</label>
+                        <label asp-for="VideoUrl">@L["videoUrl"]</label>
                         <input asp-for="VideoUrl" type="url" class="form-control" placeholder="https://youtube.com/watch?v=..." />
-                        <small class="text-muted">İlanınıza video eklemek isterseniz YouTube linki ekleyin</small>
+                        <small class="text-muted">@L["videoUrlHelp"]</small>
                     </div>
                 </div>
 
                 <div class="form-section" id="step4">
                     <div class="section-title">
                         <i class="bi bi-images"></i>
-                        Görseller
+                        @L["images"]
                     </div>
 
                     <div class="info-box">
-                        <p><i class="bi bi-camera"></i> İlanınızın görünürlüğünü artırmak için en az 3, en fazla 20 fotoğraf yükleyin. İlk fotoğraf kapak fotoğrafı olarak kullanılacaktır.</p>
+                        <p><i class="bi bi-camera"></i> @L["photoUploadInfo"]</p>
                     </div>
 
                     <div class="image-upload" id="dropZone">
                         <i class="bi bi-cloud-upload"></i>
-                        <p><strong>Fotoğrafları sürükleyin</strong> veya tıklayarak seçin</p>
+                        <p><strong>@L["dragPhotos"]</strong> @L["clickToSelect"]</p>
                         <p style="font-size: 0.8rem; color: #adb5bd;">JPEG, PNG formatında, max 10MB</p>
                         <input asp-for="ImageFiles" type="file" multiple accept="image/jpeg,image/png,image/webp" id="fileInput" />
                     </div>
@@ -569,24 +569,24 @@
                 <div class="form-section" id="step5">
                     <div class="section-title">
                         <i class="bi bi-person"></i>
-                        İletişim Bilgileri
+                        @L["contactInfo"]
                     </div>
 
                     <div class="form-grid">
                         <div class="form-group">
-                            <label asp-for="FullName">Ad Soyad <span class="required">*</span></label>
-                            <input asp-for="FullName" class="form-control" placeholder="Adınız Soyadınız" required />
+                            <label asp-for="FullName">@L["fullName"] <span class="required">*</span></label>
+                            <input asp-for="FullName" class="form-control" placeholder="@L["fullName"]" required />
                             <span asp-validation-for="FullName" class="text-danger"></span>
                         </div>
                         <div class="form-group">
-                            <label asp-for="Phone">Telefon <span class="required">*</span></label>
+                            <label asp-for="Phone">@L["phone"] <span class="required">*</span></label>
                             <input asp-for="Phone" type="tel" class="form-control" placeholder="05xx xxx xx xx" required />
                             <span asp-validation-for="Phone" class="text-danger"></span>
                         </div>
                     </div>
 
                     <div class="form-group mt-3">
-                        <label>İletişim Tercihleri</label>
+                        <label>@L["contactPreferences"]</label>
                         <div class="contact-options">
                             <label class="contact-option">
                                 <input asp-for="AllowWhatsApp" type="checkbox" checked />
@@ -596,21 +596,21 @@
                             <label class="contact-option">
                                 <input asp-for="AllowMessages" type="checkbox" checked />
                                 <i class="bi bi-chat-dots"></i>
-                                <span>Siteden Mesaj</span>
+                                <span>@L["siteMessages"]</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="info-box mt-3">
-                        <p><i class="bi bi-shield-check"></i> İletişim bilgileriniz sadece ilanınızla ilgilenen kullanıcılara gösterilecektir.</p>
+                        <p><i class="bi bi-shield-check"></i> @L["contactPrivacy"]</p>
                     </div>
                 </div>
 
                 <div class="form-navigation">
-                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">Önceki</button>
-                    <button type="button" class="btn btn-primary" id="nextBtn">Sonraki</button>
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">@L["previous"]</button>
+                    <button type="button" class="btn btn-primary" id="nextBtn">@L["next"]</button>
                     <button type="submit" class="submit-btn" id="submitBtn" style="display: none;">
-                        <i class="bi bi-check-circle"></i> İlanımı Yayınla
+                        <i class="bi bi-check-circle"></i> @L["publishMyAd"]
                     </button>
                 </div>
             </form>

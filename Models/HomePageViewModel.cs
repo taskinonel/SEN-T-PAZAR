@@ -13,6 +13,8 @@ public sealed class HomePageViewModel
 
     public List<PropertyCard> FeaturedListings { get; set; } = [];
 
+    public List<PropertyCard> RecommendedListings { get; set; } = [];
+
     public List<string> PopularRegions { get; set; } = [];
 
     public List<RegionSpot> RegionSpots { get; set; } = [];
@@ -35,11 +37,17 @@ public sealed class HomePageViewModel
 
     public List<string> SortOptions { get; set; } = [];
 
+    public List<RegionalCampaign> RegionalCampaigns { get; set; } = [];
+
+    public List<SubCategoryFilter> SubCategoryFilters { get; set; } = [];
+
     public string ListingType { get; set; } = "all";
 
     public string City { get; set; } = "all";
 
     public string Category { get; set; } = "all";
+
+    public string SubCategory { get; set; } = "all";
 
     public string PriceRange { get; set; } = "any";
 
@@ -56,4 +64,20 @@ public sealed class HomePageViewModel
     public int TotalCount { get; set; }
 
     public int FilteredCount { get; set; }
+}
+
+public sealed class RegionalCampaign
+{
+    public string City { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public string DiscountLabel { get; set; } = string.Empty;
+    public List<PropertyCard> Listings { get; set; } = [];
+}
+
+public sealed class SubCategoryFilter
+{
+    public string Value { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
 }

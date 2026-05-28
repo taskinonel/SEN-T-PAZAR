@@ -1,25 +1,14 @@
-
-@model List<SEN_T_PAZAR.Models.PricingPackage>
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
-@functions {
-    public string T(string tr, string en, string ru, string ar) => L.CultureCode switch
-    {
-        "tr" => tr,
-        "en" => en,
-        "ru" => ru,
-        "ar" => ar,
-        _ => tr
-    };
-}
+@model List<SEN_T_PAZAR.Models.PricingPackage>
 @{
-    ViewData["Title"] = L["pricingTitle"] ?? "Fiyatlandırma";
-    var userPackages = ViewData["UserPackages"] as List<SEN_T_PAZAR.Controllers.UserPackageInfo>;
+    ViewData["Title"] = L["pricing"];
+    var userPackages = ViewData["UserPackages"] as List<SEN_T_PAZAR.Models.UserPackageInfo>;
     var selectedType = ViewData["SelectedType"] as string;
 }
 
 <div class="container py-5">
     <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold">@L["pricingTitle"]</h1>
+        <h1 class="display-4 fw-bold">@L["pricingPackages"]</h1>
         <p class="lead text-muted">@L["pricingSubtitle"]</p>
     </div>
 
@@ -31,15 +20,14 @@
         </div>
     }
 
-    <!-- Paket Türü Filtreleri -->
-    <div class="text-center mb-4">
-        <div class="btn-group" role="group">
-            <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary @((selectedType == null) ? "active" : "")">@L["allPackages"]</a>
-            <a href="@Url.Action("Index", "Pricing", new { type = "featured" })" class="btn btn-outline-primary @(selectedType == "featured" ? "active" : "")">@L["featured"]</a>
-            <a href="@Url.Action("Index", "Pricing", new { type = "vitrin" })" class="btn btn-outline-primary @(selectedType == "vitrin" ? "active" : "")">@L["showcase"]</a>
-            <a href="@Url.Action("Index", "Pricing", new { type = "combo" })" class="btn btn-outline-primary @(selectedType == "combo" ? "active" : "")">@L["combo"]</a>
-        </div>
-    </div>
+<!-- Paket Türü Filtreleri -->
+     <div class="text-center mb-4">
+         <div class="btn-group" role="group">
+             <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary @((selectedType == null) ? "active" : "")">@L["allPackages"]</a>
+             <a href="@Url.Action("Index", "Pricing", new { type = "featured" })" class="btn btn-outline-primary @(selectedType == "featured" ? "active" : "")">@L["featured"]</a>
+             <a href="@Url.Action("Index", "Pricing", new { type = "combo" })" class="btn btn-outline-primary @(selectedType == "combo" ? "active" : "")">@L["combo"]</a>
+         </div>
+     </div>
 
     <!-- Kullanıcının Paketleri -->
     @if (userPackages != null && userPackages.Any())
@@ -55,10 +43,10 @@
                         <div class="col-md-4 mb-3">
                             <div class="border rounded p-3">
                                 <h6>@up.PackageName</h6>
-                                <p class="mb-1 text-muted">@L["available"]: @up.RemainingUses</p>
+                                <p class="mb-1 text-muted">@L["available"] @up.RemainingUses</p>
                                 @if (up.ExpiryDate.HasValue)
                                 {
-                                    <small class="text-muted">@L["expiry"]: @up.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
+                                    <small class="text-muted">@L["expiry"] @up.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
                                 }
                             </div>
                         </div>
@@ -81,15 +69,15 @@
                         </div>
                     }
                     <div class="card-body text-center">
-                        <h5 class="card-title">@package.Name</h5>
-                        <p class="text-muted small">@package.Description</p>
+                        <h5 class="card-title">@L.LocalizePackageName(package.PackageType, package.Tier)</h5>
+                        <p class="text-muted small">@L.LocalizePackageDescription(package.PackageType, package.DurationDays)</p>
                         <div class="my-3">
                             <span class="display-4 fw-bold">@package.Price.ToString("N0")</span>
                             <span class="text-muted">@package.Currency</span>
                         </div>
                         <ul class="list-unstyled mb-3 text-start mx-auto" style="max-width: 200px;">
-                            <li><i class="bi bi-check-circle text-success"></i> @package.DurationDays @L["daysValid"]</li>
-                            <li><i class="bi bi-check-circle text-success"></i> @package.ListingsIncluded @L["listingsValid"]</li>
+                            <li><i class="bi bi-check-circle text-success"></i> @L.Format("daysValid", package.DurationDays)</li>
+                            <li><i class="bi bi-check-circle text-success"></i> @L.Format("listingsValid", package.ListingsIncluded)</li>
                             @if (package.PackageType == "featured")
                             {
                                 <li><i class="bi bi-check-circle text-success"></i> @L["inFeatured"]</li>
@@ -100,13 +88,13 @@
                             }
                             @if (package.PackageType == "combo")
                             {
-                                <li><i class="bi bi-check-circle text-success"></i> @L["inBoth"]</li>
+                                <li><i class="bi bi-check-circle text-success"></i> @L["bothFeaturedAndShowcase"]</li>
                             }
                         </ul>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <a href="@Url.Action("Purchase", "Pricing", new { id = package.Id })" class="btn btn-primary w-100">
-                                @L["buy"]
+                                @L["purchase"]
                             </a>
                         }
                         else

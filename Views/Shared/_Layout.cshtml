@@ -9,35 +9,50 @@
     <title>@ViewData["Title"] - @L["brand"]</title>
     <link rel="icon" type="image/png" href="~/img/logo.png" />
     <link rel="apple-touch-icon" href="~/img/logo.png" />
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+    @{
+        var currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+    }
     <header>
         <div class="utility-bar">
             <div class="container utility-bar__inner">
                 <div class="utility-logo-slogan d-flex align-items-center">
-                    <a asp-area="" asp-controller="Home" asp-action="Index" class="utility-logo-link">
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="utility-logo-link" aria-label="@L["home"]">
                         <img src="~/img/logo.png" alt="SEN-T PAZAR Logo">
                         <span>SEN-T PAZAR</span>
                     </a>
-
                 </div>
-                <div class="utility-langs d-flex align-items-center">
-                    <a href="@L.BuildCultureUrl("tr")">TR</a>
-                    <a href="@L.BuildCultureUrl("en")">EN</a>
-                    <a href="@L.BuildCultureUrl("ru")">RU</a>
-                    <a href="@L.BuildCultureUrl("ar")">AR</a>
+                <div class="utility-langs d-flex align-items-center" aria-label="@L["languageSelector"]">
+                    <a href="@L.BuildCultureUrl("tr")" class="lang-chip @(currentCulture == "tr" ? "is-active" : string.Empty)">
+                        <span class="lang-flag lang-flag--tr" aria-hidden="true"></span>
+                        <span>TR</span>
+                    </a>
+                    <a href="@L.BuildCultureUrl("en")" class="lang-chip @(currentCulture == "en" ? "is-active" : string.Empty)">
+                        <span class="lang-flag lang-flag--en" aria-hidden="true"></span>
+                        <span>EN</span>
+                    </a>
+                    <a href="@L.BuildCultureUrl("ru")" class="lang-chip @(currentCulture == "ru" ? "is-active" : string.Empty)">
+                        <span class="lang-flag lang-flag--ru" aria-hidden="true"></span>
+                        <span>RU</span>
+                    </a>
+                    <a href="@L.BuildCultureUrl("ar")" class="lang-chip @(currentCulture == "ar" ? "is-active" : string.Empty)">
+                        <span class="lang-flag lang-flag--ar" aria-hidden="true"></span>
+                        <span>AR</span>
+                    </a>
                 </div>
             </div>
         </div>
         <nav class="navbar navbar-expand-lg site-nav">
             <div class="container">
-                <!-- navbar'dan logo ve slogan kaldırıldı -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                        aria-expanded="false" aria-label="@L["toggleNavigation"]">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse justify-content-between">
@@ -45,12 +60,13 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">@L["home"]</a>
                         </li>
-                           @if (User.IsInRole("Admin"))
-                           {
-                               <li class="nav-item">
-                                   <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Listings">İlan Onay</a>
-                               </li>
-                           }
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Listings">@L["adminApproval"]</a>
+                            </li>
+                        }
                     </ul>
                     <div class="d-flex align-items-center gap-sm" style="position:relative; z-index:2;">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -61,76 +77,89 @@
                                     <i class="bi bi-person-circle"></i> @fullName
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Hesabım</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">@L["myAccount"]</a></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item">Çıkış Yap</button>
+                                            <button type="submit" class="dropdown-item">@L["logout"]</button>
                                         </form>
                                     </li>
                                 </ul>
                             </div>
-                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">Ücretsiz İlan Ver</a>
+                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">@L["freePostAd"]</a>
                         }
                         else
                         {
-                            <a asp-controller="Account" asp-action="Login" class="nav-btn nav-btn--outline btn-small-40">Giriş Yap</a>
-                            <a asp-controller="Account" asp-action="Register" class="nav-btn nav-btn--filled btn-small-40">Hesap Aç</a>
-                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">Ücretsiz İlan Ver</a>
+                            <a asp-controller="Account" asp-action="Login" class="nav-btn nav-btn--outline btn-small-40">@L["login"]</a>
+                            <a asp-controller="Account" asp-action="Register" class="nav-btn nav-btn--filled btn-small-40">@L["register"]</a>
+                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">@L["freePostAd"]</a>
                         }
                     </div>
                 </div>
             </div>
         </nav>
     </header>
-    <aside class="site-ad-rail site-ad-rail--left" aria-label="Sponsorlu reklam alani">
-        <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
-            <span class="site-ad__label">Sponsorlu</span>
-            <strong>Vitrinde ilk siz gorunun</strong>
-            <p>Markaniz icin premium alan, kampanya duyurusu ve guclu ilk izlenim.</p>
-            <span class="site-ad__pill">Rezervasyon acik</span>
-            <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=500&q=80');"></span>
-        </a>
-        <a asp-controller="Home" asp-action="Index" class="site-ad site-ad--warm">
-            <span class="site-ad__label">Marka Ortakligi</span>
-            <strong>Kurumsal magaza etkisi</strong>
-            <p>Sezona ozel urunler, secili kategori cikislari ve dikkat cekici vitrin.</p>
-            <span class="site-ad__pill">Bugun yayinda</span>
-            <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1519643381401-22c77e60520e?auto=format&fit=crop&w=500&q=80');"></span>
-        </a>
-    </aside>
-    <aside class="site-ad-rail site-ad-rail--right" aria-label="Sponsorlu reklam alani">
-        <a asp-controller="Home" asp-action="Index" class="site-ad">
-            <span class="site-ad__label">Premium Alan</span>
-            <strong>Yeni proje lansmani</strong>
-            <p>Emlak, arac ve teknoloji kampanyalariniz icin dikkat toplayan sabit alan.</p>
-            <span class="site-ad__pill">%100 gorunurluk</span>
-            <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=500&q=80');"></span>
-        </a>
-        <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
-            <span class="site-ad__label">Vitrin Plus</span>
-            <strong>Hedefli kategori cikisi</strong>
-            <p>Benzer ilanlar arasinda one cikan, hareketli alan hissi veren gorsel reklam.</p>
-            <span class="site-ad__pill">Sinirli stok</span>
-            <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=500&q=80');"></span>
-        </a>
-    </aside>
     <main role="main" class="site-main">
-            @RenderBody()
+        @RenderBody()
     </main>
+    <section class="section site-sponsor-band">
+        <div class="container wide-panel">
+            <div class="section__head section__head--light">
+                <h2>@L["sponsorBandTitle"]</h2>
+                <p>@L["sponsorBandSubtitle"]</p>
+            </div>
+            <div class="site-sponsor-grid">
+                <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
+                    <span class="site-ad__label">@L["sponsorLabel1"]</span>
+                    <strong>@L["sponsorTitle1"]</strong>
+                    <p>@L["sponsorText1"]</p>
+                    <span class="site-ad__pill">@L["sponsorCta1"]</span>
+                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80');"></span>
+                </a>
+                <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
+                    <span class="site-ad__label">@L["homeSponsorLabel1"]</span>
+                    <strong>@L["homeSponsorTitle1"]</strong>
+                    <p>@L["homeSponsorText1"]</p>
+                    <span class="site-ad__pill">@L["homeSponsorCta1"]</span>
+                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80');"></span>
+                </a>
+                <a asp-controller="Account" asp-action="Register" class="site-ad site-ad--warm">
+                    <span class="site-ad__label">@L["homeSponsorLabel2"]</span>
+                    <strong>@L["homeSponsorTitle2"]</strong>
+                    <p>@L["homeSponsorText2"]</p>
+                    <span class="site-ad__pill">@L["homeSponsorCta2"]</span>
+                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=900&q=80');"></span>
+                </a>
+                <a asp-controller="Home" asp-action="Index" class="site-ad">
+                    <span class="site-ad__label">@L["sponsorLabel3"]</span>
+                    <strong>@L["sponsorTitle3"]</strong>
+                    <p>@L["sponsorText3"]</p>
+                    <span class="site-ad__pill">@L["sponsorCta3"]</span>
+                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80');"></span>
+                </a>
+            </div>
+        </div>
+    </section>
 
     <footer class="footer text-muted">
         <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-md">
             <div class="footer-info w-100 text-center">
                 <img src="~/img/logo.png" alt="SEN-T PAZAR Logo">
-                <span class="footer-copyright">&copy; 2026 <span class="footer-brand">@L["brand"]</span> &ndash; Tüm hakları saklıdır.</span>
+                <span class="footer-copyright">&copy; 2026 <span class="footer-brand">@L["brand"]</span> &ndash; @L["copyright"]</span>
                 <span class="footer-slogan">bir SEN-T SOFTWARE markasıdır</span>
+            </div>
+            <div class="footer-links d-flex gap-3 justify-content-center">
+                <a href="@Url.Action("Privacy", "Home")" class="text-muted small">@L["footerPrivacy"]</a>
+                <a href="@Url.Action("Terms", "Home")" class="text-muted small">@L["footerTerms"]</a>
+                <a href="@Url.Action("Contact", "Home")" class="text-muted small">@L["footerContact"]</a>
+                <a href="@Url.Action("Faq", "Home")" class="text-muted small">@L["footerFaq"]</a>
             </div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/favorites.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

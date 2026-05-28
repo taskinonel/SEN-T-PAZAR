@@ -1,0 +1,112 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@model List<SEN_T_PAZAR.Models.Document>
+
+@{
+    ViewData["Title"] = L["documents"];
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">@L["documents"]</h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-3">
+                            <label class="form-label">@L["documentType"]</label>
+                            <select class="form-select" name="documentType" required>
+                                <option value="Invoice">@L["invoice"]</option>
+                                <option value="Contract">@L["contract"]</option>
+                                <option value="Warranty">@L["warranty"]</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">@L["chooseFile"]</label>
+                            <input class="form-control" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-cloud-upload me-2"></i>@L["upload"]
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">@L["yourDocuments"]</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["documentType"]</th>
+                                        <th scope="col">@L["fileName"]</th>
+                                        <th scope="col">@L["uploadDate"]</th>
+                                        <th scope="col" class="text-end">@L["actions"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var doc in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-@(doc.DocumentType == DocumentType.Invoice ? "primary" : doc.DocumentType == DocumentType.Contract ? "success" : "info")">
+                                                    @Enum.GetName(typeof(SEN_T_PAZAR.Models.DocumentType), doc.DocumentType)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-medium">@doc.FileName</div>
+                                            </td>
+                                            <td>
+                                                @doc.UploadDate.ToString("dd.MM.yyyy HH:mm")
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="@Url.Action("Download", "Document", new { id = doc.Id })"
+                                                   class="btn btn-sm btn-outline-primary me-1">
+                                                    <i class="bi bi-download"></i> @L["download"]
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle fs-1 mb-3"></i>
+                    <p>@L["noDocumentsYet"]</p>
+                    <p class="mb-0">@L["uploadFirstDocument"]</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

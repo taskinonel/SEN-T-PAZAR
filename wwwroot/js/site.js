@@ -2,107 +2,147 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchForm = document.querySelector('.search-panel[role="search"]');
     const categorySelect = document.getElementById('category');
     const advancedButton = document.getElementById('btn-advanced-search');
-    const advancedModal = document.getElementById('advanced-search-modal');
-    const closeButton = advancedModal?.querySelector('.advanced-search-close');
-    const resetButton = document.getElementById('reset-advanced-search');
+    const advancedFieldsEl = document.getElementById('advanced-search-fields');
     const advancedFields = [
         document.getElementById('priceRange'),
         document.getElementById('sortBy'),
         document.getElementById('keyword')
     ];
 
-    function toggleAdvancedSearch(isOpen) {
-        if (!advancedModal) {
-            return;
-        }
-
-        advancedModal.classList.toggle('active', isOpen);
-        advancedModal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-        document.body.classList.toggle('modal-open', isOpen);
-
-        if (isOpen) {
-            advancedFields[0]?.focus();
-        }
-    }
-
-    if (advancedButton && advancedModal) {
+    if (advancedButton && advancedFieldsEl) {
         advancedButton.addEventListener('click', function () {
-            toggleAdvancedSearch(true);
-        });
-
-        closeButton?.addEventListener('click', function () {
-            toggleAdvancedSearch(false);
-        });
-
-        advancedModal.addEventListener('click', function (event) {
-            if (event.target === advancedModal) {
-                toggleAdvancedSearch(false);
-            }
-        });
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape' && advancedModal.classList.contains('active')) {
-                toggleAdvancedSearch(false);
+            const isOpen = advancedFieldsEl.classList.toggle('open');
+            advancedButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            if (isOpen) {
+                advancedFields[0]?.focus();
             }
         });
     }
-
-    resetButton?.addEventListener('click', function () {
-        const priceRange = document.getElementById('priceRange');
-        const sortBy = document.getElementById('sortBy');
-        const keyword = document.getElementById('keyword');
-
-        if (priceRange) {
-            priceRange.value = 'any';
-        }
-
-        if (sortBy) {
-            sortBy.value = 'latest';
-        }
-
-        if (keyword) {
-            keyword.value = '';
-        }
-    });
 
     const heroRotator = document.querySelector('[data-hero-rotator]');
 
     if (heroRotator) {
+        const heroEl = heroRotator.closest('.hero') || heroRotator.parentElement;
         let images = [];
 
         try {
-            images = JSON.parse(heroRotator.dataset.images || '[]');
+            const rawImages = heroRotator.dataset.images;
+            if (rawImages) {
+                images = JSON.parse(rawImages);
+            }
         } catch (error) {
+            console.warn('Hero rotator: Failed to parse images data', error);
             images = [];
         }
 
+        // Filter valid image URLs
         images = images.filter(function (image) {
             return typeof image === 'string' && image.trim().length > 0;
         });
 
+        // --- Brightness detection for adaptive text colour ---
+        var brightnessMap = {};
+        var BRIGHTNESS_THRESHOLD = 132;
+        var brightnessCanvas = document.createElement('canvas');
+        brightnessCanvas.width = 64;
+        brightnessCanvas.height = 64;
+        var brightnessCtx = brightnessCanvas.getContext('2d');
+
+        function detectBrightness(src, callback) {
+            if (brightnessMap[src] !== undefined) {
+                callback(brightnessMap[src]);
+                return;
+            }
+            var img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function () {
+                try {
+                    brightnessCtx.clearRect(0, 0, 64, 64);
+                    brightnessCtx.drawImage(img, 0, 0, 64, 64);
+                    var data = brightnessCtx.getImageData(0, 0, 64, 64).data;
+                    var total = 0;
+                    for (var i = 0; i < data.length; i += 4) {
+                        total += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                    }
+                    var avg = total / (data.length / 4);
+                    brightnessMap[src] = avg;
+                    callback(avg);
+                } catch (e) {
+                    brightnessMap[src] = BRIGHTNESS_THRESHOLD - 1;
+                    callback(brightnessMap[src]);
+                }
+            };
+            img.onerror = function () {
+                brightnessMap[src] = BRIGHTNESS_THRESHOLD - 1;
+                callback(brightnessMap[src]);
+            };
+            img.src = src;
+        }
+
+        function applyTextTheme(src) {
+            detectBrightness(src, function (brightness) {
+                if (brightness > BRIGHTNESS_THRESHOLD) {
+                    heroEl.classList.remove('hero--light-text');
+                    heroEl.classList.add('hero--dark-text');
+                } else {
+                    heroEl.classList.remove('hero--dark-text');
+                    heroEl.classList.add('hero--light-text');
+                }
+            });
+        }
+
+        // Preload first image immediately
+        if (images.length > 0) {
+            var preloadLink = document.createElement('link');
+            preloadLink.rel = 'preload';
+            preloadLink.as = 'image';
+            preloadLink.href = images[0];
+            document.head.appendChild(preloadLink);
+
+            // Set initial background image
+            heroRotator.style.backgroundImage = "url('" + images[0] + "')";
+            heroRotator.style.backgroundSize = 'cover';
+            heroRotator.style.backgroundPosition = 'center';
+
+            // Detect brightness for first image
+            applyTextTheme(images[0]);
+        } else {
+            // Fallback for no images
+            heroRotator.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)';
+        }
+
         if (images.length > 1) {
-            let currentIndex = 0;
-            const interval = Number.parseInt(heroRotator.dataset.interval || '6500', 10);
+            var currentIndex = 0;
+            var interval = Number.parseInt(heroRotator.dataset.interval || '6500', 10);
 
             function preloadImage(source) {
-                const image = new Image();
-                image.src = source;
+                var img = new Image();
+                img.src = source;
             }
 
             function showNextImage() {
                 currentIndex = (currentIndex + 1) % images.length;
-                const nextImage = images[currentIndex];
+                var nextImage = images[currentIndex];
 
+                // Preload next image
                 preloadImage(images[(currentIndex + 1) % images.length]);
                 heroRotator.classList.add('is-swapping');
 
                 window.setTimeout(function () {
-                    heroRotator.style.backgroundImage = `url('${nextImage}')`;
+                    heroRotator.style.backgroundImage = "url('" + nextImage + "')";
                     heroRotator.classList.remove('is-swapping');
+
+                    // Update text colour for new image
+                    applyTextTheme(nextImage);
                 }, 220);
             }
 
-            preloadImage(images[1]);
+            // Preload second image
+            if (images[1]) {
+                preloadImage(images[1]);
+            }
+
+            // Start rotator
             window.setInterval(showNextImage, Number.isNaN(interval) ? 6500 : interval);
         }
     }
@@ -162,6 +202,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 url.search = query;
                 window.location.assign(`${url.pathname}${url.search}`);
             }
+        });
+    }
+
+    /* ----------------------------------------
+       Scroll Reveal Animations
+       ---------------------------------------- */
+    const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-stagger');
+
+    if (revealElements.length > 0 && 'IntersectionObserver' in window) {
+        const revealObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -40px 0px'
+        });
+
+        revealElements.forEach(function (el) {
+            revealObserver.observe(el);
+        });
+    } else {
+        // Fallback: show all elements immediately
+        revealElements.forEach(function (el) {
+            el.classList.add('revealed');
         });
     }
 });

@@ -96,16 +96,25 @@ public class Listing
     public bool IsApproved { get; set; } = false;
     public string? UserId { get; set; }
     
-    // Öne Çıkan ve Vitrin Özellikleri
-    public bool IsFeatured { get; set; } = false;
-    public bool IsVitrin { get; set; } = false;
-    public DateTime? FeaturedExpiryDate { get; set; }
-    public DateTime? VitrinExpiryDate { get; set; }
-    public string? FeaturedPackage { get; set; }
-    public string? VitrinPackage { get; set; }
+    // Değerlendirme Sistemi
+    public double AverageRating { get; set; } = 0.0;
+    public int ReviewCount { get; set; } = 0;
+    
+    // =====================
+    // VİTRİN & ÖNE ÇIKAN
+    // =====================
+    public bool IsFeatured { get; set; } = false;        // Öne çıkan ilan
+    public bool IsVitrin { get; set; } = false;           // Vitrinde göster
+    public DateTime? FeaturedExpiryDate { get; set; }    // Öne çıkan bitiş
+    public DateTime? VitrinExpiryDate { get; set; }      // Vitrin bitiş
+    public string? FeaturedPackage { get; set; }         // "gold", "silver", "bronze"
+    public string? VitrinPackage { get; set; }           // "vip", "super", "standart"
     
     // İlişkiler
     public List<ListingImage> Images { get; set; } = new();
+    public List<Review> Reviews { get; set; } = new();
+    public List<string> Highlights { get; set; } = new();
+    public List<string> FeatureBadges { get; set; } = new();
 }
 
 public class ListingImage

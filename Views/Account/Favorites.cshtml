@@ -1,0 +1,199 @@
+@model SEN_T_PAZAR.Controllers.FavoritesPageViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = "Favorilerim";
+    var T = new Func<string, string, string, string, string>((tr, en, ru, ar) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        _ => tr
+    });
+}
+
+<section class="section favorites-section">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="favorites-header">
+            <div class="favorites-header__content">
+                <h1>@T("Favorilerim", "My Favorites", "Мои избранные", "مفضلاتي")</h1>
+                <p class="favorites-header__subtitle">@T($"{Model.TotalItems} ilanı favorilerde", $"{Model.TotalItems} listings saved", $"{Model.TotalItems} объявлений в избранном", $"لديك {Model.TotalItems} إعلانات في المفضلة")</p>
+            </div>
+
+            @if (Model.TotalItems > 0)
+            {
+                <div class="favorites-header__actions">
+                    <form method="post" action="ClearAll" style="display: inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                onclick="return confirm('@T("Tüm favorileri silmek istediğinizden emin misiniz?", "Clear all favorites?", "Очистить все избранное?", "هل تريد مسح جميع المفضلة؟")')">
+                            @T("Tümünü Temizle", "Clear All", "Очистить все", "مسح الكل")
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+
+        @if (Model.TotalItems == 0)
+        {
+            <!-- Empty State -->
+            <div class="favorites-empty">
+                <div class="favorites-empty__icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </div>
+                <h2>@T("Favori Yok", "No Favorites Yet", "Нет избранного", "لا توجد مفضلات")</h2>
+                <p>@T("Favori ilanlarınız hemen burada görünecek", "Your favorite listings will appear here", "Ваши избранные объявления появятся здесь", "ستظهر الإعلانات المفضلة لديك هنا")</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                    @T("İlanları Keşfet", "Explore Listings", "Просмотреть объявления", "استكشف الإعلانات")
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Sort Bar -->
+            <div class="favorites-toolbar">
+                <form method="get" class="favorites-sort-form">
+                    <label for="sort">@T("Sortla:", "Sort:", "Сортировка:", "الترتيب:")</label>
+                    <select id="sort" name="sort" class="form-control form-control-sm" onchange="this.form.submit()">
+                        <option value="recent" selected="@(Model.SortBy == "recent")">@T("En Yeni", "Most Recent", "Самые новые", "الأحدث")</option>
+                        <option value="price-low" selected="@(Model.SortBy == "price-low")">@T("Düşük Fiyat", "Low Price", "Низкая цена", "السعر المنخفض")</option>
+                        <option value="price-high" selected="@(Model.SortBy == "price-high")">@T("Yüksek Fiyat", "High Price", "Высокая цена", "السعر العالي")</option>
+                        <option value="title-az" selected="@(Model.SortBy == "title-az")">@T("Başlık A-Z", "Title A-Z", "Название А-Я", "العنوان أ-ي")</option>
+                    </select>
+                </form>
+
+                <div class="favorites-results-count">
+                    @T($"Sayfa {Model.CurrentPage} / {Model.TotalPages}", $"Page {Model.CurrentPage} / {Model.TotalPages}", $"Стр. {Model.CurrentPage} / {Model.TotalPages}", $"الصفحة {Model.CurrentPage} / {Model.TotalPages}")
+                </div>
+            </div>
+
+            <!-- Favorites Grid -->
+            <form method="post" action="DeleteSelected" class="favorites-form">
+                @Html.AntiForgeryToken()
+
+                <div class="favorites-grid">
+                    @foreach (var favorite in Model.Favorites)
+                    {
+                        var listing = favorite.Listing;
+                        <div class="favorite-card">
+                            <div class="favorite-card__image">
+                                <img src="@(listing?.Images?.FirstOrDefault()?.FilePath ?? "/img/placeholder.png")" 
+                                     alt="@listing?.Title" 
+                                     loading="lazy" />
+                                <label class="favorite-card__checkbox">
+                                    <input type="checkbox" name="selectedIds" value="@listing?.Id" />
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+
+                            <div class="favorite-card__content">
+                                <div class="favorite-card__header">
+                                    <h3>
+                                        <a asp-action="Details" asp-controller="Home" asp-route-id="@listing?.Id">
+                                            @listing?.Title
+                                        </a>
+                                    </h3>
+                                    <button type="button" 
+                                            class="btn-favorite heart-btn favorited" 
+                                            data-listing-id="@listing?.Id" 
+                                            title="@T("Favorilerinden çıkar", "Remove from favorites", "Удалить из избранного", "إزالة من المفضلة")">
+                                        <svg class="heart-icon active" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <p class="favorite-card__location">
+                                    <span class="badge badge-info">@listing?.Category</span>
+                                    @listing?.City - @listing?.District
+                                </p>
+
+                                <p class="favorite-card__description">@listing?.Description</p>
+
+                                <div class="favorite-card__footer">
+                                    <div class="favorite-card__price">
+                                        <strong>@listing?.PriceAmount.ToString("C")</strong>
+                                    </div>
+                                    <a asp-action="Details" asp-controller="Home" asp-route-id="@listing?.Id" class="btn btn-sm btn-primary">
+                                        @T("Incele", "View", "Просмотр", "اعرض")
+                                    </a>
+                                </div>
+
+                                <small class="favorite-card__date">
+                                    @T("Ekleme: ", "Added: ", "Добавлено: ", "تمت الإضافة: ") @favorite.CreatedAt.ToString("d MMMM yyyy")
+                                </small>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Bulk Actions -->
+                @if (Model.TotalItems > 0)
+                {
+                    <div class="favorites-bulk-actions">
+                        <button type="submit" name="action" value="delete" class="btn btn-outline-danger" 
+                                onclick="return confirm('@T("Seçili öğeleri silmek istediğinizden emin misiniz?", "Delete selected items?", "Вы уверены, что хотите удалить выбранные элементы?", "هل تريد حذف العناصر المحددة؟")')">
+                            @T("Seçilenleri Sil", "Delete Selected", "Удалить выбранное", "حذف المحدد")
+                        </button>
+                    </div>
+                }
+            </form>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="favorites-pagination">
+                    <ul class="pagination">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" asp-route-page="1">
+                                    @T("İlk", "First", "Первая", "الأولى")
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)">
+                                    @T("Önceki", "Previous", "Предыдущая", "السابق")
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                        {
+                            if (i == Model.CurrentPage)
+                            {
+                                <li class="page-item active"><span class="page-link">@i</span></li>
+                            }
+                            else
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+                                </li>
+                            }
+                        }
+
+                        @if (Model.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)">
+                                    @T("Sonraki", "Next", "Следующая", "التالي")
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" asp-action="Index" asp-route-page="@Model.TotalPages">
+                                    @T("Son", "Last", "Последняя", "الأخيرة")
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</section>
+
+<!-- CSS Styles -->
+<link rel="stylesheet" href="~/css/favorites-page.css" asp-append-version="true" />

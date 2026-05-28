@@ -17,14 +17,21 @@
         "high" => L["priceHigh"],
         _ => L["anyPrice"]
     };
+    string T(string tr, string en, string ru, string ar) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        _ => tr
+    };
 }
-<section class="hero">
+<section class="hero hero--light-text">
     <div class="hero__overlay"></div>
     <div class="hero__background"
          data-hero-rotator
          data-interval="6500"
-         data-images='["/img/arkaplan.png","https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=80","https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1800&q=80","https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1800&q=80"]'
-         style="background-image:url('/img/arkaplan.png')"></div>
+         data-images='["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=2400&q=90"]'
+         style="background-image:url('https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90')"></div>
     <div class="container hero__content">
     <p class="hero__eyebrow">@L["heroEyebrow"]</p>
     <h1>@L["heroTitle"]</h1>
@@ -43,14 +50,9 @@
             }
             <div class="search-panel__intro">
                 <div class="search-panel__intro-copy">
-                    <span class="search-panel__badge">Akilli Arama</span>
-                    <strong>Sehir, kategori ve ilan tipine gore hizli filtreleme</strong>
-                    <p>Temel filtrelerle ilanlari saniyeler icinde daraltin, detayli arama ile daha net sonuclara ulasin.</p>
-                </div>
-                <div class="search-panel__quick-tags" aria-label="Quick filters">
-                    <span>@L["listingType"]</span>
-                    <span>@L["city"]</span>
-                    <span>@L["category"]</span>
+                    <span class="search-panel__badge">@L["smartSearch"]</span>
+                    <strong>@L["searchIntroTitle"]</strong>
+                    <p>@L["searchIntroText"]</p>
                 </div>
             </div>
             <div class="search-panel__grid">
@@ -87,62 +89,45 @@
                     </select>
                 </div>
             </div>
-            <div class="search-panel__actions">
-                <div class="search-panel__actions-left">
-                    <button type="button" class="btn btn-outline-info btn-sm px-3 py-2 btn-small-40" id="btn-advanced-search">Detaylı Arama</button>
-                    @if (Model.IsCategoryPage)
-                    {
-                        <a asp-action="Category" asp-controller="Home" asp-route-slug="@Model.CurrentCategorySlug" class="btn btn-outline-success btn-sm px-3 py-2 btn-small-40">@L["clearFilters"]</a>
-                    }
-                    else
-                    {
-                        <a asp-action="Index" asp-controller="Home" class="btn btn-outline-success btn-sm px-3 py-2 btn-small-40">@L["clearFilters"]</a>
-                    }
-                </div>
-                <div>
-                    <button type="submit" class="btn btn-success btn-sm px-3 py-2 btn-small-40">@L["search"]</button>
-                </div>
-            </div>
-            <div id="advanced-search-modal" aria-hidden="true">
-                <div class="advanced-search-content" role="dialog" aria-modal="true" aria-labelledby="advanced-search-title">
-                    <button type="button" class="advanced-search-close" aria-label="Close">&times;</button>
-                    <h3 id="advanced-search-title">@L["search"]</h3>
-                    <div class="advanced-search-grid">
-                        <div>
-                            <label for="priceRange">@L["priceRange"]</label>
-                            <select id="priceRange" name="priceRange">
-                                @foreach (var range in Model.PriceRangeOptions)
-                                {
-                                    <option value="@range" selected="@(range == Model.PriceRange)">@PriceText(range)</option>
-                                }
-                            </select>
-                        </div>
-                        <div>
-                            <label for="sortBy">@L["sortBy"]</label>
-                            <select id="sortBy" name="sortBy">
-                                @foreach (var sortOption in Model.SortOptions)
-                                {
-                                    <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="advanced-search-grid__full">
-                            <label for="keyword">@L["keyword"]</label>
-                            <input id="keyword" name="keyword" type="text" placeholder="@L["keyword"]" value="@Model.Keyword" />
-                        </div>
+            <div class="search-panel__advanced" id="advanced-search-fields">
+                <div class="search-panel__grid">
+                    <div>
+                        <label for="priceRange">@L["priceRange"]</label>
+                        <select id="priceRange" name="priceRange">
+                            @foreach (var range in Model.PriceRangeOptions)
+                            {
+                                <option value="@range" selected="@(range == Model.PriceRange)">@PriceText(range)</option>
+                            }
+                        </select>
                     </div>
-                    <div class="advanced-search-actions">
-                        <button type="button" class="btn btn-outline-secondary btn-small-40" id="reset-advanced-search">@L["clearFilters"]</button>
-                        <button type="submit" class="btn btn-success btn-small-40">@L["search"]</button>
+                    <div>
+                        <label for="sortBy">@L["sortBy"]</label>
+                        <select id="sortBy" name="sortBy">
+                            @foreach (var sortOption in Model.SortOptions)
+                            {
+                                <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="keyword">@L["keyword"]</label>
+                        <input id="keyword" name="keyword" type="text" placeholder="@L["keyword"]" value="@Model.Keyword" />
                     </div>
                 </div>
             </div>
+<div class="search-panel__actions">
+    <div class="search-panel__actions-group">
+        <button type="button" class="btn btn-outline-info btn-sm px-3 py-2 btn-small-40" id="btn-advanced-search">@L["advancedSearch"]</button>
+        <button type="submit" class="btn btn-success btn-sm px-3 py-2 btn-small-40">@L["search"]</button>
+    </div>
+</div>
     </form>
         <!-- hero-stats kaldırıldı -->
     </div>
 
 <script src="/js/carousel-scroll.js"></script>
 </section>
+
 
 
 
@@ -165,13 +150,13 @@
 
 @if (Model.FeaturedListings.Count > 0)
 {
-    <section class="section market-board">
+    <section class="section market-board reveal">
         <div class="container wide-panel">
             <div class="section__head section__head--light">
                 <h2>@(hasActiveFilters || Model.IsCategoryPage ? L["allListings"] : L["showcase"])</h2>
                 <p>@L.Format("resultsCount", Model.FeaturedListings.Count, Model.FilteredCount)</p>
             </div>
-            <div class="market-board__grid">
+            <div class="market-board__grid reveal-stagger">
                 @foreach (var listing in Model.FeaturedListings)
                 {
                     <article class="listing-card">
@@ -179,7 +164,7 @@
                             <img src="@listing.ImageUrl" alt="@listing.Title" loading="lazy" referrerpolicy="no-referrer" />
                             @if (listing.GalleryImages.Count > 1)
                             {
-                                <span class="listing-card__image-count">@listing.GalleryImages.Count foto</span>
+                                <span class="listing-card__image-count">@T($"{listing.GalleryImages.Count} foto", $"{listing.GalleryImages.Count} photos", $"{listing.GalleryImages.Count} фото", $"{listing.GalleryImages.Count} صورة")</span>
                             }
                         </a>
                         <div class="listing-card__body">
@@ -220,7 +205,7 @@ else if (hasActiveFilters || Model.IsCategoryPage)
 }
 
 <!-- Carousel her zaman ana sayfada, popüler bölgelerden önce gösterilecek -->
-<section class="section projects-strip">
+<section class="section projects-strip reveal">
     <div class="container wide-panel">
         <div class="section__head section__head--light">
             <h2>@L["projectsTitle"]</h2>
@@ -237,6 +222,28 @@ else if (hasActiveFilters || Model.IsCategoryPage)
     </div>
 </section>
 
+
+
+<section class="section site-sponsor-band site-sponsor-band--home reveal">
+    <div class="container wide-panel">
+        <div class="site-sponsor-grid reveal-stagger">
+            <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
+                <span class="site-ad__label">@L["homeSponsorLabel1"]</span>
+                <strong>@L["homeSponsorTitle1"]</strong>
+                <p>@L["homeSponsorText1"]</p>
+                <span class="site-ad__pill">@L["homeSponsorCta1"]</span>
+                <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80');"></span>
+            </a>
+            <a asp-controller="Account" asp-action="Register" class="site-ad site-ad--warm">
+                <span class="site-ad__label">@L["homeSponsorLabel2"]</span>
+                <strong>@L["homeSponsorTitle2"]</strong>
+                <p>@L["homeSponsorText2"]</p>
+                <span class="site-ad__pill">@L["homeSponsorCta2"]</span>
+                <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=900&q=80');"></span>
+            </a>
+        </div>
+    </div>
+</section>
 
 
 

@@ -13,14 +13,52 @@ a {
 
 .btn-primary {
   color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+  background-color: #1e3a66;
+  border-color: #1e3a66;
+  font-weight: 400;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: #3b5c8a;
+  border-color: #3b5c8a;
+}
+
+.btn-success {
+  color: #fff;
+  background-color: #1e3a66;
+  border-color: #1e3a66;
+  font-weight: 400;
+}
+
+.btn-success:hover {
+  color: #fff;
+  background-color: #3b5c8a;
+  border-color: #3b5c8a;
+}
+
+.btn-outline-primary {
+  color: #1e3a66;
+  border-color: #1e3a66;
+  font-weight: 400;
+}
+
+.btn-outline-primary:hover {
+  color: #fff;
+  background-color: #1e3a66;
+  border-color: #1e3a66;
+}
+
+.btn-outline-primary.active {
+  color: #fff;
+  background-color: #1e3a66;
+  border-color: #1e3a66;
 }
 
 .nav-pills .nav-link.active, .nav-pills .show > .nav-link {
   color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+  background-color: #1e3a66;
+  border-color: #1e3a66;
 }
 
 .border-top {

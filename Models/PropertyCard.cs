@@ -53,6 +53,12 @@ public sealed class PropertyCard
     public string DetailBody { get; set; } = string.Empty;
 
     public string Neighborhood { get; set; } = string.Empty;
+
+    public double AverageRating { get; set; } = 0.0;
+
+    public int ReviewCount { get; set; } = 0;
+
+    public List<Review> Reviews { get; set; } = [];
 }
 
 public sealed class ListingFact

@@ -12,6 +12,12 @@ public class AccountDashboardViewModel
     public required List<FavoriteItemViewModel> Favorites { get; set; }
     public required List<BillingItemViewModel> BillingItems { get; set; }
     public required DashboardStatsViewModel Stats { get; set; }
+    
+    // Aktif paketler
+    public List<UserPackageInfo> ActivePackages { get; set; } = new();
+    
+    // Fiyatlandırma paketleri
+    public List<PricingPackage> AvailablePackages { get; set; } = new();
 }
 
 public class ProfileUpdateViewModel
@@ -76,6 +82,15 @@ public class MyListingCardViewModel
     public string PriceCurrency { get; set; } = "TL";
     public bool IsApproved { get; set; }
     public DateTime CreatedAt { get; set; }
+    
+    // Vitrin & Öne Çıkan
+    public bool IsFeatured { get; set; }
+    public bool IsVitrin { get; set; }
+    public DateTime? FeaturedExpiryDate { get; set; }
+    public DateTime? VitrinExpiryDate { get; set; }
+    
+    // Görsel
+    public string? CoverImageUrl { get; set; }
 }
 
 public class FavoriteItemViewModel
@@ -102,4 +117,16 @@ public class DashboardStatsViewModel
     public int ApprovedListings { get; set; }
     public int PendingListings { get; set; }
     public int FavoritesCount { get; set; }
+    
+    // Vitrin & Öne Çıkan İstatistikler
+    public int FeaturedListings { get; set; }
+    public int VitrinListings { get; set; }
+}
+
+public class UserPackageInfo
+{
+    public string PackageName { get; set; } = string.Empty;
+    public string PackageType { get; set; } = string.Empty;
+    public int RemainingUses { get; set; }
+    public DateTime? ExpiryDate { get; set; }
 }

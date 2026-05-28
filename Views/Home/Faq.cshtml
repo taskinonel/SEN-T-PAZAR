@@ -1,0 +1,73 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = L["faqTitle"];
+}
+
+<section class="section info-page" style="background-image: linear-gradient(110deg, rgba(20,34,59,.92), rgba(20,34,59,.55)), url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=60');">
+    <div class="container info-page__content">
+        <h1>@L["faqTitle"]</h1>
+        <p>@L["faqSubtitle"]</p>
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-10">
+                <div class="accordion" id="faqAccordion">
+                    <div class="card mb-3" style="border-radius: 12px; overflow: hidden;">
+                        <div class="card-header bg-white" id="faq1" data-bs-toggle="collapse" data-bs-target="#faqAnswer1" role="button">
+                            <h5 class="mb-0">@L["faqQ1"]</h5>
+                        </div>
+                        <div id="faqAnswer1" class="collapse show" data-bs-parent="#faqAccordion">
+                            <div class="card-body text-muted">
+                                @L["faqA1"]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3" style="border-radius: 12px; overflow: hidden;">
+                        <div class="card-header bg-white" id="faq2" data-bs-toggle="collapse" data-bs-target="#faqAnswer2" role="button">
+                            <h5 class="mb-0">@L["faqQ2"]</h5>
+                        </div>
+                        <div id="faqAnswer2" class="collapse" data-bs-parent="#faqAccordion">
+                            <div class="card-body text-muted">
+                                @L["faqA2"]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3" style="border-radius: 12px; overflow: hidden;">
+                        <div class="card-header bg-white" id="faq3" data-bs-toggle="collapse" data-bs-target="#faqAnswer3" role="button">
+                            <h5 class="mb-0">@L["faqQ3"]</h5>
+                        </div>
+                        <div id="faqAnswer3" class="collapse" data-bs-parent="#faqAccordion">
+                            <div class="card-body text-muted">
+                                @L["faqA3"]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3" style="border-radius: 12px; overflow: hidden;">
+                        <div class="card-header bg-white" id="faq4" data-bs-toggle="collapse" data-bs-target="#faqAnswer4" role="button">
+                            <h5 class="mb-0">@L["faqQ4"]</h5>
+                        </div>
+                        <div id="faqAnswer4" class="collapse" data-bs-parent="#faqAccordion">
+                            <div class="card-body text-muted">
+                                @L["faqA4"]
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mb-3" style="border-radius: 12px; overflow: hidden;">
+                        <div class="card-header bg-white" id="faq5" data-bs-toggle="collapse" data-bs-target="#faqAnswer5" role="button">
+                            <h5 class="mb-0">@L["faqQ5"]</h5>
+                        </div>
+                        <div id="faqAnswer5" class="collapse" data-bs-parent="#faqAccordion">
+                            <div class="card-body text-muted">
+                                @L["faqA5"]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a asp-action="Index" asp-controller="Home" class="btn btn-light">@L["home"]</a>
+        </div>
+    </div>
+</section>

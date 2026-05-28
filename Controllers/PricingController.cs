@@ -315,11 +315,3 @@ public class PackageOptionViewModel
     public int RemainingUses { get; set; }
     public DateTime? ExpiryDate { get; set; }
 }
-
-public class UserPackageInfo
-{
-    public string PackageName { get; set; } = string.Empty;
-    public string PackageType { get; set; } = string.Empty;
-    public int RemainingUses { get; set; }
-    public DateTime? ExpiryDate { get; set; }
-}

@@ -1,6 +1,7 @@
 @model SEN_T_PAZAR.Models.AccountDashboardViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
 @{
-    ViewData["Title"] = "Hesabım";
+    ViewData["Title"] = L["myAccount"];
     var activeTab = (ViewData["ActiveTab"] as string ?? "overview").ToLowerInvariant();
 }
 
@@ -27,7 +28,7 @@
     }
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small">Toplam İlan</div>
@@ -35,7 +36,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small">Yayındaki İlan</div>
@@ -43,7 +44,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small">Onay Bekleyen</div>
@@ -51,7 +52,23 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Öne Çıkan</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.FeaturedListings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Vitrin</div>
+                    <div class="fs-4 fw-bold">@Model.Stats.VitrinListings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
                     <div class="text-muted small">Favoriler</div>
@@ -69,6 +86,7 @@
         <li class="nav-item"><a class="nav-link @(activeTab == "favorites" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="favorites">Favoriler</a></li>
         <li class="nav-item"><a class="nav-link @(activeTab == "notifications" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="notifications">Bildirimler</a></li>
         <li class="nav-item"><a class="nav-link @(activeTab == "billing" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="billing">Fatura</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "corporate" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="corporate"><i class="bi bi-building me-1"></i>Kurumsal</a></li>
     </ul>
 
     <div class="card shadow-sm">
@@ -76,7 +94,48 @@
             @if (activeTab == "overview")
             {
                 <h5 class="mb-3">Hesap Özeti</h5>
-                <p class="text-muted mb-0">Profil, güvenlik, ilanlar ve bildirim ayarlarınızı yukarıdaki sekmelerden yönetebilirsiniz.</p>
+                <p class="text-muted mb-4">Profil, güvenlik, ilanlar ve bildirim ayarlarınızı yukarıdaki sekmelerden yönetebilirsiniz.</p>
+                
+                @if (Model.User.IsCorporateMember)
+                {
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="bi bi-building"></i> Kurumsal Üye</h6>
+                        <p class="mb-0">
+                            Şirket: <strong>@Model.User.CompanyName</strong> | 
+                            Plan: <strong>@Model.User.SubscriptionPlan</strong>
+                        </p>
+                    </div>
+                }
+                
+                @if (Model.ActivePackages.Any())
+                {
+                    <h6 class="mt-4">Aktif Paketler</h6>
+                    <div class="row">
+                        @foreach (var pkg in Model.ActivePackages)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6>@pkg.PackageName</h6>
+                                        <p class="mb-1">Kalan: <strong>@pkg.RemainingUses</strong></p>
+                                        @if (pkg.ExpiryDate.HasValue)
+                                        {
+                                            <small class="text-muted">Bitiş: @pkg.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary btn-sm">Tüm Paketler</a>
+                }
+                else
+                {
+                    <div class="alert alert-light border">
+                        <p class="mb-2">İlanlarınızı öne çıkarmak veya vitrinde göstermek için paket satın alabilirsiniz.</p>
+                        <a href="@Url.Action("Index", "Pricing")" class="btn btn-primary btn-sm">Fiyatlandırma</a>
+                    </div>
+                }
             }
             else if (activeTab == "profile")
             {
@@ -139,14 +198,96 @@
             else if (activeTab == "listings")
             {
                 <h5 class="mb-3">İlanlarım</h5>
+                
                 @if (Model.MyListings.Count == 0)
                 {
                     <div class="text-muted">Henüz size ait ilan bulunmuyor.</div>
+                    <a href="@Url.Action("Publish", "Home")" class="btn btn-primary mt-3">İlk İlanını Ver</a>
                 }
                 else
                 {
                     <div class="table-responsive">
                         <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Görsel</th>
+                                    <th>Başlık</th>
+                                    <th>Fiyat</th>
+                                    <th>Durum</th>
+                                    <th>Vitrin/Öne Çıkan</th>
+                                    <th>Tarih</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.MyListings)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                                            {
+                                                <img src="@item.CoverImageUrl" alt="@item.Title" style="width: 60px; height: 60px; object-fit: cover;" class="rounded" />
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                    <i class="bi bi-image"></i>
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="text-decoration-none">
+                                                @item.Title
+                                            </a>
+                                            <div class="small text-muted">@item.City</div>
+                                        </td>
+                                        <td>
+                                            <strong>@item.PriceAmount.ToString("N0") @item.PriceCurrency</strong>
+                                        </td>
+                                        <td>
+                                            @if (item.IsApproved)
+                                            {
+                                                <span class="badge bg-success">Yayında</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">Bekliyor</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.IsFeatured && (item.FeaturedExpiryDate == null || item.FeaturedExpiryDate > DateTime.UtcNow))
+                                            {
+                                                <span class="badge bg-primary me-1">Öne Çıkan</span>
+                                            }
+                                            @if (item.IsVitrin && (item.VitrinExpiryDate == null || item.VitrinExpiryDate > DateTime.UtcNow))
+                                            {
+                                                <span class="badge bg-warning">Vitrin</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@item.CreatedAt.ToString("dd.MM.yyyy")</small>
+                                        </td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                    İşlem
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="@Url.Action("Details", "Home", new { id = item.Id })">Görüntüle</a></li>
+                                                    <li><a class="dropdown-item" href="@Url.Action("Edit", "Home", new { id = item.Id })">Düzenle</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="@Url.Action("Pricing", "Promote", new { listingId = item.Id })">Güçlendir</a></li>
+                                                    <li><a class="dropdown-item text-danger" href="@Url.Action("Pricing", "Index")">Paket Satın Al</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
                             <thead>
                                 <tr>
                                     <th>Başlık</th>
@@ -223,6 +364,128 @@
                         </tbody>
                     </table>
                 </div>
+            }
+            else if (activeTab == "corporate")
+            {
+                @if (TempData["CorporateSuccess"] is string corpSuccess)
+                {
+                    <div class="alert alert-success">@corpSuccess</div>
+                }
+
+                @if (Model.User.IsCorporateMember)
+                {
+                    <div class="row">
+                        <div class="col-lg-4 mb-4">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-building me-2"></i>@L["corporateStore"]</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    @if (!string.IsNullOrEmpty(Model.User.CompanyLogoUrl))
+                                    {
+                                        <img src="@Model.User.CompanyLogoUrl" alt="@Model.User.CompanyName" class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                            <i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i>
+                                        </div>
+                                    }
+                                    <h5>@Model.User.CompanyName</h5>
+                                    @if (Model.User.IsCorporateApproved)
+                                    {
+                                        <span class="badge bg-success mb-2"><i class="bi bi-patch-check-fill me-1"></i>@L["verifiedStore"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark mb-2"><i class="bi bi-clock me-1"></i>Onay Bekliyor</span>
+                                    }
+                                    <div class="mt-3 text-start">
+                                        <p class="mb-1"><strong>@L["selectPlan"]:</strong> @Model.User.SubscriptionPlan</p>
+                                        <p class="mb-1"><strong>Vergi No:</strong> @Model.User.CompanyTaxNumber</p>
+                                        <p class="mb-0"><strong>Telefon:</strong> @Model.User.CompanyPhone</p>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a asp-action="UpdateCorporate" class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="bi bi-pencil me-1"></i>Bilgileri Güncelle
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-8 mb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-file-earmark-text text-primary" style="font-size: 2rem;"></i>
+                                            <h6 class="mt-2 mb-1">İlan Kotası</h6>
+                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.ListingsRemainingThisMonth == 999999 ? "∞" : Model.User.ListingsRemainingThisMonth.ToString())</p>
+                                            <small class="text-muted">/@(Model.User.TotalListingsAllowed == 999999 ? "∞" : Model.User.TotalListingsAllowed.ToString()) @L["listingsPerMonth"]</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
+                                            <h6 class="mt-2 mb-1">@L["featuredListings"]</h6>
+                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.FeaturedListingsIncluded - Model.User.FeaturedListingsUsed)</p>
+                                            <small class="text-muted">/@Model.User.FeaturedListingsIncluded kaldı</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-eye-fill text-info" style="font-size: 2rem;"></i>
+                                            <h6 class="mt-2 mb-1">@L["vitrinListings"]</h6>
+                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.VitrinListingsIncluded - Model.User.VitrinListingsUsed)</p>
+                                            <small class="text-muted">/@Model.User.VitrinListingsIncluded kaldı</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Abonelik Detayları</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>Başlangıç:</strong> @(Model.User.SubscriptionStartDate?.ToString("dd.MM.yyyy") ?? "-")</p>
+                                            <p class="mb-1"><strong>Bitiş:</strong> @(Model.User.SubscriptionEndDate?.ToString("dd.MM.yyyy") ?? "-")</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>Durum:</strong> 
+                                                @if (Model.User.IsSubscriptionActive)
+                                                {
+                                                    <span class="badge bg-success">Aktif</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark">Beklemede</span>
+                                                }
+                                            </p>
+                                            <p class="mb-0"><strong>Not:</strong> @(Model.User.CorporateNote ?? "-")</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-building text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="mt-3">@L["corporateMembership"]</h5>
+                        <p class="text-muted mb-4">İşletmenizi profesyonel bir şekilde sergileyin. Onaylı rozet, sınırsız ilan ve öncelikli destek ile satışlarınızı artırın.</p>
+                        <a asp-action="CorporateMembership" class="btn btn-primary btn-lg">
+                            <i class="bi bi-arrow-right-circle me-2"></i>@L["submitApplication"]
+                        </a>
+                    </div>
+                }
             }
         </div>
     </div>

@@ -1,6 +1,7 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
 @model SEN_T_PAZAR.Controllers.PromoteListingViewModel
 @{
-    ViewData["Title"] = "İlanı Güçlendir";
+    ViewData["Title"] = L["promoteListing"];
 }
 
 <div class="container py-5">
@@ -8,7 +9,7 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">İlanı Güçlendir: @Model.ListingTitle</h4>
+                    <h4 class="mb-0">@L["promoteListing"]: @Model.ListingTitle</h4>
                 </div>
                 <div class="card-body">
                     @if (TempData["SuccessMessage"] != null)
@@ -21,16 +22,16 @@
 
                     <!-- Mevcut Durum -->
                     <div class="mb-4">
-                        <h5>Mevcut Durum</h5>
+                        <h5>@L["currentStatus"]</h5>
                         <div class="row">
                             <div class="col-md-6 mb-2">
                                 <div class="card @(Model.CurrentFeatured ? "bg-success text-white" : "bg-light")">
                                     <div class="card-body">
-                                        <h6>Öne Çıkan</h6>
+                                        <h6>@L["featured"]</h6>
                                         <p class="mb-0">
                                             @(Model.CurrentFeatured ? 
-                                                (Model.FeaturedExpiryDate.HasValue ? "Aktif (Bitiş: " + Model.FeaturedExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : "Aktif") 
-                                                : "Pasif")
+                                                (Model.FeaturedExpiryDate.HasValue ? L["active"] + " (" + L["expiry"] + " " + Model.FeaturedExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : L["active"]) 
+                                                : L["inactive"])
                                         </p>
                                     </div>
                                 </div>
@@ -38,11 +39,11 @@
                             <div class="col-md-6 mb-2">
                                 <div class="card @(Model.CurrentVitrin ? "bg-warning text-dark" : "bg-light")">
                                     <div class="card-body">
-                                        <h6>Vitrin</h6>
+                                        <h6>@L["vitrin"]</h6>
                                         <p class="mb-0">
                                             @(Model.CurrentVitrin ? 
-                                                (Model.VitrinExpiryDate.HasValue ? "Aktif (Bitiş: " + Model.VitrinExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : "Aktif") 
-                                                : "Pasif")
+                                                (Model.VitrinExpiryDate.HasValue ? L["active"] + " (" + L["expiry"] + " " + Model.VitrinExpiryDate.Value.ToString("dd.MM.yyyy") + ")" : L["active"]) 
+                                                : L["inactive"])
                                         </p>
                                     </div>
                                 </div>
@@ -53,10 +54,10 @@
                     @if (!Model.AvailablePackages.Any())
                     {
                         <div class="alert alert-warning">
-                            <h5>Paketiniz yok</h5>
-                            <p>İlanınızı güçlendirmek için önce paket satın almanız gerekiyor.</p>
+                            <h5>@L["noPackagesOwned"]</h5>
+                            <p>@L["needPackageFirst"]</p>
                             <a href="@Url.Action("Index", "Pricing")" class="btn btn-primary">
-                                Fiyatlandırma Sayfası
+                                @L["pricingPage"]
                             </a>
                         </div>
                     }
@@ -66,7 +67,7 @@
                             <input type="hidden" asp-for="ListingId" />
                             
                             <div class="mb-3">
-                                <label class="form-label">Kullanılabilir Paketler</label>
+                                <label class="form-label">@L["availablePackages"]</label>
                                 <div class="row">
                                     @foreach (var pkg in Model.AvailablePackages)
                                     {
@@ -82,18 +83,18 @@
                                                         <div class="card-body py-2">
                                                             <h6 class="mb-1">@pkg.PackageName</h6>
                                                             <small class="text-muted">
-                                                                Kalan: @pkg.RemainingUses | 
+                                                                @L["remaining"] @pkg.RemainingUses | 
                                                                 @if (pkg.PackageType == "featured")
                                                                 {
-                                                                    <span class="badge bg-primary">Öne Çıkan</span>
+                                                                    <span class="badge bg-primary">@L["featured"]</span>
                                                                 }
                                                                 else if (pkg.PackageType == "vitrin")
                                                                 {
-                                                                    <span class="badge bg-warning">Vitrin</span>
+                                                                    <span class="badge bg-warning">@L["vitrin"]</span>
                                                                 }
                                                                 else if (pkg.PackageType == "combo")
                                                                 {
-                                                                    <span class="badge bg-success">Kombo</span>
+                                                                    <span class="badge bg-success">@L["combo"]</span>
                                                                 }
                                                             </small>
                                                         </div>
@@ -108,10 +109,10 @@
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="bi bi-rocket-takeoff"></i> İlanı Güçlendir
+                                    <i class="bi bi-rocket-takeoff"></i> @L["promoteListing"]
                                 </button>
                                 <a href="@Url.Action("Dashboard", "Account", new { tab = "listings" })" class="btn btn-outline-secondary">
-                                    İptal
+                                    @L["cancel"]
                                 </a>
                             </div>
                         </form>
