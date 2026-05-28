@@ -52,14 +52,24 @@ builder.Services.AddResponseCompression();
 // Identity ve DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var resolvedConnectionString = string.IsNullOrWhiteSpace(connectionString)
-    ? "Host=localhost;Port=5432;Database=sentpazar;Username=sentpazar;Password=S3ntP@z2026!"
+    ? "Data Source=sent-pazar.db"
     : connectionString;
-var usePostgres = resolvedConnectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+var useSqlite = resolvedConnectionString.Contains(".db", StringComparison.OrdinalIgnoreCase) ||
+    resolvedConnectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase) ||
+    resolvedConnectionString.Contains("sent-pazar.db", StringComparison.OrdinalIgnoreCase);
+var usePostgres = !useSqlite && (
+    resolvedConnectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
     resolvedConnectionString.Contains("Username=", StringComparison.OrdinalIgnoreCase) ||
-    resolvedConnectionString.Contains("Port=", StringComparison.OrdinalIgnoreCase);
+    resolvedConnectionString.Contains("Port=", StringComparison.OrdinalIgnoreCase));
 
 builder.Services.AddDbContext<SEN_T_PAZAR.Models.ApplicationDbContext>(options =>
 {
+    if (useSqlite)
+    {
+        options.UseSqlite(resolvedConnectionString);
+        return;
+    }
+
     if (usePostgres)
     {
         options.UseNpgsql(resolvedConnectionString);
@@ -128,7 +138,14 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<SEN_T_PAZAR.Models.ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-    dbContext.Database.Migrate();
+    if (dbContext.Database.IsSqlite())
+    {
+        await dbContext.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        dbContext.Database.Migrate();
+    }
 
     // Admin rolü yoksa oluştur
     if (!await roleManager.RoleExistsAsync("Admin"))
