@@ -1,0 +1,183 @@
+@model IEnumerable<SEN_T_PAZAR.Models.Payment>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    string PaymentMethodLabel(string? method) => (method ?? string.Empty).ToLowerInvariant() switch
+    {
+        "bank_transfer" => T("Havale/EFT", "Bank Transfer", "Банковский перевод", "حوالة بنكية"),
+        "eft" => "EFT",
+        "stripe_checkout" => "Stripe Checkout",
+        "credit_card" => T("Kredi Kartı", "Credit Card", "Кредитная карта", "بطاقة ائتمان"),
+        _ => method ?? "-"
+    };
+
+    ViewData["Title"] = T("Ödeme Yönetimi", "Payment Management", "Управление платежами", "إدارة المدفوعات");
+    var currentStatus = ViewData["CurrentStatus"]?.ToString() ?? "pending";
+}
+
+@section Styles {
+<style>
+    .page-title {
+        font-size: 1.6rem; font-weight: 700;
+        background: linear-gradient(135deg, #1e3a66, #0d6efd);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .bank-info { background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 1.25rem; }
+    .action-btns form { display: inline; }
+</style>
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="page-title">@T("Ödeme Yönetimi", "Payment Management", "Управление платежами", "إدارة المدفوعات")</div>
+            <p class="text-muted mb-0">@T("Havale / EFT ödeme kayıtları", "Bank transfer payment records", "Платежные записи банковских переводов", "سجلات مدفوعات الحوالات البنكية")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> @T("Panele Dön", "Back to Panel", "Назад к панели", "العودة إلى اللوحة")
+        </a>
+    </div>
+
+    @if (TempData["PaymentSuccess"] is string ok)
+    {
+        <div class="alert alert-success alert-dismissible fade show">@ok <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
+    @if (TempData["PaymentError"] is string err)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">@err <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
+
+    <!-- Banka Bilgileri -->
+    <div class="bank-info mb-4">
+        <h6 class="fw-bold text-success mb-2"><i class="bi bi-bank2 me-2"></i>@T("Platform Banka Bilgileri", "Platform Bank Details", "Банковские реквизиты платформы", "بيانات البنك الخاصة بالمنصة")</h6>
+        <div class="row g-2">
+            <div class="col-md-4"><strong>@T("Hesap Adı:", "Account Name:", "Название счета:", "اسم الحساب:")</strong> SEN-T SOFTWARE</div>
+            <div class="col-md-4"><strong>@T("Banka:", "Bank:", "Банк:", "البنك:")</strong> [@T("Bankanızı Yazın", "Enter your bank", "Укажите ваш банк", "أدخل اسم البنك")]</div>
+            <div class="col-md-4"><strong>IBAN:</strong> TR__ ____ ____ ____ ____ ____ __</div>
+        </div>
+        <small class="text-muted mt-1 d-block">@T("Kullanıcılar ödeme açıklamasına sipariş referans numarasını yazmalıdır.", "Users should write the order reference number in the payment description.", "Пользователи должны указать номер заказа в описании платежа.", "يجب على المستخدمين كتابة رقم مرجع الطلب في وصف الدفع.")</small>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="d-flex gap-2 mb-4">
+        <a asp-action="Payments" asp-route-status="pending"
+           class="btn btn-sm @(currentStatus == "pending" ? "btn-warning" : "btn-outline-warning")">
+            <i class="bi bi-hourglass-split me-1"></i>@T("Bekleyen", "Pending", "В ожидании", "قيد الانتظار")
+        </a>
+        <a asp-action="Payments" asp-route-status="completed"
+           class="btn btn-sm @(currentStatus == "completed" ? "btn-success" : "btn-outline-success")">
+            <i class="bi bi-check-circle me-1"></i>@T("Onaylanan", "Approved", "Подтверждено", "تمت الموافقة")
+        </a>
+        <a asp-action="Payments" asp-route-status="failed"
+           class="btn btn-sm @(currentStatus == "failed" ? "btn-danger" : "btn-outline-danger")">
+            <i class="bi bi-x-circle me-1"></i>@T("Reddedilen", "Rejected", "Отклонено", "مرفوض")
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+            @T("Bu durumda ödeme kaydı bulunmuyor.", "No payment records found for this status.", "Для этого статуса платежей не найдено.", "لا توجد سجلات دفع لهذه الحالة.")
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">#</th>
+                                <th>@T("Kullanıcı ID", "User ID", "ID пользователя", "معرف المستخدم")</th>
+                                <th>@T("Paket", "Package", "Пакет", "الباقة")</th>
+                                <th>@T("Yöntem", "Method", "Способ", "الطريقة")</th>
+                                <th>@T("Tutar", "Amount", "Сумма", "المبلغ")</th>
+                                <th>@T("Tarih", "Date", "Дата", "التاريخ")</th>
+                                <th>@T("Not", "Note", "Примечание", "ملاحظة")</th>
+                                <th class="pe-4">@T("İşlem", "Action", "Действие", "الإجراء")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model)
+                            {
+<tr>
+                                         <td class="ps-4 fw-bold">#@p.Id</td>
+                                         <td>@p.UserId
+                                             @if (!string.IsNullOrEmpty(p.UserFullName))
+                                             {
+                                                 <span class="text-muted ms-2">(@p.UserFullName)</span>
+                                             }
+                                         </td>
+                                         <td>
+                                             @if (p.Package != null)
+                                        {
+                                            <span class="badge bg-primary">@p.Package.Name</span>
+                                            <div class="small text-muted">@p.Package.DurationDays @T("gün", "days", "дней", "يوم")</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @PaymentMethodLabel(p.PaymentMethod)
+                                        </span>
+                                    </td>
+                                    <td class="fw-bold text-success">@p.Amount.ToString("N0") @p.Currency</td>
+                                    <td><small>@p.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
+                                    <td><small class="text-muted">@(p.Note ?? "—")</small></td>
+                                    <td class="pe-4">
+                                        <div class="action-btns d-flex gap-1">
+                                            @if (p.PaymentStatus == "pending")
+                                            {
+                                                <form asp-action="ConfirmPayment" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@p.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-success btn-sm" title="@T("Ödemeyi Onayla", "Approve Payment", "Подтвердить платеж", "تأكيد الدفع")">
+                                                        <i class="bi bi-check-lg me-1"></i>@T("Onayla", "Approve", "Подтвердить", "موافقة")
+                                                    </button>
+                                                </form>
+                                                <form asp-action="RejectPayment" asp-controller="Admin" method="post"
+                                                      onsubmit="return confirm('@T("Bu ödemeyi reddetmek istediğinize emin misiniz?", "Are you sure you want to reject this payment?", "Вы уверены, что хотите отклонить этот платеж?", "هل أنت متأكد أنك تريد رفض هذه الدفعة؟")')">
+                                                    <input type="hidden" name="id" value="@p.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="@T("Reddet", "Reject", "Отклонить", "رفض")">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (p.PaymentStatus == "completed")
+                                            {
+                                                <span class="badge bg-success px-3"><i class="bi bi-check-circle me-1"></i>@T("Onaylandı", "Approved", "Подтверждено", "تمت الموافقة")</span>
+                                                @if (p.CompletedAt.HasValue)
+                                                {
+                                                    <div class="small text-muted">@p.CompletedAt.Value.ToString("dd.MM.yyyy")</div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger px-3"><i class="bi bi-x-circle me-1"></i>@T("Reddedildi", "Rejected", "Отклонено", "مرفوض")</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>

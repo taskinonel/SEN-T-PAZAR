@@ -1,0 +1,99 @@
+@model IEnumerable<SEN_T_PAZAR.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Kurumsal Başvurular";
+}
+
+@section Styles {
+<style>
+    .page-title {
+        font-size: 1.6rem; font-weight: 700;
+        background: linear-gradient(135deg, #1e3a66, #0d6efd);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .approval-row:hover { background: #f8f9fc; }
+    .action-btns form { display: inline; }
+</style>
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="page-title">Kurumsal Başvurular</div>
+            <p class="text-muted mb-0">Onay bekleyen @Model.Count() başvuru</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Panele Dön
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-check-circle fs-1 d-block mb-3 text-success"></i>
+            <p>Onay bekleyen kurumsal başvuru bulunmuyor.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 rounded-4 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Şirket</th>
+                                <th>Ad Soyad / E-posta</th>
+                                <th>Vergi No</th>
+                                <th>Vergi Dairesi</th>
+                                <th>Telefon</th>
+                                <th class="pe-4">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr class="approval-row">
+                                    <td class="ps-4">
+                                        <div class="fw-bold">@(user.CompanyName ?? "—")</div>
+                                        @if (!string.IsNullOrEmpty(user.CompanyWebSite))
+                                        {
+                                            <a href="@user.CompanyWebSite" target="_blank" class="small text-primary text-decoration-none">
+                                                <i class="bi bi-link-45deg"></i> @user.CompanyWebSite
+                                            </a>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@user.FullName</div>
+                                        <div class="small text-muted">@user.Email</div>
+                                    </td>
+                                    <td>@(user.CompanyTaxNumber ?? "—")</td>
+                                    <td>@(user.CompanyTaxOffice ?? "—")</td>
+                                    <td>@(user.CompanyPhone ?? user.PhoneNumber ?? "—")</td>
+                                    <td class="pe-4">
+                                        <div class="action-btns d-flex gap-2">
+                                            <form asp-action="ApproveCorporate" asp-controller="Admin" method="post">
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="bi bi-check-lg me-1"></i>Onayla
+                                                </button>
+                                            </form>
+                                            <form asp-action="RejectCorporate" asp-controller="Admin" method="post"
+                                                  onsubmit="return confirm('Bu başvuruyu reddetmek istediğinize emin misiniz?')">
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-x-lg me-1"></i>Reddet
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

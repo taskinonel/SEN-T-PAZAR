@@ -1,6 +1,16 @@
 @model SEN_T_PAZAR.Controllers.PurchaseViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
 @{
-    ViewData["Title"] = "Paket Satın Al";
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = T("Paket Satın Al", "Purchase Package", "Купить пакет", "شراء باقة");
 }
 
 <div class="container py-5">
@@ -8,49 +18,80 @@
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Paket Satın Al</h4>
+                    <h4 class="mb-0">@T("Paket Satın Al", "Purchase Package", "Купить пакет", "شراء باقة")</h4>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-success border-success-subtle" role="alert">
+                        <strong>@T("Aktif Ödeme Yöntemleri:", "Active Payment Methods:", "Активные способы оплаты:", "طرق الدفع النشطة:")</strong> @T("Sadece havale ve EFT ile ödeme yapabilirsiniz.", "You can only pay with bank transfer or EFT.", "Оплата доступна только банковским переводом или EFT.", "يمكن الدفع فقط عبر الحوالة البنكية أو EFT.")
+                    </div>
+
                     <h5 class="card-title">@Model.PackageName</h5>
                     <p class="text-muted">@Model.Description</p>
                     
                     <div class="mb-4">
                         <div class="display-6 fw-bold">
-                            @Model.Price.ToString("N0") @Model.Currency
+                            @SEN_T_PAZAR.Services.CurrencyDisplay.Format(Model.Price, Model.Currency)
                         </div>
-                        <small class="text-muted">@Model.DurationDays gün geçerli</small>
+                        <small class="text-muted">@Model.DurationDays @T("gün geçerli", "days valid", "дней действия", "يومًا من الصلاحية")</small>
                     </div>
 
                     @if (Model.AvailableCount > 0)
                     {
                         <div class="alert alert-info">
-                            Bu paketten zaten <strong>@Model.AvailableCount</strong> adet kullanabilirsiniz.
+                            @T("Bu paketten zaten", "You already have", "У вас уже есть", "لديك بالفعل") <strong>@Model.AvailableCount</strong> @T("adet kullanım hakkı var.", "available uses for this package.", "доступных использований этого пакета.", "استخدامات متاحة لهذه الباقة.")
                         </div>
                     }
 
                     <form asp-action="Purchase" method="post">
                         <input type="hidden" asp-for="PackageId" />
-                        
+
                         <div class="mb-3">
-                            <label class="form-label">Ödeme Yöntemi</label>
-                            <select asp-for="PaymentMethod" class="form-select">
-                                <option value="credit_card">Kredi Kartı</option>
-                                <option value="bank_transfer">Havale/EFT</option>
-                                <option value="wallet">Cüzdan</option>
-                            </select>
+                            <label class="form-label fw-semibold">@T("Ödeme Yöntemi", "Payment Method", "Способ оплаты", "طريقة الدفع")</label>
+
+                            <div class="form-check border rounded p-3 mb-2">
+                                <input class="form-check-input" type="radio" asp-for="PaymentMethod" value="bank_transfer" id="pm-havale" />
+                                <label class="form-check-label w-100" for="pm-havale">
+                                    <strong>@T("Havale", "Bank Transfer", "Банковский перевод", "حوالة بنكية")</strong>
+                                    <div class="small text-muted">@T("Banka hesabına havale yaparak ödeme tamamlanır. Yönetici onayı sonrası paket aktif edilir.", "Complete payment by bank transfer. The package is activated after admin approval.", "Оплата банковским переводом. Пакет активируется после подтверждения администратором.", "أكمل الدفع عبر التحويل البنكي. يتم تفعيل الباقة بعد موافقة المسؤول.")</div>
+                                </label>
+                            </div>
+
+                            <div class="form-check border rounded p-3">
+                                <input class="form-check-input" type="radio" asp-for="PaymentMethod" value="eft" id="pm-eft" />
+                                <label class="form-check-label w-100" for="pm-eft">
+                                    <strong>@T("EFT", "EFT", "EFT", "EFT")</strong>
+                                    <div class="small text-muted">@T("EFT ile gönderim yaparak ödeme tamamlanır. Yönetici onayı sonrası paket aktif edilir.", "Complete payment via EFT. The package is activated after admin approval.", "Оплата через EFT. Пакет активируется после подтверждения администратором.", "أكمل الدفع عبر EFT. يتم تفعيل الباقة بعد موافقة المسؤول.")</div>
+                                </label>
+                            </div>
+
                             <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
                         </div>
 
-                        <div class="alert alert-warning">
-                            <small><i class="bi bi-info-circle"></i> Bu bir simülasyon ödemesidir. Gerçek ödeme işlemi entegrasyonu yapılabilir.</small>
+                        <div class="alert alert-light border mb-3">
+                            <h6 class="mb-2"><i class="bi bi-bank2"></i> @T("Havale/EFT Banka Bilgileri", "Bank Transfer / EFT Details", "Банковские реквизиты для перевода / EFT", "بيانات التحويل البنكي / EFT")</h6>
+                            <div class="small">
+                                <div><strong>@T("Hesap Adı", "Account Name", "Название счета", "اسم الحساب"):</strong> @Model.BankAccountName</div>
+                                <div><strong>@T("Banka", "Bank", "Банк", "البنك"):</strong> @Model.BankName</div>
+                                <div><strong>IBAN:</strong> @Model.Iban</div>
+                                <div><strong>SWIFT:</strong> @Model.SwiftCode</div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-light border">
+                            <h6 class="mb-2"><i class="bi bi-shield-check"></i> @T("Güvenli ödeme için önerilen adımlar", "Recommended steps for secure payment", "Рекомендуемые шаги для безопасной оплаты", "الخطوات الموصى بها للدفع الآمن")</h6>
+                            <ol class="mb-0 small">
+                                <li>@T("Sunucuda sipariş kaydı oluşturulur ve ödeme yöntemi güvenli şekilde işlenir.", "An order record is created on the server and the payment method is processed securely.", "На сервере создается заказ, и способ оплаты обрабатывается безопасно.", "يتم إنشاء سجل الطلب على الخادم ومعالجة طريقة الدفع بشكل آمن.")</li>
+                                <li>@T("Havale/EFT ödemelerinde referans kodu ile yönetici onayı alınır.", "For bank transfer/EFT, admin approval is processed with a reference code.", "Для перевода/EFT подтверждение администратора выполняется по референс-коду.", "في التحويل البنكي/EFT يتم اعتماد المسؤول باستخدام رمز مرجعي.")</li>
+                                <li>@T("Tüm adımlar kayıt altına alınır ve denetlenir.", "All steps are logged and auditable.", "Все шаги журналируются и подлежат аудиту.", "يتم تسجيل جميع الخطوات ويمكن تدقيقها.")</li>
+                            </ol>
                         </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="bi bi-cart-check"></i> Satın Al
+                                <i class="bi bi-cart-check"></i> @T("Satın Al", "Purchase", "Купить", "شراء")
                             </button>
                             <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-secondary">
-                                İptal
+                                @L["cancel"]
                             </a>
                         </div>
                     </form>

@@ -1,0 +1,296 @@
+@model SEN_T_PAZAR.Models.AdminTaxonomyAuditViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    string Fallback(string? value) => string.IsNullOrWhiteSpace(value)
+        ? T("Boş", "Empty", "Пусто", "فارغ", "خالی")
+        : value!;
+
+    string CategoryLabel(string? category) => string.IsNullOrWhiteSpace(category)
+        ? T("Boş", "Empty", "Пусто", "فارغ", "خالی")
+        : L.CategoryLabel(category!);
+
+    string ListingTypeLabel(string? type) => string.IsNullOrWhiteSpace(type)
+        ? T("Boş", "Empty", "Пусто", "فارغ", "خالی")
+        : L.TypeLabel(type!);
+
+    string SubCategoryLabel(string? subCategory) => string.IsNullOrWhiteSpace(subCategory)
+        ? T("Boş", "Empty", "Пусто", "فارغ", "خالی")
+        : SEN_T_PAZAR.Models.ListingTaxonomy.HumanizeSubCategory(subCategory!);
+
+    ViewData["Title"] = T("Taksonomi Drift Raporu", "Taxonomy Drift Report", "Отчет о дрейфе таксономии", "تقرير انجراف التصنيف", "گزارش ناهماهنگی تاکسونومی");
+}
+
+@section Styles {
+<style>
+    .taxonomy-audit-card {
+        border: none;
+        border-radius: 18px;
+    }
+    .taxonomy-audit-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+    .taxonomy-audit-summary__tile {
+        background: linear-gradient(145deg, #f8fbff, #eef4ff);
+        border: 1px solid #dbe7fb;
+        border-radius: 16px;
+        padding: 1rem 1.1rem;
+    }
+    .taxonomy-audit-summary__value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #12356d;
+        line-height: 1;
+    }
+    .taxonomy-audit-code {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: .9rem;
+    }
+    .taxonomy-audit-table td,
+    .taxonomy-audit-table th {
+        vertical-align: middle;
+    }
+</style>
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1">@T("Taksonomi Drift Raporu", "Taxonomy Drift Report", "Отчет о дрейфе таксономии", "تقرير انجراف التصنيف", "گزارش ناهماهنگی تاکسونومی")</h1>
+            <p class="text-muted mb-0">@T("Veritabanındaki ham kategori, alt kategori ve ilan tipi değerlerini normalize edilmiş kurallarla karşılaştırır.", "Compares raw database category, subcategory and listing type values against normalized rules.", "Сравнивает исходные значения категории, подкатегории и типа объявления с нормализованными правилами.", "يقارن قيم الفئة والفئة الفرعية ونوع الإعلان الخام في قاعدة البيانات مع القواعد المطبعة.", "مقادیر خام دسته، زیردسته و نوع آگهی در پایگاه داده را با قواعد نرمال‌شده مقایسه می‌کند.")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>@T("Panele Dön", "Back to Dashboard", "Назад к панели", "العودة إلى اللوحة", "بازگشت به داشبورد")
+        </a>
+    </div>
+
+    <div class="taxonomy-audit-summary mb-4">
+        <article class="taxonomy-audit-summary__tile">
+            <div class="text-muted small mb-2">@T("Toplam ilan", "Total listings", "Всего объявлений", "إجمالي الإعلانات", "کل آگهی‌ها")</div>
+            <div class="taxonomy-audit-summary__value">@Model.TotalListings</div>
+        </article>
+        <article class="taxonomy-audit-summary__tile">
+            <div class="text-muted small mb-2">@T("Drift görülen ilan", "Listings with drift", "Объявления с дрейфом", "الإعلانات التي بها انجراف", "آگهی‌های دارای ناهماهنگی")</div>
+            <div class="taxonomy-audit-summary__value text-danger">@Model.DriftedListingCount</div>
+        </article>
+        <article class="taxonomy-audit-summary__tile">
+            <div class="text-muted small mb-2">@T("Geçersiz kategori", "Invalid category", "Недопустимая категория", "فئة غير صالحة", "دسته نامعتبر")</div>
+            <div class="taxonomy-audit-summary__value text-warning">@Model.InvalidCategoryCount</div>
+        </article>
+        <article class="taxonomy-audit-summary__tile">
+            <div class="text-muted small mb-2">@T("Geçersiz alt kategori", "Invalid subcategory", "Недопустимая подкатегория", "فئة فرعية غير صالحة", "زیردسته نامعتبر")</div>
+            <div class="taxonomy-audit-summary__value text-warning">@Model.InvalidSubCategoryCount</div>
+        </article>
+        <article class="taxonomy-audit-summary__tile">
+            <div class="text-muted small mb-2">@T("Geçersiz ilan tipi", "Invalid listing type", "Недопустимый тип объявления", "نوع إعلان غير صالح", "نوع آگهی نامعتبر")</div>
+            <div class="taxonomy-audit-summary__value text-warning">@Model.InvalidTypeCount</div>
+        </article>
+    </div>
+
+    <div class="card shadow-sm taxonomy-audit-card mb-4">
+        <div class="card-header bg-white">
+            <h2 class="h5 mb-1">@T("Kategori Matrisi", "Category Matrix", "Матрица категорий", "مصفوفة الفئات", "ماتریس دسته‌ها")</h2>
+            <p class="text-muted mb-0">@T("Ham kategori değeri ile normalize edilen yayın kategorisini yan yana gösterir.", "Shows raw category values beside the normalized publish category.", "Показывает исходное значение категории рядом с нормализованной категорией публикации.", "يعرض قيمة الفئة الخام بجانب فئة النشر المطبعة.", "مقدار خام دسته را کنار دسته انتشار نرمال‌شده نشان می‌دهد.")</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover taxonomy-audit-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>@T("Ham", "Raw", "Исходное", "الخام", "خام")</th>
+                        <th>@T("Normalize", "Normalized", "Нормализовано", "مطبّع", "نرمال")</th>
+                        <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                        <th class="text-end">@T("Adet", "Count", "Количество", "العدد", "تعداد")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Categories)
+                    {
+                        <tr>
+                            <td class="taxonomy-audit-code">@Fallback(row.RawCategory)</td>
+                            <td>
+                                <div class="fw-semibold">@CategoryLabel(row.NormalizedCategory)</div>
+                                <div class="small text-muted taxonomy-audit-code">@Fallback(row.NormalizedCategory)</div>
+                            </td>
+                            <td>
+                                @if (!row.IsKnown)
+                                {
+                                    <span class="badge text-bg-warning">@T("Tanınmıyor", "Unknown", "Неизвестно", "غير معروف", "ناشناخته")</span>
+                                }
+                                else if (row.HasDrift)
+                                {
+                                    <span class="badge text-bg-info">@T("Normalize oluyor", "Normalized", "Нормализуется", "يتم التطبيع", "در حال نرمال‌سازی")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-success">@T("Temiz", "Clean", "Чисто", "سليم", "تمیز")</span>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">@row.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm taxonomy-audit-card mb-4">
+        <div class="card-header bg-white">
+            <h2 class="h5 mb-1">@T("Alt Kategori Matrisi", "Subcategory Matrix", "Матрица подкатегорий", "مصفوفة الفئات الفرعية", "ماتریس زیردسته‌ها")</h2>
+            <p class="text-muted mb-0">@T("Kategori bağlamında alt kategorilerin geçerliliğini ve normalize edilmiş karşılığını gösterir.", "Shows subcategory validity and normalized values within each category context.", "Показывает допустимость подкатегорий и их нормализованные значения в контексте категории.", "يعرض صلاحية الفئات الفرعية وقيمها المطبعة ضمن سياق الفئة.", "اعتبار زیردسته‌ها و مقدار نرمال‌شده آن‌ها را در بستر هر دسته نشان می‌دهد.")</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover taxonomy-audit-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>@T("Kategori", "Category", "Категория", "الفئة", "دسته")</th>
+                        <th>@T("Ham alt kategori", "Raw subcategory", "Исходная подкатегория", "الفئة الفرعية الخام", "زیردسته خام")</th>
+                        <th>@T("Normalize", "Normalized", "Нормализовано", "مطبّع", "نرمال")</th>
+                        <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                        <th class="text-end">@T("Adet", "Count", "Количество", "العدد", "تعداد")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.SubCategories)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@CategoryLabel(row.NormalizedCategory)</div>
+                                <div class="small text-muted taxonomy-audit-code">@Fallback(row.RawCategory)</div>
+                            </td>
+                            <td class="taxonomy-audit-code">@Fallback(row.RawSubCategory)</td>
+                            <td>
+                                <div class="fw-semibold">@SubCategoryLabel(row.NormalizedSubCategory)</div>
+                                <div class="small text-muted taxonomy-audit-code">@Fallback(row.NormalizedSubCategory)</div>
+                            </td>
+                            <td>
+                                @if (!row.IsValid)
+                                {
+                                    <span class="badge text-bg-warning">@T("Geçersiz", "Invalid", "Недопустимо", "غير صالح", "نامعتبر")</span>
+                                }
+                                else if (row.HasDrift)
+                                {
+                                    <span class="badge text-bg-info">@T("Normalize oluyor", "Normalized", "Нормализуется", "يتم التطبيع", "در حال نرمال‌سازی")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-success">@T("Temiz", "Clean", "Чисто", "سليم", "تمیز")</span>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">@row.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm taxonomy-audit-card mb-4">
+        <div class="card-header bg-white">
+            <h2 class="h5 mb-1">@T("İlan Tipi Matrisi", "Listing Type Matrix", "Матрица типов объявлений", "مصفوفة أنواع الإعلانات", "ماتریس نوع آگهی")</h2>
+            <p class="text-muted mb-0">@T("Kategoriye göre izin verilen ilan tipleri dışında kalan değerleri ayıklar.", "Flags values that fall outside the allowed listing types for a category.", "Выявляет значения, выходящие за допустимые типы объявлений для категории.", "يعزل القيم الخارجة عن أنواع الإعلانات المسموح بها لكل فئة.", "مقادیر خارج از نوع‌های مجاز آگهی را بر اساس دسته جدا می‌کند.")</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover taxonomy-audit-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>@T("Kategori", "Category", "Категория", "الفئة", "دسته")</th>
+                        <th>@T("Ham tip", "Raw type", "Исходный тип", "النوع الخام", "نوع خام")</th>
+                        <th>@T("Normalize", "Normalized", "Нормализовано", "مطبّع", "نرمال")</th>
+                        <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                        <th class="text-end">@T("Adet", "Count", "Количество", "العدد", "تعداد")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.ListingTypes)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@CategoryLabel(row.NormalizedCategory)</div>
+                                <div class="small text-muted taxonomy-audit-code">@Fallback(row.RawCategory)</div>
+                            </td>
+                            <td class="taxonomy-audit-code">@Fallback(row.RawType)</td>
+                            <td>
+                                <div class="fw-semibold">@ListingTypeLabel(row.NormalizedType)</div>
+                                <div class="small text-muted taxonomy-audit-code">@Fallback(row.NormalizedType)</div>
+                            </td>
+                            <td>
+                                @if (!row.IsValid)
+                                {
+                                    <span class="badge text-bg-warning">@T("Geçersiz", "Invalid", "Недопустимо", "غير صالح", "نامعتبر")</span>
+                                }
+                                else if (row.HasDrift)
+                                {
+                                    <span class="badge text-bg-info">@T("Normalize oluyor", "Normalized", "Нормализуется", "يتم التطبيع", "در حال نرمال‌سازی")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-success">@T("Temiz", "Clean", "Чисто", "سليم", "تمیز")</span>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">@row.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm taxonomy-audit-card">
+        <div class="card-header bg-white">
+            <h2 class="h5 mb-1">@T("İlan Bazlı Sorunlar", "Listing-Level Issues", "Проблемы на уровне объявлений", "المشكلات على مستوى الإعلان", "مشکلات در سطح آگهی")</h2>
+            <p class="text-muted mb-0">@T("İlk 200 drift kaydını, hangi alanların dönüştürüldüğü veya geçersiz kaldığıyla birlikte listeler.", "Lists the first 200 drifted listings with the fields that were normalized or remain invalid.", "Показывает первые 200 объявлений с дрейфом и полями, которые были нормализованы или остались недопустимыми.", "يعرض أول 200 إعلان به انجراف مع الحقول التي تم تطبيعها أو بقيت غير صالحة.", "اولین 200 آگهی دارای ناهماهنگی را با فیلدهای نرمال‌شده یا نامعتبر نشان می‌دهد.")</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover taxonomy-audit-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>@T("İlan", "Listing", "Объявление", "الإعلان", "آگهی")</th>
+                        <th>@T("Kategori / Alt kategori / Tip", "Category / Subcategory / Type", "Категория / Подкатегория / Тип", "الفئة / الفئة الفرعية / النوع", "دسته / زیردسته / نوع")</th>
+                        <th>@T("Sorunlar", "Issues", "Проблемы", "المشكلات", "مشکلات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.ListingIssues.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">@T("Drift tespit edilmedi.", "No drift detected.", "Дрейф не обнаружен.", "لم يتم اكتشاف أي انجراف.", "ناهماهنگی‌ای پیدا نشد.")</td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.ListingIssues)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.ListingId</td>
+                            <td>
+                                <div class="fw-semibold">@item.Title</div>
+                                <div class="small mt-1">
+                                    <a asp-action="EditListing" asp-controller="Admin" asp-route-id="@item.ListingId" class="link-primary text-decoration-none">@T("Yönetimde aç", "Open in admin", "Открыть в админке", "فتح في الإدارة", "باز کردن در مدیریت")</a>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small"><strong>@T("Ham", "Raw", "Исходное", "الخام", "خام"):</strong> <span class="taxonomy-audit-code">@Fallback(item.RawCategory)</span> / <span class="taxonomy-audit-code">@Fallback(item.RawSubCategory)</span> / <span class="taxonomy-audit-code">@Fallback(item.RawType)</span></div>
+                                <div class="small text-muted"><strong>@T("Normalize", "Normalized", "Нормализовано", "مطبّع", "نرمال"):</strong> <span class="taxonomy-audit-code">@Fallback(item.NormalizedCategory)</span> / <span class="taxonomy-audit-code">@Fallback(item.NormalizedSubCategory)</span> / <span class="taxonomy-audit-code">@Fallback(item.NormalizedType)</span></div>
+                            </td>
+                            <td>
+                                @foreach (var issue in item.Issues)
+                                {
+                                    <span class="badge text-bg-warning me-1 mb-1">@issue</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

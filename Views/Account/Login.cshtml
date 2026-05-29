@@ -1,15 +1,50 @@
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
+@inject Microsoft.AspNetCore.Identity.SignInManager<SEN_T_PAZAR.Models.ApplicationUser> SignInManager
 @{
     ViewData["Title"] = L["login"];
+    var externalProviders = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+    var hasGoogleProvider = externalProviders.Any(p =>
+        p.Name.Equals("Google", StringComparison.OrdinalIgnoreCase) ||
+        (p.DisplayName?.Equals("Google", StringComparison.OrdinalIgnoreCase) ?? false));
+
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
 }
 @model SEN_T_PAZAR.Models.LoginViewModel
 <div class="container" style="max-width:400px;margin:2rem auto;">
     <h2>@L["login"]</h2>
+
+    @if (TempData["EmailConfirmationInfo"] is string confirmationInfo && !string.IsNullOrWhiteSpace(confirmationInfo))
+    {
+        <div class="alert alert-success">@confirmationInfo</div>
+    }
+
+    @if (TempData["EmailConfirmationSuccess"] is string confirmationSuccess && !string.IsNullOrWhiteSpace(confirmationSuccess))
+    {
+        <div class="alert alert-success">@confirmationSuccess</div>
+    }
+
+    @if (TempData["EmailConfirmationWarning"] is string confirmationWarning && !string.IsNullOrWhiteSpace(confirmationWarning))
+    {
+        <div class="alert alert-warning">@confirmationWarning</div>
+    }
+
+    @if (TempData["ExternalLoginError"] is string externalError && !string.IsNullOrWhiteSpace(externalError))
+    {
+        <div class="alert alert-danger">@externalError</div>
+    }
+
     <form asp-action="Login" method="post">
         <div asp-validation-summary="All" class="text-danger"></div>
         <div class="mb-3">
-            <label asp-for="Email" class="form-label">@L["email"]</label>
-            <input asp-for="Email" class="form-control" placeholder="@L["email"]" />
+            <label asp-for="Email" class="form-label">@T("E-posta veya kullanıcı adı", "Email or username", "Эл. почта или имя пользователя", "البريد الإلكتروني أو اسم المستخدم")</label>
+            <input asp-for="Email" class="form-control" placeholder="@T("E-posta veya kullanıcı adı", "Email or username", "Эл. почта или имя пользователя", "البريد الإلكتروني أو اسم المستخدم")" />
             <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div class="mb-3">
@@ -23,4 +58,22 @@
         </div>
         <button type="submit" class="btn btn-primary w-100">@L["login"]</button>
     </form>
+
+<div class="my-3">
+        <a asp-action="ExternalLogin" asp-controller="Account" asp-route-provider="Google" asp-route-returnUrl="/" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center @(hasGoogleProvider ? string.Empty : "disabled")" aria-disabled="@(!hasGoogleProvider)">
+            <i class="bi bi-google me-2"></i> @T("Google ile giriş yap", "Continue with Google", "Войти через Google", "المتابعة عبر Google", "ورود با گوگل")
+        </a>
+        @if (hasGoogleProvider)
+        {
+        }
+        @if (!hasGoogleProvider)
+        {
+            <div class="small text-muted mt-2 text-center">@T("Google oturumu şu anda yapılandırılmamış görünüyor; ayarlar senkronize edilince buton çalışacaktır.", "Google login is not configured; the button will work once settings are synchronized.", "Вход через Google не настроен; кнопка заработает после настройки.", "لم يتم تكوين تسجيل الدخول عبر Google؛ سيعمل الزر بمزامنة الإعدادات.", "ورود گوگل پیکربندی نشده است؛ دکمه پس از همگام‌سازی تنظیمات کار خواهد کرد.")</div>
+        }
+    </div>
+
+    <div class="mt-3 text-center">
+        <p class="mb-2 text-muted">@T("Üyeliğiniz yok mu?", "Don't have an account?", "Нет аккаунта؟", "ليس لديك حساب؟", "حساب ندارید؟")</p>
+        <a asp-action="Register" asp-controller="Account" class="btn btn-outline-primary w-100">@T("Üye Ol", "Sign Up", "Зарегистрироваться", "إنشاء حساب", "ثبت نام")</a>
+    </div>
 </div>

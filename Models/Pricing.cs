@@ -79,6 +79,11 @@ public class Payment
     [Required]
     public string UserId { get; set; } = string.Empty;
     
+    [MaxLength(150)]
+    public string? UserFullName { get; set; }
+    
+    public ApplicationUser? User { get; set; }
+    
     public int? PackageId { get; set; }
     public PricingPackage? Package { get; set; }
     

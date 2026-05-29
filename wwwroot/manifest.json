@@ -1,0 +1,21 @@
+{
+  "name": "SEN-T PAZAR",
+  "short_name": "SEN-T",
+  "description": "Kuzey Kıbrıs'ın Modern İlan Platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09121e",
+  "theme_color": "#007ACC",
+  "icons": [
+    {
+      "src": "/img/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

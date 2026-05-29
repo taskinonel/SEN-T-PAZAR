@@ -1,0 +1,47 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    ViewData["Title"] = "Hata";
+    var statusCode = (int?)ViewData["StatusCode"] ?? Context.Response.StatusCode;
+    var traceId = Context.TraceIdentifier;
+
+    string title;
+    string message;
+
+    switch (statusCode)
+    {
+        case 404:
+            title = "Sayfa Bulunamadi";
+            message = "Aradiginiz sayfa bulunamadi veya kaldirilmis olabilir.";
+            break;
+        case 401:
+            title = "Yetkisiz Erisim";
+            message = "Bu sayfaya erisim icin oturum acmaniz gerekiyor.";
+            break;
+        case 403:
+            title = "Erisim Engellendi";
+            message = "Bu kaynaga erisim izniniz bulunmuyor.";
+            break;
+        default:
+            title = "Islem Tamamlanamadi";
+            message = "Beklenmeyen bir hata olustu. Lutfen tekrar deneyin.";
+            break;
+    }
+}
+
+<section class="section" style="background:#eef1f5;min-height:68vh;display:flex;align-items:center;">
+    <div class="container" style="max-width:900px;">
+        <div style="background:#fff;border:1px solid #dfe4ea;border-radius:12px;padding:48px 36px;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.06);">
+            <h1 style="font-size:2rem;margin:0 0 12px;color:#374151;">@title</h1>
+            <p style="font-size:1.1rem;color:#4b5563;margin:0 0 18px;">@message</p>
+            <p style="font-size:0.95rem;color:#6b7280;margin:0 0 24px;">
+                <strong>Durum Kodu:</strong> @statusCode
+                <span style="margin:0 8px;">|</span>
+                <strong>Takip Kodu:</strong> @traceId
+            </p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Ana Sayfaya Don</a>
+                <a asp-controller="Document" asp-action="Contact" class="btn btn-outline-secondary">Destek Al</a>
+            </div>
+        </div>
+    </div>
+</section>

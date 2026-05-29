@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sentpazar.app",
+      "sha256_cert_fingerprints": [
+        "EA:88:86:AE:E5:21:D0:A5:FF:2D:59:E5:71:FB:AB:B2:A1:83:43:58:CB:5D:33:41:9C:08:30:29:1D:BE:CD:7F"
+      ]
+    }
+  }
+]

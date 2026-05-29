@@ -1,42 +1,727 @@
 @model IEnumerable<SEN_T_PAZAR.Models.Listing>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
 @{
-    ViewData["Title"] = "İlan Onay Paneli";
-}
-<h2>İlan Onay Paneli</h2>
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Başlık</th>
-            <th>Ad Soyad</th>
-            <th>Telefon</th>
-            <th>Şehir</th>
-            <th>Kategori</th>
-            <th>Fiyat</th>
-            <th>Durum</th>
-            <th>İşlem</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+    string LocalizeCityName(string? cityName) => cityName switch
+    {
+        "Lefkoşa" => T("Lefkoşa", "Nicosia", "Никосия", "نيقوسيا", "لفکوشا"),
+        "Girne" => T("Girne", "Kyrenia", "Кирения", "كيرينيا", "گیرنه"),
+        "Gazimağusa" => T("Gazimağusa", "Famagusta", "Фамагуста", "فاماغوستا", "قازی‌ماغوسا"),
+        "Güzelyurt" => T("Güzelyurt", "Morphou", "Морфу", "مورفو", "گوزل‌یورت"),
+        "İskele" => T("İskele", "Trikomo", "Трикомо", "تريكومو", "ایسکله"),
+        "Lefke" => T("Lefke", "Lefka", "Лефке", "لفكة", "لفکه"),
+        "Karpaz" => T("Karpaz", "Karpasia", "Карпасия", "كارباسيا", "کارپاز"),
+        "Belirtilmemiş" => T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده"),
+        _ => cityName ?? T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده")
+    };
+    int? ParseOrder(string? meta)
+    {
+        if (string.IsNullOrWhiteSpace(meta))
         {
-            <tr>
-                <td>@item.Title</td>
-                <td>@item.FullName</td>
-                <td>@item.Phone</td>
-                <td>@item.City</td>
-                <td>@item.Category</td>
-                <td>@item.PriceAmount @item.PriceCurrency</td>
-                <td>@(item.IsApproved ? "Onaylı" : "Bekliyor")</td>
-                <td>
-                    @if (!item.IsApproved)
-                    {
-                        <form asp-action="Approve" asp-controller="Admin" method="post" style="display:inline">
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button type="submit" class="btn btn-success btn-sm">Onayla</button>
-                        </form>
-                    }
-                </td>
-            </tr>
+            return null;
         }
-    </tbody>
-</table>
+
+        var parts = meta.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var part in parts)
+        {
+            if (!part.StartsWith("order=", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (int.TryParse(part[6..], out var parsed) && parsed > 0)
+            {
+                return parsed;
+            }
+        }
+
+        return null;
+    }
+
+    string CategoryLabel(string? category) => (category ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "realestate" or "estate" => T("Emlak", "Real Estate", "Недвижимость", "العقارات", "املاک"),
+        "land" => T("Arsa", "Land", "Земля", "الأراضي", "زمین"),
+        "vehicle" => T("Vasıta", "Vehicle", "Транспорт", "المركبات", "خودرو"),
+        "yacht" => T("Yat/Tekne", "Yacht/Boat", "Яхта/лодка", "يخت/قارب", "قایق/یخٹ"),
+        "caravan" => T("Karavan", "Caravan", "Караван", "الكرفانات", "کاروان"),
+        "secondhand" => T("İkinci El", "Second Hand", "Б/у", "مستعمل", "دست دوم"),
+        "phone" => T("Telefon", "Phone", "Телефон", "الهاتف", "تلفن"),
+        "computer" => T("Bilgisayar", "Computer", "Компьютер", "الكمبيوتر", "رایانه"),
+        "watch" => T("Saat", "Watch", "Часы", "الساعات", "ساعت"),
+        "jewelry" => T("Mücevher", "Jewelry", "Ювелирные изделия", "المجوهرات", "جواهرات"),
+        "electronics" => T("Elektronik", "Electronics", "Электроника", "الإلكترونيات", "الکترونیک"),
+        "equipment" => T("İş Makinesi", "Equipment", "Спецтехника", "المعدات", "ماشین‌آلات"),
+        "home" => T("Ev Yaşam", "Home Living", "Дом и быт", "المنزل والمعيشة", "خانه و زندگی"),
+        "fashion" => T("Moda", "Fashion", "Мода", "الموضة", "مد"),
+        "services" => T("Hizmet", "Services", "Услуги", "الخدمات", "خدمات"),
+        "" => T("Belirtilmedi", "Unspecified", "Не указано", "غير محدد", "مشخص نشده"),
+        _ => category ?? T("Belirtilmedi", "Unspecified", "Не указано", "غير محدد", "مشخص نشده")
+    };
+
+    string DealLabel(string? dealStatus, bool isClosed) => (dealStatus ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "sold" => T("Satıldı", "Sold", "Продано", "تم البيع", "فروخته شد"),
+        "rented" => T("Kiralandı", "Rented", "Сдано", "تم التأجير", "اجاره رفت"),
+        "closed" => T("Kapalı", "Closed", "Закрыто", "مغلق", "بسته"),
+        _ => isClosed ? T("Kapalı", "Closed", "Закрыто", "مغلق", "بسته") : T("Yayında", "Live", "В эфире", "منشور", "منتشر شده")
+    };
+
+    ViewData["Title"] = T("İlan Yönetimi", "Listing Management", "Управление объявлениями", "إدارة الإعلانات", "مدیریت آگهی‌ها");
+    var currentStatus = ViewData["CurrentStatus"]?.ToString() ?? "all";
+}
+
+@section Styles {
+<style>
+    .admin-listing-card {
+        border: none;
+        border-radius: 14px;
+        transition: box-shadow 0.2s;
+    }
+    .admin-listing-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.09); }
+    .filter-btn.active { font-weight: 700; }
+    .badge-pending { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .badge-approved { background: #d1e7dd; color: #0a3622; border: 1px solid #198754; }
+    .action-btns form { display: inline; }
+    .feature-badges { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .action-btns { min-width: 220px; align-items: flex-start; justify-content: flex-end; }
+    .action-btns .btn { white-space: nowrap; }
+    .order-editor {
+        border: 1px solid #e3eaf3;
+        border-radius: 10px;
+        padding: .5rem;
+        background: #f8fbff;
+        min-width: 360px;
+    }
+    .order-editor__toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+        margin-bottom: .6rem;
+    }
+    .promo-toggle {
+        position: relative;
+    }
+    .promo-toggle__input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .promo-toggle__label {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .42rem .76rem;
+        border-radius: 10px;
+        border: 1px solid #d2dbe8;
+        background: #fff;
+        color: #36506b;
+        cursor: pointer;
+        font-size: .78rem;
+        font-weight: 700;
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+    }
+    .promo-toggle__label:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
+    }
+    .promo-toggle__input:focus-visible + .promo-toggle__label {
+        outline: 2px solid rgba(13, 110, 253, .45);
+        outline-offset: 2px;
+    }
+    .promo-toggle__input:checked + .promo-toggle__label--featured {
+        background: #ffc107;
+        border-color: #ffc107;
+        color: #473200;
+    }
+    .promo-toggle__input:checked + .promo-toggle__label--vitrin {
+        background: #0dcaf0;
+        border-color: #0dcaf0;
+        color: #073b4c;
+    }
+    .promo-toggle__input:checked + .promo-toggle__label--popular {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
+    .order-editor__labels {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .35rem;
+        font-size: .73rem;
+        color: #3e597c;
+        margin-bottom: .3rem;
+    }
+    .order-editor__inputs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .35rem;
+        align-items: center;
+    }
+    .order-editor__footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: .75rem;
+        margin-top: .45rem;
+    }
+    .order-help {
+        display: block;
+        font-size: .7rem;
+        color: #5e718e;
+        margin-top: 0;
+    }
+    .order-editor__input--disabled {
+        background: #eef2f7;
+        border-color: #d8e1ec;
+        color: #8a97aa;
+    }
+    .order-editor__label--disabled {
+        opacity: .55;
+    }
+    .order-editor__status {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        font-size: .72rem;
+        font-weight: 700;
+        color: #56708f;
+        white-space: nowrap;
+    }
+    .order-editor__status[data-state="saving"] {
+        color: #0d6efd;
+    }
+    .order-editor__status[data-state="saved"] {
+        color: #198754;
+    }
+    .order-editor__status[data-state="error"] {
+        color: #dc3545;
+    }
+    .order-editor__fallback {
+        font-size: .72rem;
+    }
+    .action-btns .btn .txt { font-size: .72rem; margin-left: .2rem; }
+    .cell-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+    .page-title {
+        font-size: 1.6rem; font-weight: 700;
+        background: linear-gradient(135deg, #1e3a66, #0d6efd);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+</style>
+}
+
+<div class="container py-4">
+    @if (TempData["AdminSuccess"] is string adminSuccess && !string.IsNullOrWhiteSpace(adminSuccess))
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-3">@adminSuccess</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="page-title">@T("İlan Yönetimi", "Listing Management", "Управление объявлениями", "إدارة الإعلانات", "مدیریت آگهی‌ها")</div>
+            <p class="text-muted mb-0">@T($"Toplam {Model.Count()} ilan listeleniyor", $"{Model.Count()} listings are listed", $"Показано объявлений: {Model.Count()}", $"إجمالي الإعلانات المعروضة: {Model.Count()}", $"مجموع {Model.Count()} آگهی فهرست شده است")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> @T("Panele Dön", "Back to Panel", "Назад к панели", "العودة إلى اللوحة", "بازگشت به پنل")
+        </a>
+    </div>
+
+    <!-- Filtre butonları -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+        <a asp-action="Listings" asp-route-status="all"
+           class="btn btn-sm @(currentStatus == "all" ? "btn-primary filter-btn active" : "btn-outline-primary filter-btn")">
+            <i class="bi bi-list-ul me-1"></i>@T("Tümü", "All", "Все", "الكل", "همه")
+        </a>
+        <a asp-action="Listings" asp-route-status="pending"
+           class="btn btn-sm @(currentStatus == "pending" ? "btn-warning filter-btn active" : "btn-outline-warning filter-btn")">
+            <i class="bi bi-hourglass-split me-1"></i>@T("Onay Bekleyen", "Pending", "Ожидают одобрения", "بانتظار الموافقة", "در انتظار تأیید")
+        </a>
+        <a asp-action="Listings" asp-route-status="approved"
+           class="btn btn-sm @(currentStatus == "approved" ? "btn-success filter-btn active" : "btn-outline-success filter-btn")">
+            <i class="bi bi-check-circle me-1"></i>@T("Yayında", "Published", "Опубликовано", "منشور", "منتشر شده")
+        </a>
+        <a asp-action="Listings" asp-route-status="featured"
+           class="btn btn-sm @(currentStatus == "featured" ? "btn-info filter-btn active" : "btn-outline-info filter-btn")">
+            <i class="bi bi-star me-1"></i>@T("Öne Çıkan", "Featured", "Рекомендуемые", "مميز", "ویژه")
+        </a>
+        <a asp-action="Listings" asp-route-status="vitrin"
+           class="btn btn-sm @(currentStatus == "vitrin" ? "btn-dark filter-btn active" : "btn-outline-dark filter-btn")">
+            <i class="bi bi-eye me-1"></i>@T("Vitrin", "Showcase", "Витрина", "الواجهة", "ویترین")
+        </a>
+        <a asp-action="Listings" asp-route-status="popular"
+           class="btn btn-sm @(currentStatus == "popular" ? "btn-danger filter-btn active" : "btn-outline-danger filter-btn")">
+            <i class="bi bi-fire me-1"></i>@T("Popüler", "Popular", "Популярные", "الشائعة", "محبوب")
+        </a>
+    </div>
+
+     <!-- Kullanıcı türü filtre butonları -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        <span class="text-muted small align-self-center me-1">@T("Kullanıcı Tipi:", "User Type:", "Тип пользователя:", "نوع المستخدم:", "نوع کاربر:")</span>
+        <a asp-action="Listings" asp-route-status="@currentStatus" asp-route-userType="all"
+           class="btn btn-sm @(ViewData["CurrentUserType"]?.ToString() == "all" ? "btn-dark filter-btn active" : "btn-outline-dark filter-btn")">
+            <i class="bi bi-people me-1"></i>@T("Tümü", "All", "Все", "الكل", "همه")
+        </a>
+        <a asp-action="Listings" asp-route-status="@currentStatus" asp-route-userType="regular"
+           class="btn btn-sm @(ViewData["CurrentUserType"]?.ToString() == "regular" ? "btn-primary filter-btn active" : "btn-outline-primary filter-btn")">
+            <i class="bi bi-person me-1"></i>@T("Normal Kullanıcı", "Regular", "Обычный", "عادي", "عادی")
+        </a>
+        <a asp-action="Listings" asp-route-status="@currentStatus" asp-route-userType="corporate"
+           class="btn btn-sm @(ViewData["CurrentUserType"]?.ToString() == "corporate" ? "btn-info filter-btn active" : "btn-outline-info filter-btn")">
+            <i class="bi bi-building me-1"></i>@T("Kurumsal", "Corporate", "Корпоративный", "مؤسسي", "شرکتی")
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+            @T("Bu filtrede hiç ilan bulunamadı.", "No listings found for this filter.", "По этому фильтру объявлений не найдено.", "لم يتم العثور على إعلانات لهذا الفلتر.", "برای این فیلتر هیچ آگهی‌ای پیدا نشد.")
+        </div>
+    }
+    else
+    {
+        <div class="card admin-listing-card shadow-sm border-0 rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">@T("Başlık", "Title", "Заголовок", "العنوان", "عنوان")</th>
+                                <th>@T("Kişi / Tel", "Person / Phone", "Контакт / Телефон", "الاسم / الهاتف", "شخص / تلفن")</th>
+                                <th>@T("Şehir", "City", "Город", "المدينة", "شهر")</th>
+                                <th>@T("Kategori", "Category", "Категория", "الفئة", "دسته")</th>
+                                <th>@T("Fiyat", "Price", "Цена", "السعر", "قیمت")</th>
+                                <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                                <th>@T("Promosyon ve Sıra", "Promotion & Order", "Продвижение и порядок", "الترويج والترتيب", "پروموشن و ترتیب")</th>
+                                <th class="pe-4 text-end">@T("İşlemler", "Actions", "Действия", "الإجراءات", "عملیات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ var rowNumber = 0; }
+                            @foreach (var item in Model)
+                            {
+                                rowNumber++;
+                                var featuredOrder = ParseOrder(item.FeaturedPackage);
+                                var vitrinOrder = ParseOrder(item.VitrinPackage);
+                                var popularOrder = item.IsPopular ? item.PopularOrder : null;
+                                var vitrinEnabled = item.IsVitrin;
+                                var featuredEnabled = item.IsFeatured;
+                                var popularEnabled = item.IsPopular;
+                                var hasPromotion = vitrinEnabled || featuredEnabled || popularEnabled;
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="small text-muted fw-semibold">#@rowNumber</div>
+                                        <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="text-decoration-none fw-semibold">
+                                            @(item.Title.Length > 40 ? item.Title.Substring(0, 40) + "…" : item.Title)
+                                        </a>
+                                        <div class="small text-muted">@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@item.FullName</div>
+                                        <div class="small text-muted">@item.Phone</div>
+                                    </td>
+                                    <td>@LocalizeCityName(item.City)</td>
+                                    <td><span class="badge bg-light text-dark border">@CategoryLabel(item.Category)</span></td>
+                                    <td class="fw-semibold">@SEN_T_PAZAR.Services.CurrencyDisplay.Format(item.PriceAmount, item.PriceCurrency)</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@Math.Max(0, item.ViewCount) @T("görüntülenme", "views", "просмотров", "مشاهدة", "بازدید")</span>
+                                        <div class="small mt-1"><span class="badge bg-secondary">@DealLabel(item.DealStatus, item.IsClosed)</span></div>
+                                        @if (item.IsApproved)
+                                        {
+                                            <span class="badge badge-approved px-2 py-1">@T("Yayında", "Published", "Опубликовано", "منشور", "منتشر شده")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-pending px-2 py-1">@T("Bekliyor", "Pending", "Ожидает", "بانتظار", "در انتظار")</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <form asp-action="UpdateDisplayOrder" asp-controller="Admin" method="post" class="order-editor js-promotion-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="status" value="@currentStatus" />
+                                            <div class="order-editor__toggles">
+                                                <span class="promo-toggle">
+                                                    <input type="checkbox" id="vitrin-toggle-@item.Id" name="isVitrin" value="true" class="promo-toggle__input" data-promo-checkbox="vitrin" @(vitrinEnabled ? "checked" : null) />
+                                                    <input type="hidden" name="isVitrin" value="false" />
+                                                    <label for="vitrin-toggle-@item.Id" class="promo-toggle__label promo-toggle__label--vitrin"><i class="bi bi-eye-fill"></i>@T("Vitrin", "Showcase", "Витрина", "الواجهة", "ویترین")</label>
+                                                </span>
+                                                <span class="promo-toggle">
+                                                    <input type="checkbox" id="featured-toggle-@item.Id" name="isFeatured" value="true" class="promo-toggle__input" data-promo-checkbox="featured" @(featuredEnabled ? "checked" : null) />
+                                                    <input type="hidden" name="isFeatured" value="false" />
+                                                    <label for="featured-toggle-@item.Id" class="promo-toggle__label promo-toggle__label--featured"><i class="bi bi-star-fill"></i>@T("Öne Çıkan", "Featured", "Рекомендуемое", "مميز", "ویژه")</label>
+                                                </span>
+                                                <span class="promo-toggle">
+                                                    <input type="checkbox" id="popular-toggle-@item.Id" name="isPopular" value="true" class="promo-toggle__input" data-promo-checkbox="popular" @(popularEnabled ? "checked" : null) />
+                                                    <input type="hidden" name="isPopular" value="false" />
+                                                    <label for="popular-toggle-@item.Id" class="promo-toggle__label promo-toggle__label--popular"><i class="bi bi-fire"></i>@T("Popüler", "Popular", "Популярное", "شائع", "محبوب")</label>
+                                                </span>
+                                            </div>
+                                            <div class="order-editor__labels">
+                                                <span data-order-label="vitrin" class="@(vitrinEnabled ? string.Empty : "order-editor__label--disabled")">@T("Vitrin Sırası", "Showcase Order", "Порядок витрины", "ترتيب الواجهة", "ترتیب ویترین")</span>
+                                                <span data-order-label="featured" class="@(featuredEnabled ? string.Empty : "order-editor__label--disabled")">@T("Öne Çıkan Sırası", "Featured Order", "Порядок рекомендуемых", "ترتيب المميز", "ترتیب ویژه")</span>
+                                                <span data-order-label="popular" class="@(popularEnabled ? string.Empty : "order-editor__label--disabled")">@T("Popüler Sırası", "Popular Order", "Порядок популярных", "ترتيب الشائع", "ترتیب محبوب")</span>
+                                            </div>
+                                            <div class="order-editor__inputs">
+                                                <input type="number" min="1" name="vitrinOrder" value="@(vitrinEnabled ? vitrinOrder : null)" class="form-control form-control-sm @(vitrinEnabled ? string.Empty : "order-editor__input--disabled")" data-order-input="vitrin" data-placeholder-on="1" data-placeholder-off="@T("Vitrin pasif", "Showcase off", "Витрина выкл.", "الواجهة غير مفعلة", "ویترین غیرفعال")" title="@T("Vitrinde kaçıncı sırada görünsün", "Position in showcase", "Позиция на витрине", "ترتيب الظهور في الواجهة", "جایگاه نمایش در ویترین")" placeholder="@(vitrinEnabled ? "1" : T("Vitrin pasif", "Showcase off", "Витрина выкл.", "الواجهة غير مفعلة", "ویترین غیرفعال"))" disabled="@(!vitrinEnabled)" />
+                                                <input type="number" min="1" name="featuredOrder" value="@(featuredEnabled ? featuredOrder : null)" class="form-control form-control-sm @(featuredEnabled ? string.Empty : "order-editor__input--disabled")" data-order-input="featured" data-placeholder-on="1" data-placeholder-off="@T("Öne çıkan pasif", "Featured off", "Рекомендуемое выкл.", "المميز غير مفعل", "ویژه غیرفعال")" title="@T("Öne çıkanlarda kaçıncı sırada görünsün", "Position in featured rail", "Позиция среди рекомендуемых", "ترتيب الظهور في المميز", "جایگاه نمایش در بخش ویژه")" placeholder="@(featuredEnabled ? "1" : T("Öne çıkan pasif", "Featured off", "Рекомендуемое выкл.", "المميز غير مفعل", "ویژه غیرفعال"))" disabled="@(!featuredEnabled)" />
+                                                <input type="number" min="1" name="popularOrder" value="@(popularEnabled ? popularOrder : null)" class="form-control form-control-sm @(popularEnabled ? string.Empty : "order-editor__input--disabled")" data-order-input="popular" data-placeholder-on="1" data-placeholder-off="@T("Popüler pasif", "Popular off", "Популярное выкл.", "الشائع غير مفعل", "محبوب غیرفعال")" title="@T("Popüler listede kaçıncı sırada görünsün", "Position in popular rail", "Позиция в популярных", "ترتيب الظهور في الشائع", "جایگاه نمایش در فهرست محبوب")" placeholder="@(popularEnabled ? "1" : T("Popüler pasif", "Popular off", "Популярное выкл.", "الشائع غير مفعل", "محبوب غیرفعال"))" disabled="@(!popularEnabled)" />
+                                            </div>
+                                            <div class="order-editor__footer">
+                                                <small class="order-help">
+                                                    @if (hasPromotion)
+                                                    {
+                                                        @T("Çoklu seçim yapabilir, sıraları otomatik kaydedebilirsiniz. Sayı küçüldükçe üst sıraya çıkar.", "You can select multiple promotions and orders are saved automatically. Lower value means higher priority.", "Можно выбрать несколько промо-опций, а порядок сохранится автоматически. Чем меньше число, тем выше приоритет.", "يمكنك تحديد أكثر من ترويج وسيتم حفظ الترتيب تلقائيًا. كلما كان الرقم أصغر كانت الأولوية أعلى.", "می‌توانید چند پروموشن را هم‌زمان انتخاب کنید و ترتیب‌ها به‌صورت خودکار ذخیره می‌شوند. هرچه عدد کمتر باشد، اولویت بالاتر است.")
+                                                        <br />
+                                                        @T($"Satır konumu: #{rowNumber}", $"Row position: #{rowNumber}", $"Позиция строки: #{rowNumber}", $"موضع الصف: #{rowNumber}", $"موقعیت ردیف: #{rowNumber}")
+                                                    }
+                                                    else
+                                                    {
+                                                        @T("Promosyon seçilmediğinde sıra alanları pasif kalır.", "Order fields stay disabled until a promotion is selected.", "Поля порядка остаются неактивными, пока не выбрано продвижение.", "تبقى حقول الترتيب غير مفعلة حتى يتم اختيار ترويج.", "تا وقتی پروموشن انتخاب نشود، فیلدهای ترتیب غیرفعال می‌مانند.")
+                                                    }
+                                                </small>
+                                                <span class="order-editor__status" data-save-status data-state="idle">@T("Otomatik kaydedilir", "Auto-save enabled", "Автосохранение включено", "الحفظ التلقائي مفعّل", "ذخیره خودکار فعال است")</span>
+                                            </div>
+                                            <noscript>
+                                                <button type="submit" class="btn btn-primary btn-sm order-editor__fallback mt-2">@T("Şimdi Kaydet", "Save Now", "Сохранить", "احفظ الآن", "اکنون ذخیره کن")</button>
+                                            </noscript>
+                                        </form>
+                                    </td>
+                                    <td class="pe-4 cell-actions">
+                                        <div class="action-btns d-flex flex-wrap gap-1">
+                                            @if (!item.IsApproved)
+                                            {
+                                                <form asp-action="Approve" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-success btn-sm" title="@T("Onayla", "Approve", "Одобрить", "موافقة", "تأیید")">
+                                                        <i class="bi bi-check-lg"></i>
+                                                        <span class="txt">@T("Onay", "Approve", "Одобрить", "موافقة", "تأیید")</span>
+                                                    </button>
+                                                </form>
+                                                <form asp-action="PublishToVitrin" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-info btn-sm" title="@T("Onayla ve vitrinde yayınla", "Approve and publish to showcase", "Одобрить и вывести на витрину", "وافق وانشر في الواجهة", "تأیید و انتشار در ویترین")">
+                                                        <i class="bi bi-eye-fill"></i><span class="txt">@T("Vitrine Al", "To Showcase", "На витрину", "إلى الواجهة", "به ویترین ببر")</span>
+                                                    </button>
+                                                </form>
+                                                <form asp-action="PublishToStream" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-warning btn-sm" title="@T("Onayla ve öne çıkanlara ekle", "Approve and add to featured", "Одобрить и добавить в рекомендуемые", "وافق وأضفه إلى المميز", "تأیید و افزودن به ویژه‌ها")">
+                                                        <i class="bi bi-star-fill"></i><span class="txt">@T("Öne Çıkar", "Make Featured", "Сделать рекомендуемым", "اجعله مميزًا", "ویژه کن")</span>
+                                                    </button>
+                                                </form>
+                                                <form asp-action="Reject" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="@T("Reddet", "Reject", "Отклонить", "رفض", "رد")">
+                                                        <i class="bi bi-x-lg"></i>
+                                                        <span class="txt">@T("Kaldır", "Remove", "Удалить из публикации", "إزالة", "بردار")</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <a asp-action="EditListing" asp-controller="Admin" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm" title="@T("Düzenle", "Edit", "Редактировать", "تعديل", "ویرایش")">
+                                                <i class="bi bi-pencil-square"></i>
+                                                <span class="txt">@T("Düzenle", "Edit", "Редактировать", "تعديل", "ویرایش")</span>
+                                            </a>
+                                            <form asp-action="Delete" asp-controller="Admin" method="post"
+                                                  onsubmit="return confirm('@T("Bu ilanı kalıcı olarak silmek istediğinize emin misiniz?", "Are you sure you want to permanently delete this listing?", "Вы уверены, что хотите навсегда удалить это объявление?", "هل أنت متأكد من حذف هذا الإعلان نهائيًا؟", "مطمئن هستید می‌خواهید این آگهی را برای همیشه حذف کنید؟")')">
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="@T("Sil", "Delete", "Удалить", "حذف", "حذف")">
+                                                    <i class="bi bi-trash3"></i>
+                                                    <span class="txt">@T("Sil", "Delete", "Удалить", "حذف", "حذف")</span>
+                                                </button>
+                                            </form>
+                                            @if (item.IsClosed)
+                                            {
+                                                <form asp-action="ResumeListing" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-success btn-sm" title="@T("Yayına Al", "Resume", "Возобновить", "استئناف", "انتشار مجدد")">
+                                                        <i class="bi bi-play-circle"></i>
+                                                        <span class="txt">@T("Yayına Al", "Resume", "Возобновить", "استئناف", "انتشار مجدد")</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="SuspendListing" asp-controller="Admin" method="post">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="@T("Askıya Al", "Suspend", "Приостановить", "تعليق", "تعلیق")">
+                                                        <i class="bi bi-pause-circle"></i>
+                                                        <span class="txt">@T("Askıya Al", "Suspend", "Приостановить", "تعليق", "تعلیق")</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const texts = {
+        idle: '@T("Otomatik kaydedilir", "Auto-save enabled", "Автосохранение включено", "الحفظ التلقائي مفعّل", "ذخیره خودکار فعال است")',
+        pending: '@T("Değişiklik algılandı...", "Change detected...", "Обнаружено изменение...", "تم اكتشاف تغيير...", "تغییر شناسایی شد...")',
+        saving: '@T("Kaydediliyor...", "Saving...", "Сохранение...", "جارٍ الحفظ...", "در حال ذخیره...")',
+        saved: '@T("Kaydedildi", "Saved", "Сохранено", "تم الحفظ", "ذخیره شد")',
+        error: '@T("Kaydedilemedi", "Could not save", "Не удалось сохранить", "تعذر الحفظ", "ذخیره نشد")'
+    };
+
+    const orderKeys = ['vitrin', 'featured', 'popular'];
+    const booleanFieldNames = {
+        vitrin: 'isVitrin',
+        featured: 'isFeatured',
+        popular: 'isPopular'
+    };
+
+    function getListingId(form) {
+        const idInput = form.querySelector('input[name="id"]');
+        const raw = idInput ? String(idInput.value || '').trim() : '';
+        return raw;
+    }
+
+    function applyOrderSequence(key, sequence) {
+        if (!Array.isArray(sequence) || sequence.length === 0) {
+            return;
+        }
+
+        const map = new Map();
+        sequence.forEach((entry) => {
+            if (!entry || entry.id === undefined || entry.id === null) {
+                return;
+            }
+
+            const orderValue = entry.order;
+            if (orderValue === undefined || orderValue === null || orderValue === '') {
+                return;
+            }
+
+            map.set(String(entry.id), String(orderValue));
+        });
+
+        document.querySelectorAll('.js-promotion-form').forEach((otherForm) => {
+            const listingId = getListingId(otherForm);
+            if (!listingId) {
+                return;
+            }
+
+            const input = otherForm.querySelector(`[data-order-input="${key}"]`);
+            if (!input) {
+                return;
+            }
+
+            const toggle = otherForm.querySelector(`[data-promo-checkbox="${key}"]`);
+            const active = toggle ? toggle.checked : false;
+            input.value = active ? (map.get(listingId) || '') : '';
+        });
+    }
+
+    function applySequences(data) {
+        if (!data) {
+            return;
+        }
+
+        applyOrderSequence('vitrin', data.vitrinSequence);
+        applyOrderSequence('featured', data.featuredSequence);
+        applyOrderSequence('popular', data.popularSequence);
+    }
+
+    function setStatus(form, state, text) {
+        const status = form.querySelector('[data-save-status]');
+        if (!status) {
+            return;
+        }
+
+        status.dataset.state = state;
+        status.textContent = text;
+    }
+
+    function syncForm(form) {
+        orderKeys.forEach((key) => {
+            const toggle = form.querySelector(`[data-promo-checkbox="${key}"]`);
+            const input = form.querySelector(`[data-order-input="${key}"]`);
+            const label = form.querySelector(`[data-order-label="${key}"]`);
+            if (!toggle || !input || !label) {
+                return;
+            }
+
+            const active = toggle.checked;
+            input.disabled = !active;
+            input.classList.toggle('order-editor__input--disabled', !active);
+            label.classList.toggle('order-editor__label--disabled', !active);
+            input.placeholder = active ? (input.dataset.placeholderOn || '1') : (input.dataset.placeholderOff || '');
+
+            if (!active) {
+                input.value = '';
+            }
+        });
+    }
+
+    function queueSave(form) {
+        window.clearTimeout(Number(form.dataset.timerId || '0'));
+        form.dataset.timerId = String(window.setTimeout(() => saveForm(form), 550));
+        setStatus(form, 'pending', texts.pending);
+    }
+
+    async function readAutosaveResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const bodyText = await response.text();
+
+        if (!contentType.includes('application/json')) {
+            return { data: null, bodyText };
+        }
+
+        try {
+            return {
+                data: JSON.parse(bodyText),
+                bodyText
+            };
+        } catch {
+            return { data: null, bodyText };
+        }
+    }
+
+    function getAutosaveErrorMessage(data, bodyText) {
+        if (data && typeof data.message === 'string' && data.message.trim()) {
+            return data.message.trim();
+        }
+
+        const trimmed = (bodyText || '').trim();
+        if (!trimmed) {
+            return texts.error;
+        }
+
+        const looksLikeServerError =
+            trimmed.startsWith('<') ||
+            trimmed.startsWith('System.') ||
+            trimmed.includes('Exception:') ||
+            trimmed.includes('Microsoft.') ||
+            trimmed.includes('   at ');
+
+        if (looksLikeServerError) {
+            return texts.error;
+        }
+
+        return trimmed.length > 180 ? `${trimmed.slice(0, 177)}...` : trimmed;
+    }
+
+    async function saveForm(form) {
+        if (form.dataset.saving === 'true') {
+            form.dataset.pendingSave = 'true';
+            return;
+        }
+
+        form.dataset.saving = 'true';
+        setStatus(form, 'saving', texts.saving);
+
+        const formData = new FormData(form);
+        formData.set('autoSave', 'true');
+        orderKeys.forEach((key) => {
+            const toggle = form.querySelector(`[data-promo-checkbox="${key}"]`);
+            if (!toggle) {
+                return;
+            }
+
+            formData.set(booleanFieldNames[key], toggle.checked ? 'true' : 'false');
+        });
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const { data, bodyText } = await readAutosaveResponse(response);
+            if (!response.ok || !data || !data.success) {
+                throw new Error(getAutosaveErrorMessage(data, bodyText));
+            }
+
+            const orderMap = {
+                vitrin: data.vitrinOrder,
+                featured: data.featuredOrder,
+                popular: data.popularOrder
+            };
+            const stateMap = {
+                vitrin: data.isVitrin,
+                featured: data.isFeatured,
+                popular: data.isPopular
+            };
+
+            orderKeys.forEach((key) => {
+                const toggle = form.querySelector(`[data-promo-checkbox="${key}"]`);
+                const input = form.querySelector(`[data-order-input="${key}"]`);
+                if (toggle && typeof stateMap[key] === 'boolean') {
+                    toggle.checked = stateMap[key];
+                }
+
+                if (input) {
+                    input.value = stateMap[key] && orderMap[key] ? String(orderMap[key]) : '';
+                }
+            });
+
+            syncForm(form);
+            applySequences(data);
+            setStatus(form, 'saved', data.message || texts.saved);
+            window.clearTimeout(Number(form.dataset.statusResetId || '0'));
+            form.dataset.statusResetId = String(window.setTimeout(() => setStatus(form, 'idle', texts.idle), 1800));
+        } catch (error) {
+            const message = error instanceof Error && error.message ? error.message : texts.error;
+            setStatus(form, 'error', message);
+        } finally {
+            form.dataset.saving = 'false';
+            if (form.dataset.pendingSave === 'true') {
+                form.dataset.pendingSave = 'false';
+                queueSave(form);
+            }
+        }
+    }
+
+    document.querySelectorAll('.js-promotion-form').forEach((form) => {
+        syncForm(form);
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            saveForm(form);
+        });
+
+        form.querySelectorAll('[data-promo-checkbox]').forEach((input) => {
+            input.addEventListener('change', () => {
+                syncForm(form);
+                queueSave(form);
+            });
+        });
+
+        form.querySelectorAll('[data-order-input]').forEach((input) => {
+            input.addEventListener('input', () => queueSave(form));
+            input.addEventListener('change', () => queueSave(form));
+        });
+    });
+})();
+</script>
+}

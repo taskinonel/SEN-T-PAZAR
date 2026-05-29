@@ -5,17 +5,57 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>SEN_T_PAZAR</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;publish*\**;**\publish*\**;deploy-output\**;**\deploy-output\**;tools\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <EmbeddedResource Remove="tests\**\*" />
+    <Compile Remove="fix_db.cs" />
+    <Compile Remove="fix_db_temp\**\*.cs" />
+    <None Remove="fix_db_temp\**\*" />
+    <EmbeddedResource Remove="fix_db_temp\**\*" />
+    <None Remove="tests\**\*" />
+    <Compile Remove="db_inspector\**\*.cs" />
+    <EmbeddedResource Remove="db_inspector\**\*" />
+    <None Remove="db_inspector\**\*" />
+    <Content Remove="db_inspector\**\*" />
+    <Compile Remove="db_check*.cs" />
+    <None Remove="db_check*.cs" />
+    <Compile Remove="publish*\**\*.cs" />
+    <Compile Remove="**\publish*\**\*.cs" />
+    <EmbeddedResource Remove="publish*\**\*" />
+    <EmbeddedResource Remove="**\publish*\**\*" />
+    <None Remove="publish*\**\*" />
+    <None Remove="**\publish*\**\*" />
+    <Content Remove="publish*\**\*" />
+    <Content Remove="**\publish*\**\*" />
+    <Compile Remove="deploy-output\**\*.cs" />
+    <Compile Remove="**\deploy-output\**\*.cs" />
+    <EmbeddedResource Remove="deploy-output\**\*" />
+    <EmbeddedResource Remove="**\deploy-output\**\*" />
+    <None Remove="deploy-output\**\*" />
+    <None Remove="**\deploy-output\**\*" />
+    <Content Remove="deploy-output\**\*" />
+    <Content Remove="**\deploy-output\**\*" />
+    <Compile Remove="MyQueryProgram.cs" />
   </ItemGroup>
 
 </Project>

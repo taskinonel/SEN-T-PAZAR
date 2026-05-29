@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SEN_T_PAZAR.Models;
+using SEN_T_PAZAR.Services;
 using System.IO;
 
 namespace SEN_T_PAZAR.Controllers;
@@ -10,12 +11,12 @@ namespace SEN_T_PAZAR.Controllers;
 public class DocumentController : Controller
 {
     private readonly ApplicationDbContext _context;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IUploadStorageService _uploadStorage;
 
-    public DocumentController(ApplicationDbContext context, IWebHostEnvironment environment)
+    public DocumentController(ApplicationDbContext context, IUploadStorageService uploadStorage)
     {
         _context = context;
-        _environment = environment;
+        _uploadStorage = uploadStorage;
     }
 
     // GET: Document
@@ -63,11 +64,7 @@ public class DocumentController : Controller
         }
 
         // Create uploads folder if it doesn't exist
-        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "documents");
-        if (!Directory.Exists(uploadsFolder))
-        {
-            Directory.CreateDirectory(uploadsFolder);
-        }
+        var uploadsFolder = _uploadStorage.EnsureDirectory("documents");
 
         // Generate a unique file name
         var fileName = $"{Guid.NewGuid()}{extension}";
@@ -85,7 +82,7 @@ public class DocumentController : Controller
             UserId = userId,
             DocumentType = documentType,
             FileName = file.FileName,
-            FilePath = $"/uploads/documents/{fileName}"
+            FilePath = $"{_uploadStorage.GetPublicDirectory("documents")}/{fileName}"
         };
 
         _context.Documents.Add(document);
@@ -107,8 +104,8 @@ public class DocumentController : Controller
             return NotFound();
         }
 
-        var filePath = Path.Combine(_environment.WebRootPath, document.FilePath.TrimStart('/'));
-        if (!System.IO.File.Exists(filePath))
+        var filePath = _uploadStorage.TryGetPhysicalPath(document.FilePath);
+        if (string.IsNullOrWhiteSpace(filePath) || !System.IO.File.Exists(filePath))
         {
             return NotFound();
         }

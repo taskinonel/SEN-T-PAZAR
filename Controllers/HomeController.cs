@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Reflection;
@@ -1342,7 +1343,9 @@ private void PreparePublishViewData()
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Publish(CreateListingViewModel model)
     {
-        PreparePublishViewData();
+        try
+        {
+            PreparePublishViewData();
 
         var normalizedCategory = ListingTaxonomy.NormalizeForPersistence(model.Category, model.SubCategory);
         model.Category = normalizedCategory.Category;
@@ -1531,11 +1534,14 @@ private void PreparePublishViewData()
             VideoUrl = model.VideoUrl,
             CoverImageIndex = model.CoverImageIndex ?? 0,
             
-            // Kullanıcı
+// Kullanıcı
             UserId = User.Identity?.IsAuthenticated == true 
                 ? _context.Users.Where(u => u.UserName == User.Identity!.Name).Select(u => u.Id).FirstOrDefault() 
                 : null,
-            
+            SellerIsCorporate = User.Identity?.IsAuthenticated == true 
+                ? _context.Users.Where(u => u.UserName == User.Identity!.Name).Select(u => u.IsCorporateMember).FirstOrDefault() 
+                : false,
+             
             // Durum
             CreatedAt = DateTime.UtcNow,
             IsApproved = false,
@@ -1614,6 +1620,19 @@ private void PreparePublishViewData()
 
         TempData["PublishSuccess"] = "İlanınız başarıyla alındı! Onay sürecinden sonra yayına girecektir. İlan No: #" + listing.Id;
         return RedirectToAction(nameof(Publish));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Publish failed for user {UserId}", User.Identity?.Name);
+            PreparePublishViewData();
+            var errorMessage = $"Hata: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $" | Inner: {ex.InnerException.Message}";
+            }
+            ModelState.AddModelError(string.Empty, errorMessage);
+            return View(model);
+        }
     }
 
     public IActionResult Privacy()
@@ -1985,7 +2004,13 @@ private void PreparePublishViewData()
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        var exceptionHandler = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var errorDetail = exceptionHandler?.Error?.ToString();
+        return View(new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            ErrorDetail = errorDetail
+        });
     }
 
     [Authorize]
@@ -2623,26 +2648,9 @@ private void PreparePublishViewData()
 
     private static string HumanizeSubCategoryLabel(string rawValue) => ListingTaxonomy.HumanizeSubCategory(rawValue);
 
-    private static string GetCategoryFallbackImageUrl(string? category)
+private static string GetCategoryFallbackImageUrl(string? category)
     {
-        return ListingTaxonomy.GetBrowseCategoryCode(category, null) switch
-        {
-            "realestate" => "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=70",
-            "land" => "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=70",
-            "vehicle" => "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=70",
-            "yacht" => "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&w=1200&q=70",
-            "caravan" => "https://images.unsplash.com/photo-1527786356703-4b100091cd2c?auto=format&fit=crop&w=1200&q=70",
-            "electronics" or "phone" or "computer" => "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=70",
-            "home" => "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=70",
-            "fashion" => "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=70",
-            "services" => "https://images.unsplash.com/photo-1521790797524-b2497295b8a0?auto=format&fit=crop&w=1200&q=70",
-            "tutoring" => "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=1200&q=70",
-            "jobs" => "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=70",
-            "helper" => "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=70",
-            "equipment" => "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=70",
-            "secondhand" => "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=70",
-            _ => "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=70"
-        };
+        return "/img/placeholder.svg";
     }
 
     private static string NormalizePublishCategory(string? category) => ListingTaxonomy.NormalizePublishCategory(category);
@@ -3063,15 +3071,25 @@ private void PreparePublishViewData()
             return null;
         }
 
+        if (!await IsValidImageFileAsync(file))
+        {
+            return null;
+        }
+
         var outputName = $"{Guid.NewGuid():N}.jpg";
         var outputPath = Path.Combine(uploadsFolder, outputName);
 
         try
         {
-            await using var input = file.OpenReadStream();
+            // Copy to memory stream because form file streams are forward-only and non-seekable
+            // (IsValidImageFileAsync already read the stream above)
+            await using var inputStream = file.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await inputStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
             try
             {
-                using var image = await Image.LoadAsync(input);
+                using var image = await Image.LoadAsync(memoryStream);
 
                 if (image.Width > MaxUploadImageDimension || image.Height > MaxUploadImageDimension)
                 {
@@ -3150,5 +3168,34 @@ private void PreparePublishViewData()
             }
         };
         return campaigns;
+    }
+
+    private static async Task<bool> IsValidImageFileAsync(IFormFile file)
+    {
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var buffer = new byte[12];
+            var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
+            if (read >= 3 && buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF)
+            {
+                return true;
+            }
+
+            if (read >= 8 && buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47 && buffer[4] == 0x0D && buffer[5] == 0x0A && buffer[6] == 0x1A && buffer[7] == 0x0A)
+            {
+                return true;
+            }
+
+            if (read >= 12 && buffer[0] == (byte)'R' && buffer[1] == (byte)'I' && buffer[2] == (byte)'F' && buffer[3] == (byte)'F' && buffer[8] == (byte)'W' && buffer[9] == (byte)'E' && buffer[10] == (byte)'B' && buffer[11] == (byte)'P')
+            {
+                return true;
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
     }
 }

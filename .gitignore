@@ -1,0 +1,39 @@
+## .NET Core
+bin/
+bin2/
+build_output/
+obj/
+obj2/
+.dotnet-cli/
+*.log
+temp_marker.txt
+
+## User secrets & local config (sensitive credentials)
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+## DB files
+*.db
+*.db-shm
+*.db-wal
+
+## VS / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.swp
+
+## Publish
+publish/
+publish-*/
+deploy-output/
+
+## Deployment archives
+*.tgz
+*.zip
+
+## Runtime/generated artifacts
+wwwroot/uploads/
+nul

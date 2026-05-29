@@ -19,12 +19,22 @@ public class Listing
     // İlan Bilgileri
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string? TitleEn { get; set; }
+    public string? TitleRu { get; set; }
+    public string? TitleAr { get; set; }
+    public string? TitleFa { get; set; }
+    public string? DescriptionEn { get; set; }
+    public string? DescriptionRu { get; set; }
+    public string? DescriptionAr { get; set; }
+    public string? DescriptionFa { get; set; }
     public string? Tags { get; set; }
     
     // Konum Bilgileri
     public string City { get; set; } = string.Empty;
     public string District { get; set; } = string.Empty;
     public string? Neighborhood { get; set; }
+    public string? HouseNumber { get; set; }
+    public string? ApartmentNumber { get; set; }
     public string? Address { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
@@ -72,6 +82,8 @@ public class Listing
     public string? VehicleTransmission { get; set; }
     public int? VehicleKM { get; set; }
     public string? VehicleBodyType { get; set; }
+    public string? VehicleCondition { get; set; }
+    public string? VehicleSteeringType { get; set; }
     public int? EngineCapacity { get; set; }
     public int? EnginePower { get; set; }
     public string? VehicleColor { get; set; }
@@ -89,22 +101,33 @@ public class Listing
     
     // Medya
     public string? VideoUrl { get; set; }
+    public string? Tour360Url { get; set; }
+    public bool Has360Tour { get; set; }
     public int CoverImageIndex { get; set; } = 0;
     
     // Durum
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsApproved { get; set; } = false;
+    public int ViewCount { get; set; } = 0;
+    public bool IsClosed { get; set; } = false;
+    // Yayın süresi ve hatırlatıcı
+    public DateTime? PublishUntil { get; set; }
+    public bool ExpiryReminderSent { get; set; } = false;
+    public string DealStatus { get; set; } = "open"; // open|sold|rented|closed
     public string? UserId { get; set; }
-    
+    public bool SellerIsCorporate { get; set; } = false;
+
     // Değerlendirme Sistemi
     public double AverageRating { get; set; } = 0.0;
     public int ReviewCount { get; set; } = 0;
     
     // =====================
-    // VİTRİN & ÖNE ÇIKAN
+    // VİTRİN & ÖNE ÇIKAN & POPÜLER
     // =====================
+    public bool IsPopular { get; set; } = false; // Popüler ilan (admin seçimi)
     public bool IsFeatured { get; set; } = false;        // Öne çıkan ilan
     public bool IsVitrin { get; set; } = false;           // Vitrinde göster
+    public int? PopularOrder { get; set; }               // Popüler sırası
     public DateTime? FeaturedExpiryDate { get; set; }    // Öne çıkan bitiş
     public DateTime? VitrinExpiryDate { get; set; }      // Vitrin bitiş
     public string? FeaturedPackage { get; set; }         // "gold", "silver", "bronze"
@@ -113,7 +136,11 @@ public class Listing
     // İlişkiler
     public List<ListingImage> Images { get; set; } = new();
     public List<Review> Reviews { get; set; } = new();
+    
+    [NotMapped] // SQLite JSON desteği olmadığından DB'ye kaydedilmez
     public List<string> Highlights { get; set; } = new();
+    
+    [NotMapped] // SQLite JSON desteği olmadığından DB'ye kaydedilmez
     public List<string> FeatureBadges { get; set; } = new();
 }
 
@@ -122,6 +149,7 @@ public class ListingImage
     [Key]
     public int Id { get; set; }
     public string FilePath { get; set; } = string.Empty;
+    public string? UserId { get; set; }
     public int ListingId { get; set; }
     public Listing? Listing { get; set; }
 }

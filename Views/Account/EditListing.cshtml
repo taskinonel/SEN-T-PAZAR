@@ -1,0 +1,219 @@
+@model SEN_T_PAZAR.Models.ListingEditViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    var categories = new[]
+    {
+        new { Value = "estate", Label = L["cat_realestate"] },
+        new { Value = "land", Label = L["cat_land"] },
+        new { Value = "vehicle", Label = L["cat_vehicle"] },
+        new { Value = "electronics", Label = L["cat_electronics"] },
+        new { Value = "furniture", Label = L["cat_home"] },
+        new { Value = "services", Label = L["cat_services"] },
+        new { Value = "other", Label = T("Diğer", "Other", "Другое", "أخرى") }
+    };
+    var listingTypes = new[] { "sale", "rent", "daily", "project" };
+    ViewData["Title"] = T("İlan Düzenle", "Edit Listing", "Редактировать объявление", "تعديل الإعلان");
+    var districts = ViewData["Districts"] as List<string> ?? new List<string>();
+    var cities = ViewData["Cities"] as List<string> ?? new List<string> { "Girne", "İskele", "Lefkoşa", "Gazimağusa", "Güzelyurt", "Lefke", "Karpaz" };
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">@T("İlan Düzenle", "Edit Listing", "Редактировать объявление", "تعديل الإعلان")</h3>
+        <a asp-controller="Account" asp-action="Dashboard" asp-route-tab="listings" class="btn btn-outline-secondary btn-sm">@T("İlanlara Dön", "Back to Listings", "Назад к объявлениям", "العودة إلى الإعلانات")</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="EditListing" method="post" enctype="multipart/form-data" class="row g-3">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <div class="col-md-6">
+                    <label asp-for="Title" class="form-label">@T("Başlık", "Title", "Заголовок", "العنوان")</label>
+                    <input asp-for="Title" class="form-control" placeholder="@T("İlan başlığını girin", "Enter listing title", "Введите заголовок объявления", "أدخل عنوان الإعلان")" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="Category" class="form-label">@L["category"]</label>
+                    <select asp-for="Category" class="form-select">
+                        <option value="">@T("Seçiniz", "Select", "Выберите", "اختر")</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Value">@category.Label</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="Type" class="form-label">@L["listingType"]</label>
+                    <select asp-for="Type" class="form-select">
+                        <option value="">@T("Seçiniz", "Select", "Выберите", "اختر")</option>
+                        @foreach (var listingType in listingTypes)
+                        {
+                            <option value="@listingType">@L.TypeLabel(listingType)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Description" class="form-label">@L["description"]</label>
+                    <textarea asp-for="Description" class="form-control" rows="6" placeholder="@T("İlan açıklamasını yazın", "Write the listing description", "Введите описание объявления", "اكتب وصف الإعلان")"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="FullName" class="form-label">@T("Ad Soyad", "Full Name", "ФИО", "الاسم الكامل")</label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Phone" class="form-label">@L["phone"]</label>
+                    <input asp-for="Phone" class="form-control" />
+                    <span asp-validation-for="Phone" class="text-danger"></span>
+                </div>
+
+                 <div class="col-md-4">
+                     <label asp-for="City" class="form-label">@L["city"]</label>
+                     <select asp-for="City" class="form-select" id="citySelect">
+                         <option value="">@T("Seçiniz", "Select", "Выберите", "اختر")</option>
+                         @foreach (var city in cities)
+                         {
+                             <option value="@city" selected="@(Model.City == city ? "selected" : null)">@city</option>
+                         }
+                     </select>
+                 </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Neighborhood" class="form-label">@L["neighborhood"]</label>
+                    <input asp-for="Neighborhood" class="form-control" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="HouseNumber" class="form-label">@T("Ev / Bina No", "House / Building No", "Дом / Корпус", "رقم المنزل / العمارة", "پلاک / ساختمان")</label>
+                    <input asp-for="HouseNumber" class="form-control" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ApartmentNumber" class="form-label">@T("Daire No", "Apartment No", "Квартира", "شقة", "واحد")</label>
+                    <input asp-for="ApartmentNumber" class="form-control" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="PriceAmount" class="form-label">@L["price"]</label>
+                    <input asp-for="PriceAmount" type="number" step="1" min="1" inputmode="numeric" class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="PriceCurrency" class="form-label">@T("Para Birimi", "Currency", "Валюта", "العملة")</label>
+                    <select asp-for="PriceCurrency" class="form-select">
+                        <option value="TL">₺ TL</option>
+                        <option value="USD">$ USD</option>
+                        <option value="EUR">€ EUR</option>
+                        <option value="GBP">£ GBP</option>
+                    </select>
+                    <div class="form-text">@T("TL varsayılan ve önerilen para birimidir.", "TL is the default and recommended currency.", "TL является валютой по умолчанию и рекомендуется.", "الليرة التركية هي العملة الافتراضية والموصى بها.")</div>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Address" class="form-label">@L["address"]</label>
+                    <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">@T("Mevcut Görseller", "Current Images", "Текущие изображения", "الصور الحالية")</label>
+                    @if (Model.ExistingImages.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var image in Model.ExistingImages)
+                            {
+                                <div class="col-md-4">
+                                    <div class="card h-100">
+                                        <img src="@image.FilePath" class="card-img-top" style="height:180px;object-fit:cover;" alt="listing image" />
+                                        <div class="card-body py-2">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="CoverImageId" value="@image.Id" checked="@image.IsCover" />
+                                                <label class="form-check-label">@T("Kapak fotoğrafı", "Cover image", "Обложка", "صورة الغلاف")</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="DeleteImageIds" value="@image.Id" />
+                                                <label class="form-check-label text-danger">@T("Bu görseli sil", "Delete this image", "Удалить это изображение", "حذف هذه الصورة")</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">@T("Bu ilanda görsel yok.", "No images for this listing.", "У этого объявления нет изображений.", "لا توجد صور لهذا الإعلان.")</div>
+                    }
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">@T("Yeni Görsel Ekle", "Add New Images", "Добавить новые изображения", "إضافة صور جديدة")</label>
+                    <input asp-for="NewImageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp" class="form-control" />
+                    <div class="form-text">@T("Birden fazla görsel seçebilirsiniz. Desteklenen formatlar: JPG, PNG, WEBP", "You can select multiple images. Supported formats: JPG, PNG, WEBP", "Можно выбрать несколько изображений. Поддерживаются: JPG, PNG, WEBP", "يمكنك اختيار عدة صور. الصيغ المدعومة: JPG وPNG وWEBP")</div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">@T("Kaydet", "Save", "Сохранить", "حفظ")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const price = document.querySelector('input[name="PriceAmount"]');
+            if (!price) return;
+
+            price.addEventListener('input', function() {
+                this.value = this.value.replace(/[^\d]/g, '');
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const citySelect = document.getElementById('citySelect');
+            const neighborhoodInput = document.querySelector('[name="Neighborhood"]');
+            const houseNumberInput = document.querySelector('[name="HouseNumber"]');
+            const apartmentNumberInput = document.querySelector('[name="ApartmentNumber"]');
+            const addressInput = document.querySelector('[name="Address"]');
+            
+            function updateAddress() {
+                if (!addressInput) return;
+                const parts = [];
+                if (citySelect && citySelect.value) parts.push(citySelect.value);
+                if (neighborhoodInput && neighborhoodInput.value) parts.push(neighborhoodInput.value);
+                if (houseNumberInput && houseNumberInput.value) parts.push('No: ' + houseNumberInput.value);
+                if (apartmentNumberInput && apartmentNumberInput.value) parts.push('Daire No: ' + apartmentNumberInput.value);
+                if (parts.length > 0) {
+                    addressInput.value = parts.join(', ');
+                }
+            }
+
+            [citySelect, neighborhoodInput, houseNumberInput, apartmentNumberInput].forEach(el => {
+                if (el) {
+                    el.addEventListener('change', updateAddress);
+                    el.addEventListener('input', updateAddress);
+                }
+            });
+        });
+    </script>
+}

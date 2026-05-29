@@ -1,6 +1,11 @@
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
+@inject Microsoft.AspNetCore.Identity.SignInManager<SEN_T_PAZAR.Models.ApplicationUser> SignInManager
 @{
     ViewData["Title"] = L["register"];
+    var externalProviders = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+    var hasGoogleProvider = externalProviders.Any(p =>
+        p.Name.Equals("Google", StringComparison.OrdinalIgnoreCase) ||
+        (p.DisplayName?.Equals("Google", StringComparison.OrdinalIgnoreCase) ?? false));
 }
 @using SEN_T_PAZAR.Models
 @model RegisterViewModel
@@ -61,10 +66,13 @@
             </form>
             <div class="text-center my-3">
                 <hr class="my-4">
-                <p class="mb-2 text-muted">@L["orRegisterWith"]</p>
-                <a href="/Account/ExternalLogin?provider=Google&returnUrl=%2F" class="btn btn-outline-danger w-100" style="border-radius:30px; padding:12px; display:flex; align-items:center; justify-content:center;">
-                    <i class="bi bi-google me-2"></i> @L["google"]
+                <a asp-action="ExternalLogin" asp-controller="Account" asp-route-provider="Google" asp-route-returnUrl="/" class="btn btn-outline-danger w-100 @(hasGoogleProvider ? string.Empty : "disabled")" aria-disabled="@(!hasGoogleProvider)" style="border-radius:30px; padding:12px; display:flex; align-items:center; justify-content:center;">
+                    <i class="bi bi-google me-2"></i> Google ile Hesap Aç
                 </a>
+                @if (!hasGoogleProvider)
+                {
+                    <div class="small text-muted mt-2">Google login is not configured.</div>
+                }
             </div>
             <div class="text-center mt-3">
                 @L["haveAccount"] <a href="/Account/Login" class="fw-bold text-decoration-none">@L["loginHere"]</a>

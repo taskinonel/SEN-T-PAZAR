@@ -1,0 +1,141 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = L["corporateAgreementTitle"];
+}
+
+<style>
+    .legal-page { background: #f8f9fc; min-height: 70vh; }
+    .legal-hero {
+        background: radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 34%), linear-gradient(135deg, #0a3622 0%, #198754 100%);
+        padding: 4rem 0 3rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .legal-hero h1 { font-size: 2rem; font-weight: 800; }
+    .legal-hero p { opacity: .85; max-width: 620px; }
+    .legal-hero__grid { display: grid; grid-template-columns: 1.4fr .9fr; gap: 1.5rem; align-items: center; }
+    .legal-hero__cards { display: grid; gap: .9rem; }
+    .legal-hero__card {
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        backdrop-filter: blur(8px);
+    }
+    .legal-hero__card strong { display: block; font-size: 1.05rem; margin-bottom: .25rem; }
+    .legal-hero__card span { font-size: .88rem; opacity: .9; }
+    .agreement-badges { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+    .agreement-badges span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.16); padding: .4rem .8rem; border-radius: 999px; font-size: .85rem; }
+    .legal-card { border: none; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
+    .legal-card .card-body { padding: 2.5rem; }
+    .legal-section h5 { color: #0a3622; font-weight: 700; margin-top: 2rem; margin-bottom: .75rem; border-left: 4px solid #198754; padding-left: .75rem; }
+    .legal-section p, .legal-section li { line-height: 1.85; color: #444; }
+    @@media (max-width: 991px) { .legal-hero__grid { grid-template-columns: 1fr; } }
+</style>
+
+<section class="legal-hero">
+    <div class="container">
+        <div class="legal-hero__grid">
+            <div>
+                <h1><i class="bi bi-building-check me-2"></i>@L["corporateAgreementTitle"]</h1>
+                <p>@T("SEN-T PAZAR Kurumsal Üyelik hizmetine ilişkin hak ve yükümlülükler", "Rights and responsibilities related to the SEN-T PAZAR Corporate Membership service", "Права и обязанности в рамках услуги корпоративного членства SEN-T PAZAR", "الحقوق والالتزامات المتعلقة بخدمة العضوية المؤسسية في SEN-T PAZAR")</p>
+                <small class="opacity-75">@T("Yürürlük tarihi: Ocak 2025 | Son güncelleme: Mart 2025", "Effective date: January 2025 | Last update: March 2025", "Дата вступления в силу: январь 2025 | Последнее обновление: март 2025", "تاريخ السريان: يناير 2025 | آخر تحديث: مارس 2025")</small>
+                <div class="agreement-badges">
+                    <span>@T("Onaylı mağaza yapısı", "Verified store structure", "Проверенная структура магазина", "هيكل متجر موثق", "ساختار فروشگاه تأییدشده")</span>
+                    <span>@T("Öncelikli destek", "Priority support", "Приоритетная поддержка", "دعم أولوية", "پشتیبانی اولویت‌دار")</span>
+                    <span>@T("Şeffaf koşullar", "Transparent terms", "Прозрачные условия", "شروط شفافة", "شرایط شفاف")</span>
+                </div>
+            </div>
+            <div class="legal-hero__cards">
+                <div class="legal-hero__card">
+                    <strong>@T("Kurumsal kullanım", "Corporate use", "Корпоративное использование", "استخدام مؤسسي", "استفاده شرکتی")</strong>
+                    <span>@T("Çok şubeli mağazalar ve proje ekipleri için uygun altyapı.", "Suitable infrastructure for multi-branch stores and project teams.", "Подходит для сетевых магазинов и проектных команд.", "بنية مناسبة للمتاجر متعددة الفروع وفرق المشاريع.", "زیرساخت مناسب برای فروشگاه‌های چندشعبه‌ای و تیم‌های پروژه‌ای.")</span>
+                </div>
+                <div class="legal-hero__card">
+                    <strong>@T("Hızlı başvuru", "Quick application", "Быстрая заявка", "طلب سريع", "درخواست سریع")</strong>
+                    <span>@T("Başvuru sonrası inceleme süreci tek ekrandan yönetilir.", "Post-application review is managed from one screen.", "Проверка заявки управляется с одного экрана.", "تتم إدارة مراجعة الطلب من شاشة واحدة.", "بررسی پس از درخواست از یک صفحه مدیریت می‌شود.")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="legal-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="card legal-card">
+                    <div class="card-body legal-section">
+
+                        <h5>@T("Madde 1 – Taraflar ve Konu", "Article 1 – Parties and Scope", "Статья 1 – Стороны и предмет", "المادة 1 - الأطراف والموضوع")</h5>
+                        <p>@T("İşbu Kurumsal Üyelik Sözleşmesi (\"Sözleşme\"); SEN-T SOFTWARE (\"Platform\") ile kurumsal üyelik başvurusunu tamamlayan gerçek veya tüzel kişi (\"Kurumsal Üye\") arasında akdedilmiştir. Sözleşme, Kurumsal Üyelik başvurusunun platformumuzca onaylanmasıyla yürürlüğe girer.", "This Corporate Membership Agreement (the \"Agreement\") is concluded between SEN-T SOFTWARE (the \"Platform\") and the natural or legal person (the \"Corporate Member\") who completes the corporate membership application. The Agreement enters into force when the corporate membership application is approved by our platform.", "Настоящее Соглашение о корпоративном членстве (\"Соглашение\") заключено между SEN-T SOFTWARE (\"Платформа\") и физическим или юридическим лицом (\"Корпоративный участник\"), завершившим заявку на корпоративное членство. Соглашение вступает в силу после одобрения заявки нашей платформой.", "تُبرم اتفاقية العضوية المؤسسية هذه (\"الاتفاقية\") بين SEN-T SOFTWARE (\"المنصة\") والشخص الطبيعي أو الاعتباري (\"العضو المؤسسي\") الذي يكمل طلب العضوية المؤسسية. تدخل الاتفاقية حيز التنفيذ عند موافقة منصتنا على الطلب.")</p>
+
+                        <h5>@T("Madde 2 – Kurumsal Üyelik Şartları", "Article 2 – Corporate Membership Requirements", "Статья 2 – Требования к корпоративному членству", "المادة 2 - متطلبات العضوية المؤسسية")</h5>
+                        <p>@T("Kurumsal üyelik başvurusunda aşağıdaki belgeler ve koşullar aranır:", "The following documents and conditions are required for a corporate membership application:", "Для заявки на корпоративное членство требуются следующие документы и условия:", "تتطلب العضوية المؤسسية المستندات والشروط التالية:")</p>
+                        <ul>
+                            <li>@T("Geçerli vergi levhası veya ticaret sicil kaydı", "Valid tax certificate or trade registry record", "Действительный налоговый сертификат или запись в торговом реестре", "شهادة ضريبية سارية أو سجل تجاري")</li>
+                            <li>@T("Yetkili kişiye ait kimlik belgesi", "Identity document of the authorized representative", "Документ, удостоверяющий личность уполномоченного представителя", "وثيقة هوية للشخص المخول")</li>
+                            <li>@T("Şirket telefonu ve iletişim adresi", "Company phone number and contact address", "Телефон компании и контактный адрес", "هاتف الشركة وعنوان التواصل")</li>
+                            <li>@T("İşletme türüne uygun faaliyet alanı beyanı", "Declaration of business activity appropriate to the type of enterprise", "Заявление о виде деятельности, соответствующем типу бизнеса", "إقرار بنشاط العمل المناسب لنوع المنشأة")</li>
+                            <li>@T("Platform kullanım koşullarının kabul edilmesi", "Acceptance of the platform terms of use", "Принятие условий использования платформы", "الموافقة على شروط استخدام المنصة")</li>
+                        </ul>
+
+                        <h5>@T("Madde 3 – Kurumsal Üyenin Hakları", "Article 3 – Rights of the Corporate Member", "Статья 3 – Права корпоративного участника", "المادة 3 - حقوق العضو المؤسسي")</h5>
+                        <ul>
+                            <li>@T("Planına göre belirlenen limit dahilinde ilan yayınlama hakkı", "Right to publish listings within the limits of the selected plan", "Право публиковать объявления в пределах лимитов выбранного плана", "حق نشر الإعلانات ضمن حدود الخطة المختارة")</li>
+                            <li>@T("Öne çıkan ve vitrin ilan paketi kullanım hakkı", "Use of featured and showcase listing packages", "Использование пакетов продвигаемых и витринных объявлений", "استخدام باقات الإعلانات المميزة والواجهة")</li>
+                            <li>@T("Onaylı kurumsal rozet gösterimi", "Display of a verified corporate badge", "Отображение подтвержденного корпоративного значка", "عرض شارة مؤسسية موثقة")</li>
+                            <li>@T("Öncelikli müşteri destek hizmeti", "Priority customer support service", "Приоритетная клиентская поддержка", "خدمة دعم عملاء ذات أولوية")</li>
+                            <li>@T("Kurumsal profil ve mağaza sayfası oluşturma", "Creation of a corporate profile and store page", "Создание корпоративного профиля и страницы магазина", "إنشاء ملف مؤسسي وصفحة متجر")</li>
+                        </ul>
+
+                        <h5>@T("Madde 4 – Kurumsal Üyenin Yükümlülükleri", "Article 4 – Obligations of the Corporate Member", "Статья 4 – Обязанности корпоративного участника", "المادة 4 - التزامات العضو المؤسسي")</h5>
+                        <ul>
+                            <li>@T("Paylaşılan bilgilerin doğru ve güncel tutulması", "Keeping all shared information accurate and up to date", "Поддержание всей предоставленной информации точной и актуальной", "الحفاظ على دقة جميع المعلومات المقدمة وتحديثها")</li>
+                            <li>@T("Platform kurallarına ve yayınlama ilkelerine uyulması", "Compliance with platform rules and publishing principles", "Соблюдение правил платформы и принципов публикации", "الالتزام بقواعد المنصة ومبادئ النشر")</li>
+                            <li>@T("Yanıltıcı, aldatıcı veya yasadışı ilan yayınlanmaması", "Not publishing misleading, deceptive, or unlawful listings", "Не публиковать вводящие в заблуждение, мошеннические или незаконные объявления", "عدم نشر إعلانات مضللة أو خادعة أو غير قانونية")</li>
+                            <li>@T("Rakip platformların içeriklerinin izinsiz kopyalanmaması", "Not copying content from competing platforms without permission", "Не копировать контент конкурирующих платформ без разрешения", "عدم نسخ محتوى المنصات المنافسة دون إذن")</li>
+                            <li>@T("Platform üzerinden gerçekleştirilen işlemlerde üçüncü taraf haklarına saygılı olunması", "Respecting third-party rights in transactions conducted through the platform", "Соблюдение прав третьих лиц в сделках, проводимых через платформу", "احترام حقوق الأطراف الثالثة في المعاملات التي تتم عبر المنصة")</li>
+                        </ul>
+
+                        <h5>@T("Madde 5 – Onay ve İptal Süreci", "Article 5 – Approval and Cancellation Process", "Статья 5 – Процедура одобрения и отмены", "المادة 5 - إجراءات الموافقة والإلغاء")</h5>
+                        <p>@T("Platform, başvuruyu onaylama veya reddetme hakkını saklı tutar. Onay süreci en fazla 5 iş günü sürer. Kurumsal üyeliğin iptal edilmesi hâlinde mevcut ilan kotası sıfırlanır. Üye istediği zaman aboneliğini sonlandırabilir; iade koşulları ödeme politikasıyla belirlenir.", "The platform reserves the right to approve or reject the application. The approval process takes up to 5 business days. If corporate membership is cancelled, the current listing quota is reset. The member may terminate the subscription at any time; refund conditions are governed by the payment policy.", "Платформа оставляет за собой право одобрить или отклонить заявку. Процесс одобрения занимает до 5 рабочих дней. При отмене корпоративного членства текущая квота объявлений обнуляется. Участник может прекратить подписку в любое время; условия возврата определяются платежной политикой.", "تحتفظ المنصة بحق الموافقة على الطلب أو رفضه. تستغرق عملية الموافقة حتى 5 أيام عمل. في حال إلغاء العضوية المؤسسية تتم إعادة تعيين حصة الإعلانات الحالية. يمكن للعضو إنهاء الاشتراك في أي وقت؛ وتحدد سياسة الدفع شروط الاسترداد.")</p>
+
+                        <h5>@T("Madde 6 – Fiyatlandırma ve Fatura", "Article 6 – Pricing and Billing", "Статья 6 – Ценообразование и выставление счетов", "المادة 6 - التسعير والفوترة")</h5>
+                        <p>@T("Kurumsal üyelik; seçilen plana göre aylık veya yıllık faturalandırılır. Fiyatlar platform üzerinde ilan edilir ve önceden bildirim yapılarak değiştirilebilir. Tüm fiyatlara KDV dahil değildir.", "Corporate membership is billed monthly or annually according to the selected plan. Prices are announced on the platform and may be changed with prior notice. VAT is not included in all prices.", "Корпоративное членство оплачивается ежемесячно или ежегодно в зависимости от выбранного плана. Цены публикуются на платформе и могут быть изменены с предварительным уведомлением. НДС не включен во все цены.", "تتم فوترة العضوية المؤسسية شهريًا أو سنويًا وفقًا للخطة المختارة. يتم الإعلان عن الأسعار على المنصة ويمكن تغييرها بإشعار مسبق. لا يشمل السعر ضريبة القيمة المضافة.")</p>
+
+                        <h5>@T("Madde 7 – Sorumluluk Sınırlaması", "Article 7 – Limitation of Liability", "Статья 7 – Ограничение ответственности", "المادة 7 - تحديد المسؤولية")</h5>
+                        <p>@T("Platform, üyeler tarafından yayınlanan ilan içeriklerinden doğrudan sorumlu tutulamaz. Üçüncü şahıslarla yapılan ticaretten doğan anlaşmazlıklar taraflar arasında çözüme kavuşturulur.", "The platform cannot be held directly responsible for listing content published by members. Disputes arising from trade with third parties are resolved between the parties.", "Платформа не несет прямой ответственности за содержание объявлений, опубликованных участниками. Споры, возникающие из торговли с третьими лицами, разрешаются между сторонами.", "لا تتحمل المنصة مسؤولية مباشرة عن محتوى الإعلانات المنشورة من قبل الأعضاء. ويتم حل النزاعات الناشئة عن التعاملات مع الأطراف الثالثة بين الأطراف المعنية.")</p>
+
+                        <h5>@T("Madde 8 – Uygulanacak Hukuk", "Article 8 – Governing Law", "Статья 8 – Применимое право", "المادة 8 - القانون الواجب التطبيق")</h5>
+                        <p>@T("Bu sözleşme KKTC hukukuna tabidir. Uyuşmazlıklarda Lefkoşa mahkemeleri yetkilidir.", "This agreement is governed by the laws of the TRNC. Nicosia courts have jurisdiction in disputes.", "Настоящее соглашение регулируется законодательством ТРСК. В спорах компетентны суды Никосии.", "تخضع هذه الاتفاقية لقوانين جمهورية شمال قبرص التركية. وتختص محاكم نيقوسيا بالنظر في النزاعات.")</p>
+
+                        <div class="alert alert-success border-0 mt-4">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            @T("Kurumsal başvurunuzu tamamlamak için hesabınıza giriş yapın.", "Sign in to your account to complete your corporate application.", "Войдите в аккаунт, чтобы завершить корпоративную заявку.", "سجل الدخول إلى حسابك لإكمال طلبك المؤسسي.")
+                        </div>
+
+                        <div class="mt-4">
+                            <a asp-action="CorporateMembership" asp-controller="Account" class="btn btn-success me-2">
+                                <i class="bi bi-building me-1"></i> @T("Kurumsal Başvur", "Apply as Corporate", "Подать корпоративную заявку", "التقديم كعضوية مؤسسية")
+                            </a>
+                            <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
+                                <i class="bi bi-house me-1"></i> @L["home"]
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

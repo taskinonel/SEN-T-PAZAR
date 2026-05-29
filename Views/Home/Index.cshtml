@@ -1,53 +1,384 @@
-﻿@model SEN_T_PAZAR.Models.HomePageViewModel
+@model SEN_T_PAZAR.Models.HomePageViewModel
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
 @{
-    ViewData["Title"] = L["home"];
+    if (ViewData["Title"] is null)
+    {
+        ViewData["Title"] = "SEN-T PAZAR-DİJİTAL ÇARŞI";
+    }
+
+    if (ViewData["UseRawTitle"] is null)
+    {
+        ViewData["UseRawTitle"] = true;
+    }
+
+    if (ViewData["MetaDescription"] is null)
+    {
+        ViewData["MetaDescription"] = "SEN-T PAZAR DİJİTAL ÇARŞI üzerinde emlak, vasıta, elektronik, eşya ve hizmet ilanlarını inceleyin.";
+    }
+
+    if (ViewData["MetaKeywords"] is null)
+    {
+        ViewData["MetaKeywords"] = "SEN-T PAZAR, dijital çarşı, ilanlar, emlak, vasıta, elektronik, hizmet";
+    }
+
     var formAction = Model.IsCategoryPage ? "Category" : "Index";
     var hasActiveFilters = Model.ListingType != "all"
         || Model.City != "all"
-        || Model.Category != "all"
+        || Model.SubCategory != "all"
         || Model.PriceRange != "any"
         || Model.SortBy != "latest"
         || !string.IsNullOrWhiteSpace(Model.Keyword);
+    var shouldShowSearchResults = Model.ShowResults || hasActiveFilters || Model.IsCategoryPage;
+    var listingBoardTitle = shouldShowSearchResults
+        ? T("Arama Sonuçları", "Search Results", "Результаты поиска", "نتائج البحث")
+        : L["showcase"];
     string CategoryText(string code) => L.CategoryLabel(code);
-    string PriceText(string code) => code switch
+    string BrowseCategoryText(SEN_T_PAZAR.Models.PropertyCard item) => L.CategoryLabel(SEN_T_PAZAR.Models.ListingTaxonomy.GetBrowseCategoryCode(item.Category, item.SubCategory));
+    string CategoryIconClass(string categoryCode) => categoryCode switch
     {
+        "realestate" => "bi-house-door-fill",
+        "land" => "bi-map-fill",
+        "vehicle" => "bi-car-front-fill",
+        "electronics" => "bi-tv-fill",
+        "home" => "bi-lamp-fill",
+        "services" => "bi-briefcase-fill",
+        "tutoring" => "bi-mortarboard-fill",
+        "jobs" => "bi-person-workspace",
+        "helper" => "bi-people-fill",
+        "secondhand" => "bi-box-seam-fill",
+        "fashion" => "bi-bag-fill",
+        "equipment" => "bi-tools",
+        _ => "bi-grid-fill"
+    };
+    string PriceRangeText(string code) => code switch
+    {
+        "any" => L["anyPrice"],
         "low" => L["priceLow"],
         "mid" => L["priceMid"],
         "high" => L["priceHigh"],
         _ => L["anyPrice"]
     };
-    string T(string tr, string en, string ru, string ar) => L.CultureCode switch
+    string CategoryCardImageUrl(string categoryCode) => SEN_T_PAZAR.Models.ListingTaxonomy.GetCategoryCardImageUrl(categoryCode);
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
     {
         "en" => en,
         "ru" => ru,
         "ar" => ar,
+        "fa" => fa ?? en ?? tr,
         _ => tr
     };
+    string FormatListingLocation(string? cityName, string? location)
+    {
+        var localizedCity = LocalizeCityName(string.IsNullOrWhiteSpace(cityName) ? T("Belirtilmedi", "Unspecified", "Не указано", "غير محدد", "مشخص نشده") : cityName);
+        if (string.IsNullOrWhiteSpace(location) || string.Equals(location, cityName, StringComparison.OrdinalIgnoreCase))
+        {
+            return localizedCity;
+        }
+
+        return $"{localizedCity} - {location}";
+    }
+    var vitrinHeroSlides = Model.VitrinListings
+        .OrderBy(_ => Guid.NewGuid())
+        .Take(Math.Min(12, Model.VitrinListings.Count))
+        .ToList();
+    var topViewedCategories = Model.MarketCategories
+        .OrderByDescending(x => x.Count)
+        .Take(6)
+        .ToList();
+    var searchResults = Model.SearchResults.ToList();
+    var latestVitrinListings = Model.VitrinListings
+        .Take(90)
+        .ToList();
+    var homepageCorporateStores = Model.CorporateProfiles
+        .Take(4)
+        .ToList();
+    var vitrinSupportCards = latestVitrinListings
+        .Take(4)
+        .ToList();
+    var heroImages = SEN_T_PAZAR.Models.ListingTaxonomy.HeroRotationImages;
+    var vitrinSpotlightListings = Model.VitrinListings.ToList();
+    var featuredSpotlightListings = Model.FeaturedListings.ToList();
+    var popularSpotlightListings = Model.PopularListings.ToList();
+    var homepageSpotlightColumns = new[]
+    {
+        new
+        {
+            Key = "vitrin",
+            Title = T("Vitrin İlanları", "Showcase Listings", "Витринные объявления", "إعلانات الواجهة"),
+            Subtitle = T("Ana sayfanın güçlü vitrin alanında öne çıkan ilanlar.", "Listings highlighted in the homepage showcase.", "Объявления, размещенные в домашней витрине.", "الإعلانات المميزة في واجهة الصفحة الرئيسية."),
+            Badge = T("Vitrin", "Showcase", "Витрина", "الواجهة"),
+            IconClass = "bi-eye-fill",
+            AccentClass = "is-vitrin",
+            Listings = vitrinSpotlightListings
+        },
+        new
+        {
+            Key = "featured",
+            Title = T("Öne Çıkanlar", "Featured", "Рекомендуемые", "المميزة"),
+            Subtitle = T("Daha fazla görünürlük için öne çıkarılan seçili ilanlar.", "Selected listings promoted for higher visibility.", "Избранные объявления с повышенной видимостью.", "إعلانات مختارة لظهور أعلى."),
+            Badge = T("Öne Çıkan", "Featured", "Рекомендуемое", "مميز"),
+            IconClass = "bi-stars",
+            AccentClass = "is-featured",
+            Listings = featuredSpotlightListings
+        },
+        new
+        {
+            Key = "popular",
+            Title = T("Popüler İlanlar", "Popular Listings", "Популярные объявления", "الإعلانات الشائعة"),
+            Subtitle = T("Öne çıkan akışta daha görünür gösterilen ilanlar.", "Listings surfaced with higher visibility in the popular rail.", "Объявления, которые показываются заметнее в популярной ленте.", "الإعلانات التي تظهر بوضوح أكبر في شريط الشائع."),
+            Badge = T("Popüler", "Popular", "Популярное", "شائع"),
+            IconClass = "bi-fire",
+            AccentClass = "is-popular",
+            Listings = popularSpotlightListings
+        }
+    };
+    var visibleHomepageSpotlightColumns = homepageSpotlightColumns.Where(x => x.Listings.Any()).ToList();
+    string PromotionLabel(PropertyCard item) => item.IsVitrin ? "Vitrin" : T("Öne Çıkan", "Featured", "Избранное", "مميز");
+    string LocalizeCityName(string cityName) => cityName switch
+    {
+        "Lefkoşa" => T("Lefkoşa", "Nicosia", "Никосия", "نيقوسيا"),
+        "Girne" => T("Girne", "Kyrenia", "Кирения", "كيرينيا"),
+        "Gazimağusa" => T("Gazimağusa", "Famagusta", "Фамагуста", "فاماغوستا"),
+        "Güzelyurt" => T("Güzelyurt", "Morphou", "Морфу", "مورفو"),
+        "İskele" => T("İskele", "Trikomo", "Трикомо", "تريكومو"),
+        "Lefke" => T("Lefke", "Lefka", "Лефке", "لفكة"),
+        "Karpaz" => T("Karpaz", "Karpasia", "Карпасия", "كارباسيا"),
+        _ => cityName
+    };
+    string SellerDisplayName(PropertyCard item)
+    {
+        if (item.SellerIsCorporate && !string.IsNullOrWhiteSpace(item.SellerCompanyName))
+        {
+            return item.SellerCompanyName;
+        }
+
+        return string.IsNullOrWhiteSpace(item.SellerName)
+            ? T("İlan Sahibi", "Listing Owner", "Владелец объявления", "صاحب الإعلان", "صاحب آگهی")
+            : item.SellerName;
+    }
+    string SellerSecondaryText(PropertyCard item)
+    {
+        var parts = new List<string>();
+
+        if (item.SellerIsCorporate)
+        {
+            if (!string.IsNullOrWhiteSpace(item.SellerName) && !string.Equals(item.SellerName, item.SellerCompanyName, StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add(item.SellerName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.SellerRole))
+            {
+                parts.Add(item.SellerRole);
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(item.SellerRole))
+            {
+                parts.Add(item.SellerRole);
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.SellerCity))
+            {
+                parts.Add(LocalizeCityName(item.SellerCity));
+            }
+        }
+
+        return string.Join(" • ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
+    string SellerVisualUrl(PropertyCard item)
+    {
+        if (item.SellerIsCorporate && !string.IsNullOrWhiteSpace(item.SellerCompanyLogoUrl))
+        {
+            return item.SellerCompanyLogoUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.SellerAvatarUrl))
+        {
+            return item.SellerAvatarUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.SellerCompanyLogoUrl))
+        {
+            return item.SellerCompanyLogoUrl;
+        }
+
+        return "/img/placeholder.svg";
+    }
+    var kktcLocationTree = new Dictionary<string, Dictionary<string, List<string>>>
+    {
+        ["Lefkoşa"] = new()
+        {
+            ["Lefkoşa Merkez"] = new() { "Gönyeli", "Hamitköy", "Küçük Kaymaklı", "Ortaköy", "Kermiya", "Minareliköy", "Haspolat", "Alayköy", "Metehan", "Kanlıköy" },
+            ["Değirmenlik - Akıncılar"] = new() { "Değirmenlik", "Balıkesir", "Demirhan", "Cihangir", "Düzova", "Gaziköy", "Yiğitler", "Akıncılar", "Ergenekon", "Pınarbaşı" }
+        },
+        ["Girne"] = new()
+        {
+            ["Girne Merkez"] = new() { "Karakum", "Ozanköy", "Bellapais", "Karaoğlanoğlu", "Edremit", "Doğanköy" },
+            ["Çatalköy - Esentepe"] = new() { "Çatalköy", "Arapköy", "Esentepe", "Bahçeli", "Tatlısu" },
+            ["Lapta - Alsancak - Çamlıbel"] = new() { "Lapta", "Alsancak", "Karşıyaka", "Çamlıbel", "Geçitköy", "Kayalar", "Tepebaşı", "Hisarköy" }
+        },
+        ["Gazimağusa"] = new()
+        {
+            ["Gazimağusa Merkez"] = new() { "Maraş", "Tuzla", "Sakarya", "Karakol", "Baykal", "Dumlupınar" },
+            ["Mesarya"] = new() { "Akdoğan", "Vadili", "Paşaköy", "İnönü", "Ulukışla", "Pınarlı", "Türkmenköy", "Çayönü", "Mormenekşe" },
+            ["Geçitkale - Serdarlı"] = new() { "Geçitkale", "Serdarlı", "Mallıdağ", "Korkuteli", "Kilis", "Alaniçi" }
+        },
+        ["İskele"] = new()
+        {
+            ["İskele Merkez"] = new() { "Boğaz", "Ötüken", "Kalecik", "Long Beach", "Aygün", "Ergazi" },
+            ["Mehmetçik - Büyükkonuk"] = new() { "Mehmetçik", "Büyükkonuk", "Tuzluca", "Sazlıköy", "Yedikonuk", "Pamuklu" },
+            ["Yenierenköy - Dipkarpaz"] = new() { "Yenierenköy", "Dipkarpaz", "Sipahi", "Kaleburnu", "Ziyamet", "Kumyalı", "Boltaşlı", "Adaçay" }
+        },
+        ["Güzelyurt"] = new()
+        {
+            ["Güzelyurt Merkez"] = new() { "Aydınköy", "Bostancı", "Akçay", "Serhatköy", "Yuvacık", "Zümrütköy" }
+        },
+        ["Lefke"] = new()
+        {
+            ["Lefke Merkez"] = new() { "Lefke", "Gemikonağı", "Cengizköy", "Yeşilırmak", "Yedidalga", "Doğancı" },
+            ["Bağlıköy Çevresi"] = new() { "Bağlıköy", "Çamlıköy", "Kozanköy", "Taşpınar", "Aşağı Bademliköy" }
+        },
+        ["Karpaz"] = new()
+        {
+            ["Karpaz Genel"] = new() { "Dipkarpaz", "Yenierenköy", "Sipahi", "Kaleburnu", "Kumyalı", "Ziyamet", "Büyükkonuk", "Mehmetçik" }
+        }
+    };
+    var heroEyebrow = string.IsNullOrWhiteSpace(Model.HeroEyebrow) ? L["heroEyebrow"] : Model.HeroEyebrow;
+    var heroTitle = string.IsNullOrWhiteSpace(Model.HeroTitle) ? L["heroTitle"] : Model.HeroTitle;
+    var heroSubtitle = string.IsNullOrWhiteSpace(Model.HeroSubtitle) ? L["heroSubtitle"] : Model.HeroSubtitle;
 }
 <section class="hero hero--light-text">
     <div class="hero__overlay"></div>
-    <div class="hero__background"
-         data-hero-rotator
-         data-interval="6500"
-         data-images='["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2400&q=90","https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=2400&q=90"]'
-         style="background-image:url('https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90')"></div>
+    <div class="hero__background-stack" aria-hidden="true">
+        <div class="hero__background is-active" id="heroBackgroundPrimary" style="background-image:url('@heroImages[0]');"></div>
+        <div class="hero__background" id="heroBackgroundSecondary" style="background-image:url('@heroImages[0]');"></div>
+    </div>
+    <script>
+        const heroImages = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(heroImages));
+        window.addEventListener('DOMContentLoaded', function () {
+            const layers = [
+                document.getElementById('heroBackgroundPrimary'),
+                document.getElementById('heroBackgroundSecondary')
+            ].filter(Boolean);
+            if (layers.length !== 2 || heroImages.length === 0) {
+                return;
+            }
+
+            const cycleDurationMs = 3000;
+            let activeImageIndex = 0;
+            let activeLayerIndex = 0;
+
+            const setLayerImage = (layer, src) => {
+                layer.style.backgroundImage = `url("${src}")`;
+            };
+
+            const preloadImage = (src) => new Promise((resolve) => {
+                if (!src) {
+                    resolve(false);
+                    return;
+                }
+
+                const image = new Image();
+                image.onload = () => resolve(true);
+                image.onerror = () => resolve(false);
+                image.src = src;
+            });
+
+            heroImages.slice(1).forEach((src) => {
+                const image = new Image();
+                image.src = src;
+            });
+
+            const showNextImage = async () => {
+                const nextImageIndex = (activeImageIndex + 1) % heroImages.length;
+                const nextImage = heroImages[nextImageIndex];
+                const nextLayerIndex = (activeLayerIndex + 1) % layers.length;
+                const incomingLayer = layers[nextLayerIndex];
+                const outgoingLayer = layers[activeLayerIndex];
+                const didLoad = await preloadImage(nextImage);
+
+                if (didLoad) {
+                    setLayerImage(incomingLayer, nextImage);
+                    incomingLayer.classList.add('is-active');
+                    outgoingLayer.classList.remove('is-active');
+                    activeLayerIndex = nextLayerIndex;
+                    activeImageIndex = nextImageIndex;
+                }
+
+                window.setTimeout(showNextImage, cycleDurationMs);
+            };
+
+            layers.forEach((layer) => setLayerImage(layer, heroImages[0]));
+            layers[0].classList.add('is-active');
+            layers[1].classList.remove('is-active');
+
+            if (heroImages.length > 1) {
+                window.setTimeout(showNextImage, cycleDurationMs);
+            }
+        });
+    </script>
     <div class="container hero__content">
-    <p class="hero__eyebrow">@L["heroEyebrow"]</p>
-    <h1>@L["heroTitle"]</h1>
-    <p class="hero__subtitle">@L["heroSubtitle"]</p>
-    <form class="search-panel wide-panel"
-          role="search"
-          method="get"
-          asp-action="@formAction"
-          asp-controller="Home"
-          data-is-category-page="@Model.IsCategoryPage.ToString().ToLowerInvariant()"
-          data-current-category="@Model.Category"
-          data-home-url="@Url.Action("Index", "Home")">
+    <div class="hero__shell wide-panel">
+        <div class="hero__lead">
+            <p class="hero__eyebrow">@heroEyebrow</p>
+            <!-- hero title removed per request -->
+            <!-- hero subtitle removed per request -->
+            <div class="hero__cta-band">
+                <a class="btn btn-warning btn-lg hero__primary-cta" asp-action="Publish" asp-controller="Home">@T("Hemen İlan Ver", "Post Listing Now", "Разместить объявление", "انشر إعلانك الآن", "همین حالا آگهی ثبت کن")</a>
+                <a class="btn btn-outline-light btn-lg hero__secondary-cta" asp-action="CorporateMembership" asp-controller="Account">@T("Mağaza Aç", "Open Store", "Открыть магазин", "افتح متجرك", "فروشگاه باز کن")</a>
+                <!-- secure payment support link removed per request -->
+            </div>
+            <div class="hero-value-grid" aria-label="@T("Platform özet metrikleri", "Platform summary metrics", "Сводные метрики платформы", "مقاييس المنصة")">
+                <article class="hero-value-card">
+                    <strong>@Model.VitrinListings.Count+</strong>
+                    <span>@T("Aktif Vitrin Akışı", "Active Showcase Flow", "Активная витрина", "تدفق الواجهة النشط")</span>
+                </article>
+                <article class="hero-value-card">
+                    <strong>@Model.FeaturedListings.Count+</strong>
+                    <span>@T("Öne Çıkan İlan", "Featured Listings", "Рекомендуемые объявления", "إعلانات مميزة")</span>
+                </article>
+                <article class="hero-value-card">
+                    <strong>@Model.PopularListings.Count+</strong>
+                    <span>@T("Popüler İlan", "Popular Listings", "Популярные объявления", "إعلانات شائعة")</span>
+                </article>
+            </div>
+        </div>
+    </div>
+        <!-- hero-stats kaldırıldı -->
+    </div>
+
+<script src="/js/carousel-scroll.js"></script>
+</section>
+
+<section class="section home-search-dock">
+    <div class="container wide-panel">
+        <form class="search-panel home-search-dock__panel"
+              role="search"
+              method="get"
+              asp-action="@formAction"
+              asp-controller="Home"
+              data-is-category-page="@Model.IsCategoryPage.ToString().ToLowerInvariant()"
+              data-current-category="@Model.Category"
+              data-home-url="@Url.Action("Index", "Home")">
             @if (Model.IsCategoryPage)
             {
                 <input type="hidden" name="slug" value="@Model.CurrentCategorySlug" />
             }
+            <input type="hidden" name="showResults" value="true" />
+            <div class="search-panel__listing-tabs" role="tablist" aria-label="@L["listingType"]">
+                @foreach (var tab in Model.SearchTabs)
+                {
+                    <button type="button"
+                            class="search-panel__listing-tab @(tab.IsActive ? "is-active" : string.Empty)"
+                            data-listing-type="@tab.ListingType"
+                            data-preset-category="@tab.PresetCategory"
+                            aria-pressed="@(tab.IsActive ? "true" : "false")">
+                        @tab.Label
+                    </button>
+                }
+            </div>
             <div class="search-panel__intro">
                 <div class="search-panel__intro-copy">
                     <span class="search-panel__badge">@L["smartSearch"]</span>
@@ -55,144 +386,368 @@
                     <p>@L["searchIntroText"]</p>
                 </div>
             </div>
-            <div class="search-panel__grid">
-                <div>
-                    <label for="listingType">@L["listingType"]</label>
-                    <select id="listingType" name="listingType">
+            <div class="search-panel__shell">
+                <div class="search-panel__primary-row">
+                    <select id="listingType" name="listingType" class="search-panel__visually-hidden" aria-label="@L["listingType"]">
                         @foreach (var option in Model.ListingTypeOptions)
                         {
                             <option value="@option" selected="@(option == Model.ListingType)">@L.TypeLabel(option)</option>
                         }
                     </select>
-                </div>
-                <div>
-                    <label for="city">@L["city"]</label>
-                    <select id="city" name="city">
-                        @foreach (var city in Model.CityOptions)
-                        {
-                            <option value="@city" selected="@(city == Model.City)">@(city == "all" ? L["allCities"] : city)</option>
-                        }
-                    </select>
-                </div>
-                <div>
-                    <label for="category">@L["category"]</label>
-                    <select id="category" name="category">
-                        <option value="all" data-url="@Url.Action("Index", "Home")" selected="@(Model.Category == "all")">@L["allCategories"]</option>
-                        @foreach (var category in Model.CategoryOptions.Where(x => x != "all"))
-                        {
-                            <option value="@category"
-                                    data-url="@L.BuildCategoryUrl(category)"
-                                    selected="@(category == Model.Category)">
-                                @CategoryText(category)
-                            </option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="search-panel__advanced" id="advanced-search-fields">
-                <div class="search-panel__grid">
-                    <div>
-                        <label for="priceRange">@L["priceRange"]</label>
-                        <select id="priceRange" name="priceRange">
-                            @foreach (var range in Model.PriceRangeOptions)
-                            {
-                                <option value="@range" selected="@(range == Model.PriceRange)">@PriceText(range)</option>
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label for="sortBy">@L["sortBy"]</label>
-                        <select id="sortBy" name="sortBy">
-                            @foreach (var sortOption in Model.SortOptions)
-                            {
-                                <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label for="keyword">@L["keyword"]</label>
-                        <input id="keyword" name="keyword" type="text" placeholder="@L["keyword"]" value="@Model.Keyword" />
-                    </div>
-                </div>
-            </div>
-<div class="search-panel__actions">
-    <div class="search-panel__actions-group">
-        <button type="button" class="btn btn-outline-info btn-sm px-3 py-2 btn-small-40" id="btn-advanced-search">@L["advancedSearch"]</button>
-        <button type="submit" class="btn btn-success btn-sm px-3 py-2 btn-small-40">@L["search"]</button>
-    </div>
-</div>
-    </form>
-        <!-- hero-stats kaldırıldı -->
-    </div>
+                    <div class="search-panel__main-grid">
+                        <div class="search-panel__main-field">
+                            <select id="category" name="category" aria-label="@L["category"]">
+                                <option value="all" data-url="@Url.Action("Index", "Home")" selected="@(Model.Category == "all")">@L["allCategories"]</option>
+                                @foreach (var category in Model.CategoryOptions.Where(x => x != "all"))
+                                {
+                                 <option value="@category"
+                                             data-url="@L.BuildCategoryUrl(category)"
+                                             selected="@(category == Model.Category)">
+                                        @(category == "secondhand" || category == "other" ? "Diğer" : CategoryText(category))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="search-panel__main-field">
+                            <select id="subCategory" name="subCategory" aria-label="@L["subCategory"]">
+                                <option value="all">@T("Tüm alt kategoriler", "All subcategories", "Все подкатегории", "جميع الفئات الفرعية")</option>
+                            </select>
+                        </div>
+                        <div class="search-panel__main-field">
+                            <div class="city-picker" id="cityPicker">
+                                <button type="button" class="city-picker__toggle" id="cityPickerToggle" aria-haspopup="true" aria-expanded="false">
+                                    <span id="cityPickerLabel">@L["allCities"]</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                                <div class="city-picker__panel" id="cityPickerPanel" hidden>
+                                    <div class="city-picker__grid">
+                                        <aside class="city-picker__cities" id="cityPickerCities"></aside>
+                                        <section class="city-picker__villages">
+                                            <div class="city-picker__villages-head" id="cityPickerVillagesTitle">@T("Mahalle / Köy", "Neighborhood / Village", "Район / Деревня", "الحي / القرية", "محله / روستا")</div>
+                                            <div class="city-picker__villages-list" id="cityPickerVillages"></div>
+                                            <button type="button" class="city-picker__apply" id="cityPickerApply">@T("Filtreyi Uygula", "Apply Filter", "Применить фильтр", "تطبيق الفلتر", "اعمال فیلتر")</button>
+                                        </section>
+                                    </div>
+                                </div>
+                            </div>
+                            <select id="city" name="city" class="search-panel__visually-hidden" aria-label="@L["city"]">
+                                <option value="all" selected="@(Model.City == "all")">@L["allCities"]</option>
+                                @foreach (var city in kktcLocationTree.Keys.OrderBy(x => x))
+                                {
+                                    <option value="@city" selected="@(city == Model.City)">@LocalizeCityName(city)</option>
+                                    var districts = kktcLocationTree[city];
+                                    foreach (var district in districts)
+                                    {
+                                        var districtValue = $"{city}::{district.Key}";
+                                        <option value="@districtValue" selected="@(districtValue == Model.City)">@city / @district.Key</option>
 
-<script src="/js/carousel-scroll.js"></script>
+                                        foreach (var village in district.Value)
+                                        {
+                                            var villageValue = $"{city}::{village}";
+                                            <option value="@villageValue" selected="@(villageValue == Model.City)">@city / @district.Key / @village</option>
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
+                         <div class="search-panel__main-field" style="display: flex; gap: 6px; align-items: center;">
+                             <input type="number" id="minPrice" name="minPrice" placeholder="Min ₺" 
+                                    value="@(Model.MinPrice?.ToString() ?? "")" 
+                                    class="form-control form-control-sm" style="width: 110px;" />
+                             <input type="number" id="maxPrice" name="maxPrice" placeholder="Max ₺" 
+                                    value="@(Model.MaxPrice?.ToString() ?? "")" 
+                                    class="form-control form-control-sm" style="width: 110px;" />
+                         </div>
+                        <div class="search-panel__main-field">
+                            <select id="sortBy" name="sortBy" aria-label="@L["sortBy"]">
+                                @foreach (var sort in Model.SortOptions)
+                                {
+                                    <option value="@sort" selected="@(sort == Model.SortBy)">@L.SortLabel(sort)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="search-panel__search-button-wrap">
+                            <button type="submit" class="search-panel__search-button">
+                                <span>@L["search"]</span>
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" id="keyword" name="keyword" value="@Model.Keyword" />
+        </form>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+    
+            });
+        </script>
+        <div id="savedSearchFeedback" class="small text-success mt-2" style="display:none;"></div>
+    </div>
 </section>
 
+@if (Model.SeoLanding is not null)
+{
+    <section class="section seo-landing-copy reveal">
+        <div class="container wide-panel">
+            <div class="row g-4 align-items-stretch">
+                <div class="col-lg-7">
+                    <article class="card seo-copy-card border-0 h-100">
+                        <div class="card-body p-4 p-xl-5">
+                            <span class="seo-copy-card__eyebrow">@Model.SeoLanding.Eyebrow</span>
+                            <h2>@Model.SeoLanding.BodyTitle</h2>
+                            <p class="seo-copy-card__lead">@Model.SeoLanding.BodyText</p>
+                            <p class="seo-copy-card__text">@Model.SeoLanding.SecondaryText</p>
+                            @if (Model.SeoLanding.Highlights.Count > 0)
+                            {
+                                <ul class="seo-copy-card__list">
+                                    @foreach (var item in Model.SeoLanding.Highlights)
+                                    {
+                                        <li>@item</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </article>
+                </div>
+                <div class="col-lg-5">
+                    <div class="d-grid gap-4 h-100">
+                        @if (Model.SeoLanding.RelatedLinks.Count > 0)
+                        {
+                            <article class="card seo-copy-card border-0">
+                                <div class="card-body p-4">
+                                    <h3>@T("Benzer KKTC aramaları", "Related North Cyprus searches", "Похожие поисковые запросы по Северному Кипру", "عمليات بحث مشابهة في قبرص الشمالية", "جستجوهای مشابه قبرس شمالی")</h3>
+                                    <div class="seo-related-links">
+                                        @foreach (var link in Model.SeoLanding.RelatedLinks)
+                                        {
+                                            <a class="seo-related-link" href="@link.Url">
+                                                <strong>@link.Title</strong>
+                                                <span>@link.Description</span>
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </article>
+                        }
 
+                        @if (Model.SeoLanding.FaqItems.Count > 0)
+                        {
+                            <article class="card seo-copy-card border-0">
+                                <div class="card-body p-4">
+                                    <h3>@T("Sık sorulan sorular", "Frequently asked questions", "Часто задаваемые вопросы", "الأسئلة الشائعة", "پرسش‌های پرتکرار")</h3>
+                                    <div class="seo-faq-list">
+                                        @foreach (var faq in Model.SeoLanding.FaqItems)
+                                        {
+                                            <details class="seo-faq-item">
+                                                <summary>@faq.Question</summary>
+                                                <p>@faq.Answer</p>
+                                            </details>
+                                        }
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
 
-
+@if (!shouldShowSearchResults && latestVitrinListings.Count > 0)
+{
+    <section class="section vitrin-ticker-banner reveal">
+        <div class="container wide-panel">
+            <div id="latestVitrinTicker" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000" data-bs-pause="false">
+                <div class="carousel-inner">
+                    @for (var i = 0; i < latestVitrinListings.Count; i++)
+                    {
+                        var item = latestVitrinListings[i];
+                        <div class="carousel-item @(i == 0 ? "active" : string.Empty)">
+                            <a asp-action="Details" asp-controller="Home" asp-route-id="@item.Id" class="vitrin-ticker-item">
+                                <img src="@item.ImageUrl" alt="@item.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                <div class="vitrin-ticker-item__overlay">
+                                    <span class="vitrin-ticker-item__badge">@PromotionLabel(item)</span>
+                                    <h3>@item.Title</h3>
+                                    <p>@item.City - @item.Location</p>
+                                    <strong>@item.PriceLabel</strong>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
 
 
 @if (Model.IsCategoryPage)
 {
-    <section class="section category-banner" style="background-image: linear-gradient(105deg, rgba(20,34,59,.88), rgba(20,34,59,.35)), url('@Model.CategoryHeroImage');">
-        <div class="container">
-            <h2>@CategoryText(Model.Category)</h2>
-            <p>@L.Format("resultsCount", Model.FilteredCount, Model.TotalCount)</p>
-            <div class="category-banner__links">
-                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-listingType="sale" asp-route-sortBy="@Model.SortBy">@L["forSale"]</a>
-                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-listingType="rent" asp-route-sortBy="@Model.SortBy">@L["forRent"]</a>
-                <a asp-action="Category" asp-route-slug="@Model.CurrentCategorySlug" asp-route-sortBy="@Model.SortBy">@L["allListings"]</a>
+    @if (vitrinHeroSlides.Count > 0)
+    {
+        <section class="section vitrin-hero-slider reveal">
+            <div class="container wide-panel">
+                <div class="section__head section__head--light">
+                    <!-- Vitrin section heading removed per request -->
+                </div>
+                <div id="vitrinHeroSlider" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000" data-bs-pause="false">
+                    <div class="carousel-indicators">
+                        @for (var i = 0; i < vitrinHeroSlides.Count; i++)
+                        {
+                            <button type="button" data-bs-target="#vitrinHeroSlider" data-bs-slide-to="@i" class="@(i == 0 ? "active" : string.Empty)" aria-current="@(i == 0 ? "true" : "false")" aria-label="Slide @(i + 1)"></button>
+                        }
+                    </div>
+                    <div class="carousel-inner vitrin-hero-slider__inner">
+                        @for (var i = 0; i < vitrinHeroSlides.Count; i++)
+                        {
+                            var slide = vitrinHeroSlides[i];
+                            <div class="carousel-item @(i == 0 ? "active" : string.Empty)">
+                                <a asp-action="Details" asp-controller="Home" asp-route-id="@slide.Id" class="vitrin-hero-slide">
+                                    <img src="@slide.ImageUrl" alt="@slide.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                    <div class="vitrin-hero-slide__caption">
+                                        <h3>@slide.Title</h3>
+                                        <p>@slide.City - @slide.Location</p>
+                                        <strong>@slide.PriceLabel</strong>
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
+        </section>
+    }
+
+}
+
+@if (shouldShowSearchResults && searchResults.Count > 0)
+{
+    <section class="section market-board reveal">
+        <div class="container wide-panel">
+                <div class="section__head section__head--light">
+                    <h2>@listingBoardTitle</h2>
+                    <p id="listing-search-count">@(searchResults.Count == 0 ? 0 : 1) - @Math.Min(12, searchResults.Count) / @searchResults.Count ilan görüntüleniyor</p>
+                </div>
+                <form method="get" asp-action="@formAction" asp-controller="Home" class="listing-sort-toolbar">
+                    @if (Model.IsCategoryPage)
+                    {
+                        <input type="hidden" name="slug" value="@Model.CurrentCategorySlug" />
+                    }
+                    <input type="hidden" name="showResults" value="@Model.ShowResults.ToString().ToLowerInvariant()" />
+                    <input type="hidden" name="listingType" value="@Model.ListingType" />
+                    <input type="hidden" name="city" value="@Model.City" />
+                    <input type="hidden" name="category" value="@Model.Category" />
+                    <input type="hidden" name="subCategory" value="@Model.SubCategory" />
+                    <input type="hidden" name="priceRange" value="@Model.PriceRange" />
+                    <input type="hidden" name="keyword" value="@Model.Keyword" />
+                    <label for="listingSortSelect">@L["sortBy"]</label>
+                    <select id="listingSortSelect" name="sortBy" onchange="this.form.submit()">
+                        @foreach (var sortOption in Model.SortOptions)
+                        {
+                            <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
+                        }
+                    </select>
+                </form>
+                <div class="mobile-search-dock" data-mobile-search-dock>
+                    <button type="button" class="mobile-search-dock__btn" data-dock-action="filter">
+                        <i class="bi bi-funnel"></i>
+                        <span>@T("Filtrele", "Filter", "Фильтр", "تصفية", "فیلتر")</span>
+                    </button>
+                    <button type="button" class="mobile-search-dock__btn" data-dock-action="sort">
+                        <i class="bi bi-sort-down"></i>
+                        <span>@T("Sırala", "Sort", "Сортировка", "ترتيب", "مرتب‌سازی")</span>
+                    </button>
+                    <button type="button" class="mobile-search-dock__btn" data-dock-action="top">
+                        <i class="bi bi-arrow-up"></i>
+                        <span>@T("Yukarı", "Top", "Наверх", "للأعلى", "بالا")</span>
+                    </button>
+                </div>
+                <div class="market-board__grid market-board__grid--compact reveal-stagger" data-load-more-grid="true" data-total-count="@searchResults.Count" data-page-size="12" data-counter-id="listing-search-count" data-button-id="listing-load-more-btn">
+                    @foreach (var listing in searchResults)
+                    {
+                        <article class="listing-card listing-card--compact">
+                            <div class="listing-card__media-shell">
+                                <a class="listing-card__media" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">
+                                      <img src="@listing.ImageUrl" 
+                                          alt="@listing.Title" 
+                                         loading="lazy" 
+                                         referrerpolicy="no-referrer"
+                                         onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                    <div class="listing-card__hover-preview">
+                                        <span class="preview-btn">@T("Detayları Gör", "View Details", "Подробнее", "عرض التفاصيل", "مشاهده جزئیات")</span>
+                                    </div>
+                                </a>
+                                 <button type="button"
+                                         class="btn-favorite heart-btn listing-card__favorite"
+                                         data-listing-id="@listing.Id"
+                                         title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقة‌مندی‌ها")"
+                                         aria-label="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقة‌مندی‌ها")">
+                                     <svg class="heart-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                     </svg>
+                                 </button>
+                                 <button type="button"
+                                         class="btn-compare"
+                                         data-id="@listing.Id"
+                                         title="@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")"
+                                         aria-label="@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")">
+                                     <i class="bi bi-intersect me-1"></i>@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")
+                                 </button>
+                            </div>
+                            <div class="listing-card__body">
+                                <div class="listing-card__topline">
+                                    <span class="listing-card__category">@BrowseCategoryText(listing)</span>
+                                </div>
+                                <h3>
+                                    <a asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@listing.Title</a>
+                                </h3>
+                                <p class="listing-card__location">@FormatListingLocation(listing.City, listing.Location)</p>
+                                <a class="listing-card__seller" style="text-decoration: none; color: inherit; cursor: pointer;" 
+                                   asp-action="@(listing.SellerIsCorporate ? "Store" : "SellerProfile")" 
+                                   asp-controller="Home" 
+                                   asp-route-id="@listing.UserId"
+                                   title="@($"{SellerDisplayName(listing)} profili")">
+                                    <span class="listing-card__seller-avatar" aria-hidden="true">
+                                        <img src="@SellerVisualUrl(listing)" class="@(listing.SellerIsCorporate ? "is-logo" : "is-photo")" alt="@SellerDisplayName(listing)" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';this.classList.remove('is-logo');this.classList.add('is-photo');" />
+                                    </span>
+                                     <span class="listing-card__seller-copy">
+                                         <strong>@SellerDisplayName(listing)</strong>
+                                         @if (!string.IsNullOrWhiteSpace(SellerSecondaryText(listing)))
+                                         {
+                                             <small>@SellerSecondaryText(listing)</small>
+                                         }
+                                         @if (listing.SellerIsCorporate && listing.IsVerifiedSeller)
+                                         {
+                                             <span class="badge badge-verified ms-2" title="Doğrulanmış Satıcı">✓</span>
+                                         }
+                                     </span>
+                                </a>
+                                <p class="listing-card__summary">@listing.Summary</p>
+                                <div class="listing-card__meta">
+                                    <span><i class="bi bi-speedometer2"></i>@listing.PrimarySpec</span>
+                                    <span><i class="bi bi-tags"></i>@listing.SecondarySpec</span>
+                                </div>
+                                <div class="listing-card__footer">
+                                    <strong class="listing-card__price">@listing.PriceLabel</strong>
+                                    <a class="project-link btn btn-sm" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@T("Detayları Gör", "View Details", "Подробнее", "عرض التفاصيل", "مشاهده جزئیات")</a>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+                @if (searchResults.Count > 12)
+                {
+                    <div class="market-board__actions">
+                        <button type="button" class="market-board__load-more" id="listing-load-more-btn">@T("Daha Fazla Yükle", "Load More", "Показать ещё", "عرض المزيد", "نمایش بیشتر")</button>
+                    </div>
+                }
         </div>
     </section>
 }
 
-@if (Model.FeaturedListings.Count > 0)
-{
-    <section class="section market-board reveal">
-        <div class="container wide-panel">
-            <div class="section__head section__head--light">
-                <h2>@(hasActiveFilters || Model.IsCategoryPage ? L["allListings"] : L["showcase"])</h2>
-                <p>@L.Format("resultsCount", Model.FeaturedListings.Count, Model.FilteredCount)</p>
-            </div>
-            <div class="market-board__grid reveal-stagger">
-                @foreach (var listing in Model.FeaturedListings)
-                {
-                    <article class="listing-card">
-                        <a class="listing-card__media" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">
-                            <img src="@listing.ImageUrl" alt="@listing.Title" loading="lazy" referrerpolicy="no-referrer" />
-                            @if (listing.GalleryImages.Count > 1)
-                            {
-                                <span class="listing-card__image-count">@T($"{listing.GalleryImages.Count} foto", $"{listing.GalleryImages.Count} photos", $"{listing.GalleryImages.Count} фото", $"{listing.GalleryImages.Count} صورة")</span>
-                            }
-                        </a>
-                        <div class="listing-card__body">
-                            <div class="listing-card__topline">
-                                <span class="badge bg-light text-dark">@L.TypeLabel(listing.Type)</span>
-                                <span class="listing-card__category">@L.CategoryLabel(listing.Category)</span>
-                            </div>
-                            <h3>
-                                <a asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@listing.Title</a>
-                            </h3>
-                            <p class="listing-card__location">@listing.City - @listing.Location</p>
-                            <p class="listing-card__summary">@listing.Summary</p>
-                            <div class="listing-card__meta">
-                                <span>@listing.PrimarySpec</span>
-                                <span>@listing.SecondarySpec</span>
-                            </div>
-                            <div class="listing-card__footer">
-                                <strong class="listing-card__price">@listing.PriceLabel</strong>
-                                <a class="project-link" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@L["details"]</a>
-                            </div>
-                        </div>
-                    </article>
-                }
-            </div>
-        </div>
-    </section>
-}
-else if (hasActiveFilters || Model.IsCategoryPage)
+@if (searchResults.Count == 0 && shouldShowSearchResults)
 {
     <section class="section market-board">
         <div class="container wide-panel">
@@ -200,50 +755,1462 @@ else if (hasActiveFilters || Model.IsCategoryPage)
                 <h2>@L["noResultsTitle"]</h2>
                 <p>@L["noResultsText"]</p>
             </div>
+            <div class="no-results-chips" aria-label="@T("Önerilen hızlı filtreler", "Suggested quick filters", "Рекомендуемые быстрые фильтры", "فلاتر سريعة مقترحة")">
+                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, category = "realestate" })">@T("Emlak ilanları", "Real estate listings", "Недвижимость", "إعلانات العقارات", "آگهی‌های املاک")</a>
+                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, category = "vehicle" })">@T("Vasıta ilanları", "Vehicle listings", "Транспорт", "إعلانات المركبات", "آگهی‌های خودرو")</a>
+                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, sortBy = "priceLowToHigh" })">@T("Fiyata göre artan", "Price low to high", "Цена по возрастанию", "السعر تصاعديًا", "قیمت صعودی")</a>
+                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true })">@T("Filtreleri temizle", "Clear filters", "Сбросить фильтры", "مسح الفلاتر", "پاک‌کردن فیلترها")</a>
+            </div>
         </div>
     </section>
 }
 
-<!-- Carousel her zaman ana sayfada, popüler bölgelerden önce gösterilecek -->
-<section class="section projects-strip reveal">
-    <div class="container wide-panel">
-        <div class="section__head section__head--light">
-            <h2>@L["projectsTitle"]</h2>
-            <p>@L["projectsSubtitle"]</p>
+
+@if (!shouldShowSearchResults && !Model.IsCategoryPage && visibleHomepageSpotlightColumns.Count > 0)
+{
+    <section class="section homepage-spotlight reveal">
+        <div class="container wide-panel">
+            <div class="homepage-spotlight__stack">
+                @foreach (var column in visibleHomepageSpotlightColumns)
+                {
+                    <article class="homepage-spotlight-rail @column.AccentClass" data-spotlight-rail>
+                        <div class="homepage-spotlight-rail__head">
+                            <div class="homepage-spotlight-rail__title-wrap">
+                                <span class="homepage-spotlight__badge"><i class="bi @column.IconClass"></i>@column.Badge</span>
+                                <div class="homepage-spotlight-rail__copy">
+                                    <!-- column title removed per request -->
+                                    <!-- subtitle removed per request -->
+                                </div>
+                            </div>
+                            <div class="homepage-spotlight-rail__meta">
+                                <span class="homepage-spotlight-rail__count">
+                                    <span class="js-countup" data-target="@column.Listings.Count">0</span> @T("ilan", "listings", "объявлений", "إعلان")
+                                </span>
+                                <span class="homepage-spotlight-rail__page-indicator" data-spotlight-page-indicator></span>
+                            </div>
+                        </div>
+                        @{
+                            var spotlightPages = column.Listings
+                                .Select((item, index) => new { item, index })
+                                .GroupBy(x => x.index / 10)
+                                .Select(x => x.Select(y => y.item).ToList())
+                                .ToList();
+                        }
+                        <div class="homepage-spotlight-rail__viewport" data-spotlight-interval="4000">
+                            @for (var pageIndex = 0; pageIndex < spotlightPages.Count; pageIndex++)
+                            {
+                                var pageItems = spotlightPages[pageIndex];
+                                <div class="homepage-spotlight-rail__page homepage-spotlight-rail__page--compact @(pageIndex == 0 ? "is-active" : string.Empty)" data-spotlight-page aria-hidden="@(pageIndex == 0 ? "false" : "true")">
+                                    @foreach (var item in pageItems)
+                                    {
+                                        <article class="homepage-spotlight-card homepage-spotlight-card--compact @column.AccentClass">
+                                            <div class="homepage-spotlight-card__media-shell">
+                                                <a class="homepage-spotlight-card__media" asp-action="Details" asp-controller="Home" asp-route-id="@item.Id">
+                                                    <img src="@item.ImageUrl" alt="@item.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                                    <span class="homepage-spotlight-card__media-badge"><i class="bi @column.IconClass"></i>@column.Badge</span>
+                                                </a>
+                                                 <button type="button"
+                                                         class="btn-favorite heart-btn homepage-spotlight-card__favorite"
+                                                         data-listing-id="@item.Id"
+                                                         title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقة‌مندی‌ها")"
+                                                         aria-label="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقة‌مندی‌ها")">
+                                                     <svg class="heart-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                                     </svg>
+                                                 </button>
+                                                 <button type="button"
+                                                         class="btn-compare"
+                                                         data-id="@item.Id"
+                                                         title="@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")"
+                                                         aria-label="@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")">
+                                                     <i class="bi bi-intersect me-1"></i>@T("Karşılaştır", "Compare", "Сравнить", "قارن", "مقایسه")
+                                                 </button>
+                                            </div>
+                                            <div class="homepage-spotlight-card__body">
+                                                <div class="homepage-spotlight-card__meta-row">
+                                                    <span class="homepage-spotlight-card__category">@BrowseCategoryText(item)</span>
+                                                    @if (!string.IsNullOrWhiteSpace(item.Type))
+                                                    {
+                                                        <span class="homepage-spotlight-card__type">@L.TypeLabel(item.Type)</span>
+                                                    }
+                                                </div>
+                                                <h4>
+                                                    <a asp-action="Details" asp-controller="Home" asp-route-id="@item.Id">@item.Title</a>
+                                                </h4>
+                                                <p><i class="bi bi-geo-alt-fill"></i>@FormatListingLocation(item.City, item.Location)</p>
+                                                <a class="homepage-spotlight-card__seller"
+                                                   asp-action="@(item.SellerIsCorporate ? "Store" : "SellerProfile")"
+                                                   asp-controller="Home"
+                                                   asp-route-id="@item.UserId"
+                                                   title="@($"{SellerDisplayName(item)} profili")">
+                                                    <span class="homepage-spotlight-card__seller-avatar" aria-hidden="true">
+                                                        <img src="@SellerVisualUrl(item)" class="@(item.SellerIsCorporate ? "is-logo" : "is-photo")" alt="@SellerDisplayName(item)" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';this.classList.remove('is-logo');this.classList.add('is-photo');" />
+                                                    </span>
+                                                     <span class="homepage-spotlight-card__seller-copy">
+                                                         <strong>@SellerDisplayName(item)</strong>
+                                                         @if (!string.IsNullOrWhiteSpace(SellerSecondaryText(item)))
+                                                         {
+                                                             <small>@SellerSecondaryText(item)</small>
+                                                         }
+                                                         @if (item.SellerIsCorporate && item.IsVerifiedSeller)
+                                                         {
+                                                             <span class="badge badge-verified ms-2" title="Doğrulanmış Satıcı">✓</span>
+                                                         }
+                                                     </span>
+                                                </a>
+                                                <div class="homepage-spotlight-card__facts">
+                                                    @if (!string.IsNullOrWhiteSpace(item.PrimarySpec))
+                                                    {
+                                                        <span><i class="bi bi-aspect-ratio"></i>@item.PrimarySpec</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(item.SecondarySpec))
+                                                    {
+                                                        <span><i class="bi bi-grid-3x3-gap"></i>@item.SecondarySpec</span>
+                                                    }
+                                                </div>
+                                                <div class="homepage-spotlight-card__footer">
+                                                    <strong>@item.PriceLabel</strong>
+                                                    <span class="homepage-spotlight-card__link" aria-hidden="true"><i class="bi bi-arrow-right-short"></i></span>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (column.Key == "vitrin" && topViewedCategories.Count > 0)
+                        {
+                            <div class="homepage-spotlight__subpanel">
+                                <div class="homepage-spotlight__subpanel-head">
+                                    <h4>@T("Popüler Kategoriler", "Popular Categories", "Популярные категории", "الفئات الشائعة", "دسته‌بندی‌های محبوب")</h4>
+                                    <p>@T("İlan yoğunluğu yüksek kategorileri bu alandan hızlıca keşfedin.", "Quickly explore the categories with the highest listing volume from this area.", "Быстро переходите к категориям с самой высокой плотностью объявлений.", "استكشف بسرعة الفئات ذات أعلى كثافة إعلانات من هذه المساحة.", "دسته‌های پربازدید و پرتراکم را از همین بخش سریع‌تر کشف کنید.")</p>
+                                </div>
+                                <div class="top-viewed-grid homepage-spotlight__mini-grid">
+                                    @foreach (var marketCategory in topViewedCategories)
+                                    {
+                                        <a class="top-viewed-card" href="@Url.Action("Index", "Home", new { category = marketCategory.Title, showResults = true })">
+                                            <span class="top-viewed-card__image" style="background-image: linear-gradient(135deg, rgba(30,58,102,.22) 0%, rgba(30,58,102,.55) 100%), url('@CategoryCardImageUrl(marketCategory.Title)'); background-color: @marketCategory.AccentColor;">
+                                                <i class="top-viewed-card__img-icon bi @CategoryIconClass(marketCategory.Title)"></i>
+                                            </span>
+                                            <span class="top-viewed-card__title"><i class="bi bi-grid-3x3-gap-fill me-1"></i>@CategoryText(marketCategory.Title)</span>
+                                            <small><span class="js-countup" data-target="@marketCategory.Count">0</span> @T("aktif ilan", "active listings", "активных объявлений", "إعلانًا نشطًا", "آگهی فعال")</small>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (column.Key == "featured" && Model.RegionSpots.Count > 0)
+                        {
+                            <div class="homepage-spotlight__subpanel">
+                                <div class="homepage-spotlight__subpanel-head">
+                                    <h4>@T("Popüler Şehirler", "Popular Cities", "Популярные города", "المدن الشائعة", "شهرهای محبوب")</h4>
+                                    <p>@T("İlan yoğunluğu en yüksek şehirler öne çıkanların hemen altında listeleniyor.", "The highest-density cities are listed just below featured picks.", "Города с самой высокой плотностью объявлений перечислены сразу под рекомендуемыми.", "المدن الأعلى كثافة في الإعلانات تظهر مباشرة أسفل الإعلانات المميزة.", "شهرهایی با بیشترین تراکم آگهی درست زیر بخش ویژه‌ها نمایش داده می‌شوند.")</p>
+                                </div>
+                                <div class="top-viewed-grid homepage-spotlight__mini-grid">
+                                    @foreach (var city in Model.RegionSpots.OrderByDescending(x => x.ListingCount).Take(6))
+                                    {
+                                        <a class="top-viewed-card" href="@Url.Action("Index", "Home", new { city = city.Name })">
+                                            <span class="top-viewed-card__image" style="background-image:url('@city.ImageUrl')">
+                                                <i class="top-viewed-card__img-icon bi bi-geo-alt-fill"></i>
+                                            </span>
+                                            <span class="top-viewed-card__title"><i class="bi bi-pin-map me-1"></i>@LocalizeCityName(city.Name)</span>
+                                            <small><span class="js-countup" data-target="@city.ListingCount">0</span> @T("aktif ilan", "active listings", "активных объявлений", "إعلانًا نشطًا", "آگهی فعال")</small>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
         </div>
-        <!-- 5 kategoriye göre 5 viewport - DRY prensibi ile partial view kullanımı -->
-        <div class="carousel-container">
-            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedEmlak, new ViewDataDictionary(ViewData) { ["Category"] = "emlak", ["FallbackImage"] = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=80" })
-            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedVasita, new ViewDataDictionary(ViewData) { ["Category"] = "vasita", ["FallbackImage"] = "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=400&q=80" })
-            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedElektronik, new ViewDataDictionary(ViewData) { ["Category"] = "elektronik", ["FallbackImage"] = "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400&q=80" })
-            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedEvEsya, new ViewDataDictionary(ViewData) { ["Category"] = "evesya", ["FallbackImage"] = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80" })
-            @await Html.PartialAsync("_CarouselPartial", Model.FeaturedHizmet, new ViewDataDictionary(ViewData) { ["Category"] = "hizmet", ["FallbackImage"] = "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80" })
-        </div>
-    </div>
-</section>
+    </section>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const listingTypeSelect = document.getElementById('listingType');
+            const listingTypeTabs = document.querySelectorAll('.search-panel__listing-tab');
+            const citySelect = document.getElementById('city');
+            const cityPicker = document.getElementById('cityPicker');
+            const cityPickerToggle = document.getElementById('cityPickerToggle');
+            const cityPickerPanel = document.getElementById('cityPickerPanel');
+            const cityPickerLabel = document.getElementById('cityPickerLabel');
+            const cityPickerCities = document.getElementById('cityPickerCities');
+            const cityPickerVillages = document.getElementById('cityPickerVillages');
+            const cityPickerVillagesTitle = document.getElementById('cityPickerVillagesTitle');
+            const cityPickerApply = document.getElementById('cityPickerApply');
+            const categorySelect = document.getElementById('category');
+            const priceRangeSelect = document.getElementById('priceRange');
+            const sortBySelect = document.getElementById('sortBy');
+            const listingSortSelect = document.getElementById('listingSortSelect');
+            const featuresContainer = document.getElementById('dynamic-features-container');
+            const mobileSearchDock = document.querySelector('[data-mobile-search-dock]');
+            const decodeLocalized = (value) => {
+                if (typeof value !== 'string' || value.indexOf('&') === -1) {
+                    return value;
+                }
+
+                const textArea = document.createElement('textarea');
+                textArea.innerHTML = value;
+                return textArea.value;
+            };
+
+            const allCitiesText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L["allCities"]));
+            const allCategoriesText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L["allCategories"]));
+            const neighborhoodVillageText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T("Mahalle / Köy", "Neighborhood / Village", "Район / Деревня", "الحي / القرية", "محله / روستا")));
+            const wholeCityText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T("Tüm şehir", "Whole city", "Весь город", "كل المدينة", "کل شهر")));
+
+            const pickOneText = decodeLocalized('@T("Seçiniz", "Select", "Выберите", "اختر")');
+            const allSubCategoriesText = decodeLocalized('@T("Tüm alt kategoriler", "All subcategories", "Все подкатегории", "جميع الفئات الفرعية")');
+            const dailyRentalSubCategoryText = decodeLocalized('@T("Günlük Kiralık", "Daily Rent", "Ежедневная аренда", "إيجار يومي")');
+            const toOptionData = (selectEl) => Array.from(selectEl?.options || []).map((option) => ({
+                value: option.value,
+                text: decodeLocalized(option.textContent || ''),
+                url: option.dataset.url || ''
+            }));
+            const categorySubCategoryMap = @Html.Raw(Model.CategorySubCategoryJson);
+            const currentSubCategory = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SubCategory));
+
+            const setSelectOptions = (selectEl, optionData, preferredValue, fallbackValue) => {
+                if (!selectEl) return;
+
+                const safeOptions = optionData || [];
+                selectEl.innerHTML = '';
+
+                safeOptions.forEach((optionDataItem) => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = optionDataItem.value;
+                    optionEl.textContent = optionDataItem.text;
+                    if (optionDataItem.url) {
+                        optionEl.dataset.url = optionDataItem.url;
+                    }
+                    selectEl.appendChild(optionEl);
+                });
+
+                const preferredExists = safeOptions.some((item) => item.value === preferredValue);
+                const fallbackExists = safeOptions.some((item) => item.value === fallbackValue);
+
+                if (preferredExists) {
+                    selectEl.value = preferredValue;
+                } else if (fallbackExists) {
+                    selectEl.value = fallbackValue;
+                } else if (safeOptions.length > 0) {
+                    selectEl.selectedIndex = 0;
+                }
+            };
+
+            const allCityOptions = toOptionData(citySelect);
+            const allCategoryOptions = toOptionData(categorySelect);
+            const allPriceRangeOptions = toOptionData(priceRangeSelect);
+            const allSortOptions = toOptionData(sortBySelect);
+            const subCategorySelect = document.getElementById('subCategory');
+            const categoryByListingType = @Html.Raw(Model.ListingTypeCategoryJson);
+            const categoryOptionMap = Object.fromEntries(allCategoryOptions.map((option) => [option.value, option.text]));
+
+            const buildCategoryOptions = (categoryKeys) => (categoryKeys || []).map((value) => ({
+                value,
+                text: categoryOptionMap[value] || value
+            }));
+
+            const getSubCategoryFiltersForSelection = (filters) => {
+                let visibleFilters = Array.isArray(filters) ? [...filters] : [];
+                const listingType = listingTypeSelect?.value || 'all';
+                const category = categorySelect?.value || 'all';
+
+                if (listingType === 'rent' && category === 'realestate') {
+                    visibleFilters = visibleFilters.filter((item) => item.value !== 'arsa');
+                    if (!visibleFilters.some((item) => item.value === 'gunluk-kiralik')) {
+                        visibleFilters.push({ value: 'gunluk-kiralik', label: dailyRentalSubCategoryText });
+                    }
+                }
+                else {
+                    visibleFilters = visibleFilters.filter((item) => item.value !== 'gunluk-kiralik');
+                }
+
+                return visibleFilters;
+            };
+
+            const updateSubCategoryOptions = () => {
+                if (!subCategorySelect || !categorySelect) {
+                    return;
+                }
+
+                const selectedCategory = categorySelect.value || 'all';
+                const filters = categorySubCategoryMap[selectedCategory] || [];
+                const visibleFilters = getSubCategoryFiltersForSelection(filters);
+                const options = [{ value: 'all', text: allSubCategoriesText }, ...visibleFilters.map((item) => ({ value: item.value, text: item.label }))];
+                setSelectOptions(subCategorySelect, options, currentSubCategory, 'all');
+                subCategorySelect.closest('.search-panel__main-field').hidden = options.length <= 1;
+            };
+
+            const applyListingTypeFilter = (listingType, presetCategory) => {
+                const allowedCategoryValues = categoryByListingType[listingType] || allCategoryOptions.map((x) => x.value);
+                const allowedOptions = buildCategoryOptions(allowedCategoryValues);
+                const selectedCategory = allowedCategoryValues.includes(categorySelect.value)
+                    ? categorySelect.value
+                    : (presetCategory && presetCategory !== 'all' && allowedCategoryValues.includes(presetCategory)
+                        ? presetCategory
+                        : 'all');
+
+                setSelectOptions(categorySelect, allowedOptions, selectedCategory, 'all');
+                updateSubCategoryOptions();
+            };
+
+            categorySelect?.addEventListener('change', function () {
+                updateSubCategoryOptions();
+            });
+
+            listingTypeTabs.forEach((tab) => {
+                tab.addEventListener('click', function () {
+                    const listingType = tab.dataset.listingType || 'all';
+                    const presetCategory = tab.dataset.presetCategory || 'all';
+
+                    listingTypeTabs.forEach((item) => {
+                        item.classList.remove('is-active');
+                        item.setAttribute('aria-pressed', 'false');
+                    });
+
+                    tab.classList.add('is-active');
+                    tab.setAttribute('aria-pressed', 'true');
+                    listingTypeSelect.value = listingType;
+                    applyListingTypeFilter(listingType, presetCategory);
+                });
+            });
+
+            const applyInitialCategoryFilter = () => {
+                applyListingTypeFilter(listingTypeSelect.value, categorySelect.value || 'all');
+            };
+
+            applyInitialCategoryFilter();
+
+            // Initial visibility and wiring for sort controls
+            toggleSortVisibility();
+            listingTypeSelect?.addEventListener('change', toggleSortVisibility);
+            categorySelect?.addEventListener('change', toggleSortVisibility);
+            listingTypeTabs.forEach(tab => tab.addEventListener('click', toggleSortVisibility));
+
+            const cityByCategory = {
+                all: allCityOptions.map((x) => x.value),
+                realestate: allCityOptions.map((x) => x.value),
+                land: allCityOptions.map((x) => x.value),
+                vehicle: allCityOptions.map((x) => x.value),
+                yacht: allCityOptions.map((x) => x.value),
+                caravan: allCityOptions.map((x) => x.value),
+                home: allCityOptions.map((x) => x.value),
+                services: allCityOptions.map((x) => x.value),
+                tutoring: allCityOptions.map((x) => x.value),
+                jobs: allCityOptions.map((x) => x.value),
+                helper: allCityOptions.map((x) => x.value),
+                secondhand: allCityOptions.map((x) => x.value),
+                electronics: allCityOptions.map((x) => x.value),
+                computer: allCityOptions.map((x) => x.value),
+                phone: allCityOptions.map((x) => x.value),
+                fashion: allCityOptions.map((x) => x.value),
+                equipment: allCityOptions.map((x) => x.value),
+                jewelry: allCityOptions.map((x) => x.value),
+                watch: allCityOptions.map((x) => x.value)
+            };
+
+            const cityGroups = allCityOptions.reduce((acc, option) => {
+                if (!option || !option.value || option.value === 'all') {
+                    return acc;
+                }
+
+                const rawText = (option.text || '').split('/').map(x => x.trim()).filter(Boolean);
+                const cityName = rawText[0] || option.value.split('::')[0];
+                if (!acc[cityName]) {
+                    acc[cityName] = [];
+                }
+
+                if (rawText.length >= 2) {
+                    acc[cityName].push({
+                        value: option.value,
+                        text: rawText.slice(1).join(' / ')
+                    });
+                }
+
+                return acc;
+            }, {});
+
+            function updateCityPickerLabel() {
+                if (!cityPickerLabel || !citySelect) {
+                    return;
+                }
+
+                const selected = citySelect.selectedOptions && citySelect.selectedOptions[0];
+                cityPickerLabel.textContent = selected ? decodeLocalized(selected.textContent || '') : allCitiesText;
+            }
+
+            function renderVillageOptions(activeCity) {
+                if (!cityPickerVillages || !cityPickerVillagesTitle) {
+                    return;
+                }
+
+                cityPickerVillages.innerHTML = '';
+                cityPickerVillagesTitle.textContent = activeCity
+                    ? `${activeCity} - ${neighborhoodVillageText}`
+                    : neighborhoodVillageText;
+
+                const allForCity = allCityOptions.filter(x => x.value === activeCity);
+                if (allForCity.length > 0) {
+                    const cityOnlyBtn = document.createElement('button');
+                    cityOnlyBtn.type = 'button';
+                    cityOnlyBtn.className = `city-picker__village ${citySelect.value === activeCity ? 'is-active' : ''}`;
+                    cityOnlyBtn.textContent = wholeCityText;
+                    cityOnlyBtn.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        citySelect.value = activeCity;
+                        renderVillageOptions(activeCity);
+                        updateCityPickerLabel();
+                    });
+                    cityPickerVillages.appendChild(cityOnlyBtn);
+                }
+
+                const entries = cityGroups[activeCity] || [];
+                entries.forEach((entry) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `city-picker__village ${citySelect.value === entry.value ? 'is-active' : ''}`;
+                    btn.textContent = entry.text;
+                    btn.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        citySelect.value = entry.value;
+                        renderVillageOptions(activeCity);
+                        updateCityPickerLabel();
+                    });
+                    cityPickerVillages.appendChild(btn);
+                });
+            }
+
+            function initCityPicker() {
+                if (!cityPicker || !cityPickerCities || !cityPickerToggle || !cityPickerPanel || !citySelect) {
+                    return;
+                }
+
+                const rootCities = allCityOptions
+                    .filter(x => x.value !== 'all' && !x.value.includes('::'))
+                    .map(x => x.value);
+
+                cityPickerCities.innerHTML = '';
+
+                const allBtn = document.createElement('button');
+                allBtn.type = 'button';
+                allBtn.className = `city-picker__city ${citySelect.value === 'all' ? 'is-active' : ''}`;
+                allBtn.textContent = allCitiesText;
+                allBtn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    citySelect.value = 'all';
+                    updateCityPickerLabel();
+                    cityPickerCities.querySelectorAll('.city-picker__city').forEach(x => x.classList.remove('is-active'));
+                    allBtn.classList.add('is-active');
+                    renderVillageOptions('');
+                });
+                cityPickerCities.appendChild(allBtn);
+
+                rootCities.forEach((city) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    const isSelected = citySelect.value === city || citySelect.value.startsWith(`${city}::`);
+                    btn.className = `city-picker__city ${isSelected ? 'is-active' : ''}`;
+                    btn.textContent = city;
+                    btn.dataset.city = city;
+                    btn.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        cityPickerCities.querySelectorAll('.city-picker__city').forEach(x => x.classList.remove('is-active'));
+                        btn.classList.add('is-active');
+                        if (citySelect.value === 'all' || !citySelect.value.startsWith(`${city}::`)) {
+                            citySelect.value = city;
+                        }
+                        renderVillageOptions(city);
+                        updateCityPickerLabel();
+                    });
+                    cityPickerCities.appendChild(btn);
+                });
+
+                cityPickerToggle.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const willOpen = cityPickerPanel.hidden;
+                    cityPickerPanel.hidden = !willOpen;
+                    cityPickerToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+
+                cityPickerApply?.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cityPickerPanel.hidden = true;
+                    cityPickerToggle.setAttribute('aria-expanded', 'false');
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (!cityPicker.contains(event.target)) {
+                        cityPickerPanel.hidden = true;
+                        cityPickerToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                const selectedCity = citySelect.value.includes('::') ? citySelect.value.split('::')[0] : citySelect.value;
+                renderVillageOptions(selectedCity === 'all' ? '' : selectedCity);
+                updateCityPickerLabel();
+            }
+
+            initCityPicker();
+
+            const vehicleBrandOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleBrandOptions, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            const vehicleModelOptionsByBrand = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VehicleModelOptionsByBrand, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+
+            const categorySpecific = {
+                realestate: [
+                    {
+                        key: 'propertyType',
+                        options: ['@T("Daire", "Apartment", "Квартира", "شقة")', '@T("Müstakil Ev", "Detached House", "Отдельный дом", "منزل مستقل")', '@T("Villa", "Villa", "Вилла", "فيلا")', '@T("İkiz Villa", "Semi-Detached Villa", "Дуэт вилла", "فيلا متصلة")', '@T("Bina", "Building", "Здание", "مبنى")', '@T("Bahçeli", "With Garden", "С садом", "مع حديقة")']
+                    },
+                    {
+                        key: 'roomCount',
+                        dependsOn: 'propertyType',
+                        optionsByParent: {
+                            '@T("Daire", "Apartment", "Квартира", "شقة")': ['1+0', '1+1', '2+1', '3+1', '4+1', '5+1', '6+1', '7+1', '8+1', '9+1', '10+'],
+                            '@T("Müstakil Ev", "Detached House", "Отдельный дом", "منزل مستقل")': ['2+1', '3+1', '4+1', '5+1', '6+1', '7+1', '8+1', '9+1', '10+'],
+                            '@T("Villa", "Villa", "Вилла", "فيلا")': ['3+1', '4+1', '5+1', '6+1', '7+1', '8+1', '9+1', '10+'],
+                            '@T("İkiz Villa", "Semi-Detached Villa", "Дуэт вилла", "فيلا متصلة")': ['3+1', '4+1', '5+1', '6+1'],
+                            '@T("Bina", "Building", "Здание", "مبنى")': ['Stüdyo', 'Açık Plan', 'Bölmeli'],
+                            '@T("Bahçeli", "With Garden", "С садом", "مع حديقة")': ['2+1', '3+1', '4+1', '5+1', '6+1', '7+1', '8+1', '9+1', '10+']
+                        }
+                    },
+                    {
+                        key: 'area',
+                        dependsOn: 'roomCount',
+                        optionsByParent: {
+                            '1+0': ['35-55 m²', '55-75 m²'],
+                            '1+1': ['55-75 m²', '75-95 m²'],
+                            '2+1': ['85-110 m²', '110-135 m²'],
+                            '3+1': ['120-160 m²', '160-220 m²'],
+                            '4+1': ['180-260 m²', '260-340 m²'],
+                            '5+1': ['250-350 m²', '350+ m²'],
+                            '6+1': ['350+ m²'],
+                            '7+1': ['350+ m²'],
+                            '8+1': ['400+ m²'],
+                            '9+1': ['450+ m²'],
+                            '10+': ['500+ m²'],
+                            'Stüdyo': ['30-50 m²', '50-70 m²'],
+                            'Açık Plan': ['60-120 m²', '120-250 m²'],
+                            'Bölmeli': ['80-150 m²', '150-300 m²']
+                        }
+                    },
+                    {
+                        key: 'heating',
+                        dependsOn: 'area',
+                        optionsByParent: {
+                            '35-55 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '55-75 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '75-95 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")', '@T("Soba", "Stove", "Печь", "مدفأة")'],
+                            '85-110 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '110-135 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '120-160 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '160-220 m²': ['@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Soba", "Stove", "Печь", "مدفأة")'],
+                            '180-260 m²': ['@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '260-340 m²': ['@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '250-350 m²': ['@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '350+ m²': ['@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")'],
+                            '30-50 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")'],
+                            '50-70 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")'],
+                            '60-120 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")'],
+                            '120-250 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")'],
+                            '80-150 m²': ['@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")', '@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")'],
+                            '150-300 m²': ['@T("Merkezi", "Central", "Центральное", "مركزي")', '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")', '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")']
+                        }
+                    },
+
+                    {
+                        key: 'furnished',
+                        dependsOn: 'heating',
+                        optionsByParent: {
+                            '@T("Klima", "Air Conditioning", "Кондиционер", "تكييف")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")'],
+                            '@T("Merkezi", "Central", "Центральное", "مركزي")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")'],
+                            '@T("Yerden", "Underfloor", "Теплый пол", "تدفئة أرضية")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")'],
+                            '@T("Soba", "Stove", "Печь", "مدفأة")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")'],
+                            '@T("Doğalgaz", "Gas Heating", "Газовое отопление", "غاز")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")'],
+                            '@T("Kombi", "Combi Boiler", "Комби котел", "كومبي")': ['@T("Eşyalı", "Furnished", "С мебелью", "مفروش")', '@T("Eşyasız", "Unfurnished", "Без мебели", "غير مفروش")']
+                        }
+                    }
+                ],
+                land: [
+                    {
+                        key: 'zoning',
+                        options: ['@T("Konut İmarlı", "Residential Zoned", "Жилая зона", "سكني")', '@T("Ticari İmarlı", "Commercial Zoned", "Коммерческая зона", "تجاري")', '@T("Tarım Arazisi", "Agricultural Land", "Сельхозземля", "زراعي")']
+                    },
+                    {
+                        key: 'parcelArea',
+                        dependsOn: 'zoning',
+                        optionsByParent: {
+                            '@T("Konut İmarlı", "Residential Zoned", "Жилая зона", "سكني")': ['300-500 m²', '500-1000 m²', '1000+ m²'],
+                            '@T("Ticari İmarlı", "Commercial Zoned", "Коммерческая зона", "تجاري")': ['500-1000 m²', '1000-2500 m²', '2500+ m²'],
+                            '@T("Tarım Arazisi", "Agricultural Land", "Сельхозземля", "زراعي")': ['1000-3000 m²', '3000-5000 m²', '5000+ m²']
+                        }
+                    },
+                    {
+                        key: 'deed',
+                        dependsOn: 'parcelArea',
+                        optionsByParent: {
+                            '300-500 m²': ['@T("Müstakil", "Independent", "Отдельный", "مستقل")', '@T("Hisseli", "Shared", "Долевой", "مشترك")'],
+                            '500-1000 m²': ['@T("Müstakil", "Independent", "Отдельный", "مستقل")', '@T("Hazır Tapu", "Ready Deed", "Готовый титул", "سند جاهز")'],
+                            '1000+ m²': ['@T("Hazır Tapu", "Ready Deed", "Готовый титул", "سند جاهز")'],
+                            '1000-2500 m²': ['@T("Hazır Tapu", "Ready Deed", "Готовый титул", "سند جاهز")', '@T("Tahsisli", "Allocated", "Выделенный", "مخصص")'],
+                            '2500+ m²': ['@T("Tahsisli", "Allocated", "Выделенный", "مخصص")', '@T("Hazır Tapu", "Ready Deed", "Готовый титул", "سند جاهز")'],
+                            '1000-3000 m²': ['@T("Hisseli", "Shared", "Долевой", "مشترك")', '@T("Müstakil", "Independent", "Отдельный", "مستقل")'],
+                            '3000-5000 m²': ['@T("Müstakil", "Independent", "Отдельный", "مستقل")'],
+                            '5000+ m²': ['@T("Müstakil", "Independent", "Отдельный", "مستقل")']
+                        }
+                    },
+                    {
+                        key: 'infrastructure',
+                        dependsOn: 'deed',
+                        optionsByParent: {
+                            '@T("Müstakil", "Independent", "Отдельный", "مستقل")': ['@T("Yol + Su", "Road + Water", "Дорога + вода", "طريق + ماء")', '@T("Tam Altyapı", "Full Infrastructure", "Полная инфраструктура", "بنية كاملة")'],
+                            '@T("Hisseli", "Shared", "Долевой", "مشترك")': ['@T("Yol Var", "Road Access", "Есть дорога", "يوجد طريق")', '@T("Kısmi Altyapı", "Partial Infrastructure", "Частичная инфраструктура", "بنية جزئية")'],
+                            '@T("Hazır Tapu", "Ready Deed", "Готовый титул", "سند جاهز")': ['@T("Tam Altyapı", "Full Infrastructure", "Полная инфраструктура", "بنية كاملة")'],
+                            '@T("Tahsisli", "Allocated", "Выделенный", "مخصص")': ['@T("Elektrik Yakın", "Power Nearby", "Электричество рядом", "الكهرباء قريبة")', '@T("Kısmi Altyapı", "Partial Infrastructure", "Частичная инфраструктура", "بنية جزئية")']
+                        }
+                    },
+                    {
+                        key: 'slope',
+                        dependsOn: 'infrastructure',
+                        optionsByParent: {
+                            '@T("Yol + Su", "Road + Water", "Дорога + вода", "طريق + ماء")': ['@T("Düz", "Flat", "Ровный", "مستوٍ")', '@T("Hafif Eğimli", "Slightly Sloped", "Небольшой уклон", "منحدر خفيف")'],
+                            '@T("Tam Altyapı", "Full Infrastructure", "Полная инфраструктура", "بنية كاملة")': ['@T("Düz", "Flat", "Ровный", "مستوٍ")'],
+                            '@T("Yol Var", "Road Access", "Есть дорога", "يوجد طريق")': ['@T("Düz", "Flat", "Ровный", "مستوٍ")', '@T("Eğimli", "Sloped", "С уклоном", "منحدر")'],
+                            '@T("Kısmi Altyapı", "Partial Infrastructure", "Частичная инфраструктура", "بنية جزئية")': ['@T("Hafif Eğimli", "Slightly Sloped", "Небольшой уклон", "منحدر خفيف")', '@T("Eğimli", "Sloped", "С уклоном", "منحدر")'],
+                            '@T("Elektrik Yakın", "Power Nearby", "Электричество рядом", "الكهرباء قريبة")': ['@T("Eğimli", "Sloped", "С уклоном", "منحدر")']
+                        }
+                    }
+                ],
+                vehicle: [
+                    { key: 'brand', options: vehicleBrandOptions },
+                    {
+                        key: 'model',
+                        dependsOn: 'brand',
+                        optionsByParent: vehicleModelOptionsByBrand
+                    },
+                    {
+                        key: 'year',
+                        manual: true
+                    },
+                    {
+                        key: 'transmission',
+                        dependsOn: 'model',
+                        optionsByParent: {
+                            '3 Serisi': ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")', '@T("Manuel", "Manual", "Механика", "يدوي")'],
+                            '5 Serisi': ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            X5: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            C200: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            E200: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            GLA: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            Corolla: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")', '@T("Manuel", "Manual", "Механика", "يدوي")'],
+                            Yaris: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            RAV4: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            Civic: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")', '@T("Manuel", "Manual", "Механика", "يدوي")'],
+                            City: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            'CR-V': ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            Focus: ['@T("Manuel", "Manual", "Механика", "يدوي")', '@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            Mondeo: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")'],
+                            Kuga: ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")']
+                        }
+                    },
+                    {
+                        key: 'km',
+                        dependsOn: 'transmission',
+                        optionsByParent: {
+                            '@T("Otomatik", "Automatic", "Автомат", "أوتوماتик")': ['0-25K', '25-50K', '50-100K', '100K+'],
+                            '@T("Manuel", "Manual", "Механика", "يدوي")': ['0-25K', '25-50K', '50-100K', '100K+']
+                        }
+                    },
+                    {
+                        key: 'priceBand',
+                        dependsOn: 'km',
+                        optionsByParent: {
+                            '0-25K': ['@T("Ekonomik", "Budget", "Бюджет", "اقتصادي")', '@T("Orta", "Mid", "Средний", "متوسط")'],
+                            '25-50K': ['@T("Orta", "Mid", "Средний", "متوسط")', '@T("Yüksek", "High", "Высокий", "مرتفع")'],
+                            '50-100K': ['@T("Yüksek", "High", "Высокий", "مرتفع")', '@T("Premium", "Premium", "Премиум", "بريميум")'],
+                            '100K+': ['@T("Premium", "Premium", "Премиум", "بريميум")']
+                        }
+                    },
+                    {
+                        key: 'fuel',
+                        dependsOn: 'priceBand',
+                        optionsByParent: {
+                            '@T("Ekonomik", "Budget", "Бюджет", "اقتصادي")': ['@T("Benzin", "Petrol", "Бензин", "بنزين")', '@T("Dizel", "Diesel", "Дизель", "ديزل")'],
+                            '@T("Orta", "Mid", "Средний", "متوسط")': ['@T("Benzin", "Petrol", "Бензин", "بنزين")', '@T("Dizel", "Diesel", "Дизель", "ديزل")', '@T("Hibrit", "Hybrid", "Гибрид", "هجين")'],
+                            '@T("Yüksek", "High", "Высокий", "مرتفع")': ['@T("Benzin", "Petrol", "Бензин", "بنزين")', '@T("Dizel", "Diesel", "Дизель", "ديزل")', '@T("Hibrit", "Hybrid", "Гибрид", "هجين")', '@T("Elektrik", "Electric", "Электро", "كهربائي")'],
+                            '@T("Premium", "Premium", "Премиум", "بريميум")': ['@T("Benzin", "Petrol", "Бензин", "بنزين")', '@T("Hibrit", "Hybrid", "Гибрид", "هجين")', '@T("Elektrik", "Electric", "Электро", "كهربائي")']
+                        }
+                    },
+                    {
+                        key: 'bodyType',
+                        dependsOn: 'fuel',
+                        optionsByParent: {
+                            '@T("Benzin", "Petrol", "Бензин", "بنزين")': ['@T("Sedan", "Sedan", "Седан", "سيدان")', '@T("Hatchback", "Hatchback", "Хэтчбек", "هاتشباك")', '@T("Coupe", "Coupe", "Купе", "كوبيه")', '@T("SUV", "SUV", "SUV", "SUV")'],
+                            '@T("Dizel", "Diesel", "Дизель", "ديزل")': ['@T("Sedan", "Sedan", "Седан", "سيدان")', '@T("SUV", "SUV", "SUV", "SUV")', '@T("Ticari Araç", "Commercial Vehicle", "Коммерческий автомобиль", "مركبة تجارية")', '@T("Kamyonet", "Pickup Truck", "Пикап", "بيك أب")'],
+                            '@T("Hibrit", "Hybrid", "Гибрид", "هجين")': ['@T("SUV", "SUV", "SUV", "SUV")', '@T("Sedan", "Sedan", "Седан", "سيدان")', '@T("Wagon", "Wagon", "Универсал", "ستيشن")'],
+                            '@T("Elektrik", "Electric", "Электро", "كهربائي")': ['@T("SUV", "SUV", "SUV", "SUV")', '@T("Sedan", "Sedan", "Седан", "سيدان")', '@T("Coupe", "Coupe", "Купе", "كوبيه")']
+                        }
+                    }
+                ],
+                yacht: [
+                    { key: 'hullType', options: ['@T("Motor Yat", "Motor Yacht", "Моторная яхта", "يخت بمحرك")', '@T("Yelkenli", "Sailboat", "Парусная яхта", "مركب شراعي")', '@T("Katamaran", "Catamaran", "Катамаран", "كاتاماران")'] },
+                    { key: 'length', dependsOn: 'hullType', optionsByParent: { '@T("Motor Yat", "Motor Yacht", "Моторная яхта", "يخت بمحرك")': ['25-35 ft', '35-50 ft', '50+ ft'], '@T("Yelkenli", "Sailboat", "Парусная яхта", "مركب شراعي")': ['20-30 ft', '30-45 ft', '45+ ft'], '@T("Katamaran", "Catamaran", "Катамаран", "كاتاماران")': ['30-40 ft', '40-50 ft', '50+ ft'] } },
+                    { key: 'engineType', dependsOn: 'length', optionsByParent: { '25-35 ft': ['@T("Tek Motor", "Single Engine", "Один двигатель", "محرك واحد")'], '35-50 ft': ['@T("Çift Motor", "Twin Engine", "Два двигателя", "محركان")'], '50+ ft': ['@T("Çift Motor", "Twin Engine", "Два двигателя", "محركان")'], '20-30 ft': ['@T("İçten", "Inboard", "Встроенный", "داخلي")'], '30-45 ft': ['@T("İçten", "Inboard", "Встроенный", "داخلي")', '@T("Dıştan", "Outboard", "Подвесной", "خارجي")'], '45+ ft': ['@T("İçten", "Inboard", "Встроенный", "داخلي")'], '30-40 ft': ['@T("Çift Motor", "Twin Engine", "Два двигателя", "محركان")'], '40-50 ft': ['@T("Çift Motor", "Twin Engine", "Два двигателя", "محركان")'] } },
+                    { key: 'cabinCount', dependsOn: 'engineType', optionsByParent: { '@T("Tek Motor", "Single Engine", "Один двигатель", "محرك واحد")': ['1', '2'], '@T("Çift Motor", "Twin Engine", "Два двигателя", "محركان")': ['2', '3', '4'], '@T("İçten", "Inboard", "Встроенный", "داخلي")': ['1', '2', '3'], '@T("Dıştan", "Outboard", "Подвесной", "خارجي")': ['1', '2'] } },
+                    { key: 'berth', dependsOn: 'cabinCount', optionsByParent: { '1': ['2-4'], '2': ['4-6'], '3': ['6-8'], '4': ['8-10'] } }
+                ],
+                caravan: [
+                    { key: 'caravanType', options: ['@T("Çekme Karavan", "Tow Caravan", "Прицепной караван", "كرفان مقطور")', '@T("Motokaravan", "Motorhome", "Автодом", "منزل متنقل")', '@T("Tiny House", "Tiny House", "Мини-дом", "منزل صغير")'] },
+                    { key: 'bedCount', dependsOn: 'caravanType', optionsByParent: { '@T("Çekme Karavan", "Tow Caravan", "Прицепной караван", "كرفان مقطور")': ['2', '3', '4'], '@T("Motokaravan", "Motorhome", "Автодом", "منزل متنقل")': ['2', '4', '5'], '@T("Tiny House", "Tiny House", "Мини-дом", "منزل صغير")': ['2', '4'] } },
+                    { key: 'bathroom', dependsOn: 'bedCount', optionsByParent: { '2': ['@T("Yok", "None", "Нет", "لا يوجد")', '@T("Var", "Available", "Есть", "يوجد")'], '3': ['@T("Yok", "None", "Нет", "لا يوجد")', '@T("Var", "Available", "Есть", "يوجد")'], '4': ['@T("Var", "Available", "Есть", "يوجد")'], '5': ['@T("Var", "Available", "Есть", "يوجد")'] } },
+                    { key: 'heating', dependsOn: 'bathroom', optionsByParent: { '@T("Yok", "None", "Нет", "لا يوجد")': ['@T("Portatif", "Portable", "Портативное", "محمول")'], '@T("Var", "Available", "Есть", "يوجد")': ['@T("Webasto", "Webasto", "Webasto", "ويباستو")', '@T("Elektrikli", "Electric", "Электрическое", "كهربائي")'] } },
+                    { key: 'license', dependsOn: 'heating', optionsByParent: { '@T("Portatif", "Portable", "Портативное", "محمول")': ['@T("Ruhsatlı", "Licensed", "С лицензией", "مرخص")'], '@T("Webasto", "Webasto", "Webasto", "ويباستو")': ['@T("Ruhsatlı", "Licensed", "С лицензией", "مرخص")', '@T("Muayeneli", "Inspected", "С техосмотром", "مفحوص")'], '@T("Elektrikli", "Electric", "Электрическое", "كهربائي")': ['@T("Muayeneli", "Inspected", "С техосмотром", "مفحوص")'] } } 
+                ],
+                secondhand: [
+                    { key: 'productGroup', options: ['@T("Mobilya", "Furniture", "Мебель", "أثاث")', '@T("Spor", "Sports", "Спорт", "رياضة")', '@T("Ev Eşyası", "Home Goods", "Товары для дома", "مستلزمات منزلية")'] },
+                    { key: 'condition', dependsOn: 'productGroup', optionsByParent: { '@T("Mobilya", "Furniture", "Мебель", "أثاث")': ['@T("Yeni Gibi", "Like New", "Как новый", "مثل الجديد")', '@T("İyi", "Good", "Хорошее", "جيد")'], '@T("Spor", "Sports", "Спорт", "رياضة")': ['@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")', '@T("İyi", "Good", "Хорошее", "جيد")'], '@T("Ev Eşyası", "Home Goods", "Товары для дома", "مستلزمات منزلية")': ['@T("Kutulu", "Boxed", "В коробке", "مع العلبة")', '@T("İyi", "Good", "Хорошее", "جيد")'] } },
+                    { key: 'usageLevel', dependsOn: 'condition', optionsByParent: { '@T("Yeni Gibi", "Like New", "Как новый", "مثل الجديد")': ['@T("0-6 Ay", "0-6 Months", "0-6 месяцев", "0-6 أشهر")', '@T("6-12 Ay", "6-12 Months", "6-12 месяцев", "6-12 شهرًا")'], '@T("İyi", "Good", "Хорошее", "جيد")': ['@T("1 Yıl", "1 Year", "1 год", "سنة")', '@T("2+ Yıl", "2+ Years", "2+ года", "سنتان+")'], '@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")': ['@T("0-6 Ay", "0-6 Months", "0-6 месяцев", "0-6 أشهر")'], '@T("Kutulu", "Boxed", "В коробке", "مع العلبة")': ['@T("Sıfır Ayarında", "Mint", "Идеал", "كالجديد")'] } },
+                    { key: 'delivery', dependsOn: 'usageLevel', optionsByParent: { '@T("0-6 Ay", "0-6 Months", "0-6 месяцев", "0-6 أشهر")': ['@T("Kargo", "Shipping", "Доставка", "شحن")', '@T("Elden", "Pickup", "Самовывоз", "استلام")'], '@T("6-12 Ay", "6-12 Months", "6-12 месяцев", "6-12 شهرًا")': ['@T("Kargo", "Shipping", "Доставка", "شحن")', '@T("Elden", "Pickup", "Самовывоз", "استلام")'], '@T("1 Yıl", "1 Year", "1 год", "سنة")': ['@T("Elden", "Pickup", "Самовывоз", "استلام")'], '@T("2+ Yıl", "2+ Years", "2+ года", "سنتان+")': ['@T("Elden", "Pickup", "Самовывоз", "استلام")'], '@T("Sıfır Ayarında", "Mint", "Идеал", "كالجديد")': ['@T("Kargo", "Shipping", "Доставка", "شحن")'] } },
+                    { key: 'warranty', dependsOn: 'delivery', optionsByParent: { '@T("Kargo", "Shipping", "Доставка", "شحن")': ['@T("İade Var", "Return Available", "Возврат есть", "يوجد إرجاع")', '@T("Garanti Yok", "No Warranty", "Без гарантии", "بدون ضمان")'], '@T("Elden", "Pickup", "Самовывоз", "استلام")': ['@T("Kontrol Edilebilir", "Can Be Checked", "Можно проверить", "يمكن الفحص")', '@T("Garanti Yok", "No Warranty", "Без гарантии", "بدون ضمان")'] } }
+                ],
+                phone: [
+                    { key: 'brand', options: ['Apple', 'Samsung', 'Xiaomi', 'Huawei'] },
+                    { key: 'model', dependsOn: 'brand', optionsByParent: { Apple: ['iPhone 13', 'iPhone 14', 'iPhone 15'], Samsung: ['S22', 'S23', 'A54'], Xiaomi: ['Redmi Note 12', '13T', 'Poco X6'], Huawei: ['P50', 'Nova 11', 'Mate 50'] } },
+                    { key: 'storage', dependsOn: 'model', optionsByParent: { 'iPhone 13': ['128 GB', '256 GB'], 'iPhone 14': ['128 GB', '256 GB'], 'iPhone 15': ['128 GB', '256 GB', '512 GB'], S22: ['128 GB', '256 GB'], S23: ['256 GB', '512 GB'], A54: ['128 GB', '256 GB'], 'Redmi Note 12': ['128 GB'], '13T': ['256 GB'], 'Poco X6': ['256 GB'], P50: ['256 GB'], 'Nova 11': ['256 GB'], 'Mate 50': ['256 GB', '512 GB'] } },
+                    { key: 'battery', dependsOn: 'storage', optionsByParent: { '128 GB': ['@T("85%+", "85%+", "85%+", "+85%")', '@T("95%+", "95%+", "95%+", "+95%")'], '256 GB': ['@T("90%+", "90%+", "90%+", "+90%")', '@T("95%+", "95%+", "95%+", "+95%")'], '512 GB': ['@T("95%+", "95%+", "95%+", "+95%")'] } },
+                    { key: 'color', dependsOn: 'battery', optionsByParent: { '@T("85%+", "85%+", "85%+", "+85%")': ['@T("Siyah", "Black", "Черный", "أسود")', '@T("Mavi", "Blue", "Синий", "أزرق")'], '@T("90%+", "90%+", "90%+", "+90%")': ['@T("Siyah", "Black", "Черный", "أسود")', '@T("Beyaz", "White", "Белый", "أبيض")'], '@T("95%+", "95%+", "95%+", "+95%")': ['@T("Titanyum", "Titanium", "Титан", "تيتانيوم")', '@T("Beyaz", "White", "Белый", "أبيض")'] } }
+                ],
+                computer: [
+                    { key: 'deviceType', options: ['@T("Laptop", "Laptop", "Ноутбук", "حاسوب محمول")', '@T("Masaüstü", "Desktop", "Настольный", "مكتبي")', '@T("Gaming", "Gaming", "Игровой", "ألعاب")'] },
+                    { key: 'processor', dependsOn: 'deviceType', optionsByParent: { '@T("Laptop", "Laptop", "Ноутбук", "حاسوب محمول")': ['Intel i5', 'Intel i7', 'Apple M1'], '@T("Masaüstü", "Desktop", "Настольный", "مكتبي")': ['Intel i5', 'Ryzen 5', 'Ryzen 7'], '@T("Gaming", "Gaming", "Игровой", "ألعاب")': ['Intel i7', 'Ryzen 7', 'Ryzen 9'] } },
+                    { key: 'ram', dependsOn: 'processor', optionsByParent: { 'Intel i5': ['8 GB', '16 GB'], 'Intel i7': ['16 GB', '32 GB'], 'Apple M1': ['8 GB', '16 GB'], 'Ryzen 5': ['16 GB'], 'Ryzen 7': ['16 GB', '32 GB'], 'Ryzen 9': ['32 GB', '64 GB'] } },
+                    { key: 'storage', dependsOn: 'ram', optionsByParent: { '8 GB': ['256 SSD', '512 SSD'], '16 GB': ['512 SSD', '1 TB SSD'], '32 GB': ['1 TB SSD', '2 TB SSD'], '64 GB': ['2 TB SSD'] } },
+                    { key: 'graphics', dependsOn: 'storage', optionsByParent: { '256 SSD': ['@T("Paylaşımlı", "Integrated", "Встроенная", "مدمجة")'], '512 SSD': ['@T("Paylaşımlı", "Integrated", "Встроенная", "مدمجة")', 'RTX 3050'], '1 TB SSD': ['RTX 3050', 'RTX 4060'], '2 TB SSD': ['RTX 4060', 'RTX 4070'] } }
+                ],
+                watch: [
+                    { key: 'tier', options: ['@T("Klasik", "Classic", "Классика", "كلاسيكي")', '@T("Lüks", "Luxury", "Люкс", "فاخر")', '@T("Akıllı", "Smart", "Умные", "ذكي")'] },
+                    { key: 'mechanism', dependsOn: 'tier', optionsByParent: { '@T("Klasik", "Classic", "Классика", "كلاسيكي")': ['@T("Quartz", "Quartz", "Кварц", "كوارتز")', '@T("Mekanik", "Mechanical", "Механика", "ميكانيكي")'], '@T("Lüks", "Luxury", "Люкс", "فاخر")': ['@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")', '@T("Mekanik", "Mechanical", "Механика", "ميكانيكي")'], '@T("Akıllı", "Smart", "Умные", "ذكي")': ['@T("GPS", "GPS", "GPS", "GPS")', '@T("eSIM", "eSIM", "eSIM", "eSIM")'] } },
+                    { key: 'caseSize', dependsOn: 'mechanism', optionsByParent: { '@T("Quartz", "Quartz", "Кварц", "كوارتز")': ['38 mm', '40 mm'], '@T("Mekanik", "Mechanical", "Механика", "ميكانيكي")': ['40 mm', '42 mm'], '@T("Otomatik", "Automatic", "Автомат", "أوتوماتيك")': ['42 mm', '44 mm'], '@T("GPS", "GPS", "GPS", "GPS")': ['40 mm', '44 mm'], '@T("eSIM", "eSIM", "eSIM", "eSIM")': ['44 mm', '45 mm'] } },
+                    { key: 'strap', dependsOn: 'caseSize', optionsByParent: { '38 mm': ['@T("Deri", "Leather", "Кожа", "جلد")'], '40 mm': ['@T("Deri", "Leather", "Кожа", "جلد")', '@T("Çelik", "Steel", "Сталь", "فولاذ")'], '42 mm': ['@T("Çelik", "Steel", "Сталь", "فولاذ")'], '44 mm': ['@T("Silikon", "Silicone", "Силикон", "سيليكون")', '@T("Çelik", "Steel", "Сталь", "فولاذ")'], '45 mm': ['@T("Silikon", "Silicone", "Силикон", "سيليكون")'] } },
+                    { key: 'certificate', dependsOn: 'strap', optionsByParent: { '@T("Deri", "Leather", "Кожа", "جلد")': ['@T("Kutusuz", "No Box", "Без коробки", "بدون علبة")', '@T("Sertifikalı", "Certified", "С сертификатом", "مع شهادة")'], '@T("Çelik", "Steel", "Сталь", "فولاذ")': ['@T("Sertifikalı", "Certified", "С сертификатом", "مع شهادة")'], '@T("Silikon", "Silicone", "Силикон", "سيليكون")': ['@T("Garanti Var", "Warranty", "Гарантия", "ضمان")'] } }
+                ],
+                jewelry: [
+                    { key: 'jewelryType', options: ['@T("Yüzük", "Ring", "Кольцо", "خاتم")', '@T("Kolye", "Necklace", "Ожерелье", "قلادة")', '@T("Bileklik", "Bracelet", "Браслет", "سوار")'] },
+                    { key: 'material', dependsOn: 'jewelryType', optionsByParent: { '@T("Yüzük", "Ring", "Кольцо", "خاتم")': ['14 Ayar Altın', '18 Ayar Altın', 'Gümüş'], '@T("Kolye", "Necklace", "Ожерелье", "قلادة")': ['14 Ayar Altın', 'Gümüş'], '@T("Bileklik", "Bracelet", "Браслет", "سوار")': ['14 Ayar Altın', '22 Ayar Altın', 'Gümüş'] } },
+                    { key: 'carat', dependsOn: 'material', optionsByParent: { '14 Ayar Altın': ['0.10 ct', '0.30 ct', '0.50 ct'], '18 Ayar Altın': ['0.30 ct', '0.50 ct', '1.00 ct'], '22 Ayar Altın': ['0.30 ct', '0.50 ct'], Gümüş: ['@T("Taşsız", "No Stone", "Без камня", "بدون حجر")', '0.10 ct'] } },
+                    { key: 'stone', dependsOn: 'carat', optionsByParent: { '0.10 ct': ['@T("Pırlanta", "Diamond", "Бриллиант", "ألماس")', '@T("Zirkon", "Zircon", "Циркон", "زركون")'], '0.30 ct': ['@T("Pırlanta", "Diamond", "Бриллиант", "ألماس")', '@T("Zümrüt", "Emerald", "Изумруд", "زمرد")'], '0.50 ct': ['@T("Pırlanta", "Diamond", "Бриллиант", "ألماس")'], '1.00 ct': ['@T("Pırlanta", "Diamond", "Бриллиант", "ألماس")'], '@T("Taşsız", "No Stone", "Без камня", "بدون حجر")': ['@T("Sade", "Plain", "Простой", "سادة")'] } },
+                    { key: 'certificate', dependsOn: 'stone', optionsByParent: { '@T("Pırlanta", "Diamond", "Бриллиант", "ألماس")': ['@T("GIA", "GIA", "GIA", "GIA")', '@T("HRD", "HRD", "HRD", "HRD")'], '@T("Zirkon", "Zircon", "Циркон", "زركون")': ['@T("Sertifikasız", "No Certificate", "Без сертификата", "بدون شهادة")'], '@T("Zümrüt", "Emerald", "Изумруд", "زمرد")': ['@T("Sertifikalı", "Certified", "С сертификатом", "مع شهادة")'], '@T("Sade", "Plain", "Простой", "سادة")': ['@T("Faturalı", "Invoice Included", "С чеком", "مع فاتورة")'] } }
+                ],
+                electronics: [
+                    { key: 'productType', options: ['@T("TV", "TV", "ТВ", "تلفاز")', '@T("Ses Sistemi", "Audio", "Аудио", "صوت")', '@T("Kamera", "Camera", "Камера", "كاميرا")'] },
+                    { key: 'condition', dependsOn: 'productType', optionsByParent: { '@T("TV", "TV", "ТВ", "تلفاز")': ['@T("Sıfır", "Brand New", "Новый", "جديد")', '@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")'], '@T("Ses Sistemi", "Audio", "Аудио", "صوت")': ['@T("Kutulu", "Boxed", "В коробке", "مع العلبة")', '@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")'], '@T("Kamera", "Camera", "Камера", "كاميرا")': ['@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")', '@T("Profesyonel Kullanım", "Pro Use", "Проф. использование", "استخدام احترافي")'] } },
+                    { key: 'brand', dependsOn: 'condition', optionsByParent: { '@T("Sıfır", "Brand New", "Новый", "جديد")': ['Samsung', 'LG', 'Sony'], '@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")': ['Sony', 'Canon', 'JBL'], '@T("Kutulu", "Boxed", "В коробке", "مع العلبة")': ['JBL', 'Bose', 'Sony'], '@T("Profesyonel Kullanım", "Pro Use", "Проф. использование", "استخدام احترافي")': ['Canon', 'Sony'] } },
+                    { key: 'warranty', dependsOn: 'brand', optionsByParent: { Samsung: ['@T("24 Ay", "24 Months", "24 месяца", "24 شهرًا")'], LG: ['@T("24 Ay", "24 Months", "24 месяца", "24 شهرًا")'], Sony: ['@T("12 Ay", "12 Months", "12 месяцев", "12 شهرًا")', '@T("Yok", "None", "Нет", "لا يوجد")'], Canon: ['@T("12 Ay", "12 Months", "12 месяцев", "12 شهرًا")'], JBL: ['@T("6 Ay", "6 Months", "6 месяцев", "6 أشهر")'], Bose: ['@T("6 Ay", "6 Months", "6 месяцев", "6 أشهر")'] } },
+                    { key: 'shipment', dependsOn: 'warranty', optionsByParent: { '@T("24 Ay", "24 Months", "24 месяца", "24 شهرًا")': ['@T("Aynı Gün", "Same Day", "В тот же день", "نفس اليوم")', '@T("1-3 Gün", "1-3 Days", "1-3 дня", "1-3 أيام")'], '@T("12 Ay", "12 Months", "12 месяцев", "12 شهرًا")': ['@T("1-3 Gün", "1-3 Days", "1-3 дня", "1-3 أيام")'], '@T("6 Ay", "6 Months", "6 месяцев", "6 أشهر")': ['@T("1-3 Gün", "1-3 Days", "1-3 дня", "1-3 أيام")'], '@T("Yok", "None", "Нет", "لا يوجد")': ['@T("Elden Teslim", "Pickup", "Самовывоз", "استلام")'] } }
+                ],
+                equipment: [
+                    { key: 'machineType', options: ['@T("Forklift", "Forklift", "Погрузчик", "رافعة شوكية")', '@T("Ekskavatör", "Excavator", "Экскаватор", "حفارة")', '@T("Jeneratör", "Generator", "Генератор", "مولد")'] },
+                    { key: 'fuel', dependsOn: 'machineType', optionsByParent: { '@T("Forklift", "Forklift", "Погрузчик", "رافعة شوكية")': ['@T("Elektrik", "Electric", "Электро", "كهربائي")', '@T("Dizel", "Diesel", "Дизель", "ديزل")'], '@T("Ekskavatör", "Excavator", "Экскаватор", "حفارة")': ['@T("Dizel", "Diesel", "Дизель", "ديزل")'], '@T("Jeneratör", "Generator", "Генератор", "مولد")': ['@T("Dizel", "Diesel", "Дизель", "ديزل")', '@T("Benzin", "Petrol", "Бензин", "بنزين")'] } },
+                    { key: 'capacity', dependsOn: 'fuel', optionsByParent: { '@T("Elektrik", "Electric", "Электро", "كهربائي")': ['1.5 Ton', '2 Ton'], '@T("Dizel", "Diesel", "Дизель", "ديزل")': ['2 Ton', '3.5 Ton', '5 Ton'], '@T("Benzin", "Petrol", "Бензин", "بنزين")': ['5 kVA', '10 kVA', '20 kVA'] } },
+                    { key: 'usageHours', dependsOn: 'capacity', optionsByParent: { '1.5 Ton': ['0-1000', '1000-3000'], '2 Ton': ['0-1000', '1000-3000', '3000+'], '3.5 Ton': ['1000-3000', '3000+'], '5 Ton': ['3000+'], '5 kVA': ['0-500'], '10 kVA': ['500-1500'], '20 kVA': ['1500+'] } },
+                    { key: 'document', dependsOn: 'usageHours', optionsByParent: { '0-1000': ['@T("Bakım Kayıtlı", "Service Records", "Сервисная история", "سجل صيانة")'], '1000-3000': ['@T("Bakım Kayıtlı", "Service Records", "Сервисная история", "سجل صيانة")', '@T("Faturalı", "Invoiced", "С счетом", "مع فاتورة")'], '3000+': ['@T("Faturalı", "Invoiced", "С счетом", "مع فاتورة")'], '0-500': ['@T("Garanti Var", "Warranty", "Гарантия", "ضمان")'], '500-1500': ['@T("Bakım Kayıtlı", "Service Records", "Сервисная история", "سجل صيانة")'], '1500+': ['@T("Faturalı", "Invoiced", "С счетом", "مع فاتورة")'] } }
+                ],
+                home: [
+                    { key: 'roomGroup', options: ['@T("Salon", "Living Room", "Гостиная", "غرفة معيشة")', '@T("Yatak Odası", "Bedroom", "Спальня", "غرفة نوم")', '@T("Mutfak", "Kitchen", "Кухня", "مطبخ")'] },
+                    { key: 'material', dependsOn: 'roomGroup', optionsByParent: { '@T("Salon", "Living Room", "Гостиная", "غرفة معيشة")': ['@T("Ahşap", "Wood", "Дерево", "خشب")', '@T("Metal", "Metal", "Металл", "معدن")'], '@T("Yatak Odası", "Bedroom", "Спальня", "غرفة نوم")': ['@T("Ahşap", "Wood", "Дерево", "خشب")', '@T("Lake", "Lacquer", "Лак", "لاكيه")'], '@T("Mutfak", "Kitchen", "Кухня", "مطبخ")': ['@T("MDF", "MDF", "MDF", "MDF")', '@T("Lake", "Lacquer", "Лак", "لاكيه")'] } },
+                    { key: 'style', dependsOn: 'material', optionsByParent: { '@T("Ahşap", "Wood", "Дерево", "خشب")': ['@T("Modern", "Modern", "Современный", "حديث")', '@T("Rustik", "Rustic", "Рустик", "ريفي")'], '@T("Metal", "Metal", "Металл", "معدن")': ['@T("Endüstriyel", "Industrial", "Индустриальный", "صناعي")'], '@T("Lake", "Lacquer", "Лак", "لاكيه")': ['@T("Modern", "Modern", "Современный", "حديث")', '@T("Lüks", "Luxury", "Люкс", "فاخر")'], '@T("MDF", "MDF", "MDF", "MDF")': ['@T("Minimal", "Minimal", "Минимализм", "بسيط")'] } },
+                    { key: 'color', dependsOn: 'style', optionsByParent: { '@T("Modern", "Modern", "Современный", "حديث")': ['@T("Beyaz", "White", "Белый", "أبيض")', '@T("Meşe", "Oak", "Дуб", "بلوط")'], '@T("Rustik", "Rustic", "Рустик", "ريفي")': ['@T("Ceviz", "Walnut", "Орех", "جوز")'], '@T("Endüstriyel", "Industrial", "Индустриальный", "صناعي")': ['@T("Siyah", "Black", "Черный", "أسود")', '@T("Antrasit", "Anthracite", "Антрацит", "أنثراسيت")'], '@T("Lüks", "Luxury", "Люкс", "فاخر")': ['@T("Krem", "Cream", "Кремовый", "كريمي")'], '@T("Minimal", "Minimal", "Минимализм", "بسيط")': ['@T("Beyaz", "White", "Белый", "أبيض")'] } },
+                    { key: 'condition', dependsOn: 'color', optionsByParent: { '@T("Beyaz", "White", "Белый", "أبيض")': ['@T("Yeni", "New", "Новый", "جديد")', '@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")'], '@T("Meşe", "Oak", "Дуб", "بلوط")': ['@T("Az Kullanılmış", "Lightly Used", "Мало использован", "استعمال خفيف")'], '@T("Ceviz", "Walnut", "Орех", "جوز")': ['@T("İyi", "Good", "Хорошее", "جيد")'], '@T("Siyah", "Black", "Черный", "أسود")': ['@T("Yeni", "New", "Новый", "جديد")'], '@T("Antrasit", "Anthracite", "Антрацит", "أنثراسيت")': ['@T("Yeni", "New", "Новый", "جديد")'], '@T("Krem", "Cream", "Кремовый", "كريمي")': ['@T("Yeni", "New", "Новый", "جديد")'] } }
+                ],
+                fashion: [
+                    { key: 'gender', options: ['@T("Kadın", "Women", "Женский", "نساء")', '@T("Erkek", "Men", "Мужской", "رجال")', '@T("Unisex", "Unisex", "Унисекс", "للجنسين")'] },
+                    { key: 'productType', dependsOn: 'gender', optionsByParent: { '@T("Kadın", "Women", "Женский", "نساء")': ['@T("Elbise", "Dress", "Платье", "فستان")', '@T("Ayakkabı", "Shoes", "Обувь", "أحذية")'], '@T("Erkek", "Men", "Мужской", "رجال")': ['@T("Ceket", "Jacket", "Куртка", "سترة")', '@T("Ayakkabı", "Shoes", "Обувь", "أحذية")'], '@T("Unisex", "Unisex", "Унисекс", "للجنسين")': ['@T("Sneaker", "Sneaker", "Кроссовки", "سنيكر")', '@T("Tişört", "T-Shirt", "Футболка", "تيشيرت")'] } },
+                    { key: 'size', dependsOn: 'productType', optionsByParent: { '@T("Elbise", "Dress", "Платье", "فستان")': ['S', 'M', 'L'], '@T("Ayakkabı", "Shoes", "Обувь", "أحذية")': ['37', '38', '39', '40', '41', '42', '43'], '@T("Ceket", "Jacket", "Куртка", "سترة")': ['M', 'L', 'XL'], '@T("Sneaker", "Sneaker", "Кроссовки", "سنيكر")': ['39', '40', '41', '42', '43'], '@T("Tişört", "T-Shirt", "Футболка", "تيشيرت")': ['S', 'M', 'L', 'XL'] } },
+                    { key: 'color', dependsOn: 'size', optionsByParent: { S: ['@T("Siyah", "Black", "Черный", "أسود")', '@T("Beyaz", "White", "Белый", "أبيض")'], M: ['@T("Siyah", "Black", "Черный", "أسود")', '@T("Mavi", "Blue", "Синий", "أزرق")'], L: ['@T("Beyaz", "White", "Белый", "أبيض")', '@T("Bej", "Beige", "Бежевый", "بيج")'], XL: ['@T("Lacivert", "Navy", "Темно-синий", "كحلي")'], '37': ['@T("Beyaz", "White", "Белый", "أبيض")'], '38': ['@T("Beyaz", "White", "Белый", "أبيض")'], '39': ['@T("Siyah", "Black", "Черный", "أسود")'], '40': ['@T("Siyah", "Black", "Черный", "أسود")'], '41': ['@T("Siyah", "Black", "Черный", "أسود")'], '42': ['@T("Bej", "Beige", "Бежевый", "بيج")'], '43': ['@T("Lacivert", "Navy", "Темно-синий", "كحلي")'] } },
+                    { key: 'condition', dependsOn: 'color', optionsByParent: { '@T("Siyah", "Black", "Черный", "أسود")': ['@T("Yeni", "New", "Новый", "جديد")', '@T("Outlet", "Outlet", "Аутлет", "أوتليت")'], '@T("Beyaz", "White", "Белый", "أبيض")': ['@T("Yeni", "New", "Новый", "جديد")'], '@T("Mavi", "Blue", "Синий", "أزرق")': ['@T("Yeni", "New", "Новый", "جديد")'], '@T("Bej", "Beige", "Бежевый", "بيج")': ['@T("Yeni", "New", "Новый", "جديد")', '@T("Outlet", "Outlet", "Аутлет", "أوتليت")'], '@T("Lacivert", "Navy", "Темно-синий", "كحلي")': ['@T("Yeni", "New", "Новый", "جديد")'] } }
+                ],
+                services: [
+                    { key: 'serviceType', options: ['@T("Temizlik", "Cleaning", "Уборка", "تنظيف")', '@T("Teknik Servis", "Technical Service", "Техсервис", "خدمة فنية")', '@T("Dijital Pazarlama", "Digital Marketing", "Цифровой маркетинг", "تسويق رقمي")'] },
+                    { key: 'deliveryMode', dependsOn: 'serviceType', optionsByParent: { '@T("Temizlik", "Cleaning", "Уборка", "تنظيف")': ['@T("Yerinde", "On-site", "На месте", "ميداني")'], '@T("Teknik Servis", "Technical Service", "Техсервис", "خدمة فنية")': ['@T("Yerinde", "On-site", "На месте", "ميداني")', '@T("Serviste", "Workshop", "В сервисе", "في الورشة")'], '@T("Dijital Pazarlama", "Digital Marketing", "Цифровой маркетинг", "تسويق رقمي")': ['@T("Online", "Online", "Онлайн", "أونلاين")', '@T("Hibrit", "Hybrid", "Гибрид", "هجين")'] } },
+                    { key: 'packageLevel', dependsOn: 'deliveryMode', optionsByParent: { '@T("Yerinde", "On-site", "На месте", "ميداني")': ['@T("Standart", "Standard", "Стандарт", "قياسي")', '@T("Premium", "Premium", "Премиум", "بريميوم")'], '@T("Serviste", "Workshop", "В сервисе", "في الورشة")': ['@T("Standart", "Standard", "Стандарт", "قياسي")'], '@T("Online", "Online", "Онлайн", "أونلاين")': ['@T("Başlangıç", "Starter", "Старт", "مبتدئ")', '@T("Pro", "Pro", "Про", "احترافي")'], '@T("Hibrit", "Hybrid", "Гибрид", "هجين")': ['@T("Pro", "Pro", "Про", "احترافي")', '@T("Kurumsal", "Enterprise", "Корпоративный", "مؤسسي")'] } },
+                    { key: 'responseTime', dependsOn: 'packageLevel', optionsByParent: { '@T("Standart", "Standard", "Стандарт", "قياسي")': ['@T("24 Saat", "24 Hours", "24 часа", "24 ساعة")'], '@T("Premium", "Premium", "Премиум", "بريميوم")': ['@T("Aynı Gün", "Same Day", "В тот же день", "نفس اليوم")'], '@T("Başlangıç", "Starter", "Старт", "مبتدئ")': ['@T("48 Saat", "48 Hours", "48 часов", "48 ساعة")'], '@T("Pro", "Pro", "Про", "احترافي")': ['@T("24 Saat", "24 Hours", "24 часа", "24 ساعة")'], '@T("Kurumsal", "Enterprise", "Корпоративный", "مؤسسي")': ['@T("2 Saat", "2 Hours", "2 часа", "ساعتان")'] } },
+                    { key: 'contract', dependsOn: 'responseTime', optionsByParent: { '@T("48 Saat", "48 Hours", "48 часов", "48 ساعة")': ['@T("Tek Sefer", "One-time", "Разово", "مرة واحدة")'], '@T("24 Saat", "24 Hours", "24 часа", "24 ساعة")': ['@T("Aylık", "Monthly", "Ежемесячно", "شهري")', '@T("Tek Sefer", "One-time", "Разово", "مرة واحدة")'], '@T("Aynı Gün", "Same Day", "В тот же день", "نفس اليوم")': ['@T("Aylık", "Monthly", "Ежемесячно", "شهري")'], '@T("2 Saat", "2 Hours", "2 часа", "ساعتان")': ['@T("Yıllık", "Yearly", "Ежегодно", "سنوي")'] } }
+                ],
+                default: [
+                    { key: 'filter1', options: ['@T("Standart", "Standard", "Стандарт", "قياسي")', '@T("Premium", "Premium", "Премиум", "بريميوم")', '@T("Özel", "Custom", "Особый", "مخصص")'] },
+                    { key: 'filter2', dependsOn: 'filter1', optionsByParent: { '@T("Standart", "Standard", "Стандарт", "قياسي")': ['@T("Seçenek 1", "Option 1", "Вариант 1", "الخيار 1")', '@T("Seçenek 2", "Option 2", "Вариант 2", "الخيار 2")'], '@T("Premium", "Premium", "Премиум", "بريميوم")': ['@T("Seçenek 3", "Option 3", "Вариант 3", "الخيار 3")', '@T("Seçenek 4", "Option 4", "Вариант 4", "الخيار 4")'], '@T("Özel", "Custom", "Особый", "مخصص")': ['@T("Seçenek 5", "Option 5", "Вариант 5", "الخيار 5")'] } },
+                    { key: 'filter3', dependsOn: 'filter2', optionsByParent: { '@T("Seçenek 1", "Option 1", "Вариант 1", "الخيار 1")': ['1', '2'], '@T("Seçenek 2", "Option 2", "Вариант 2", "الخيار 2")': ['2', '3'], '@T("Seçenek 3", "Option 3", "Вариант 3", "الخيار 3")': ['3', '4'], '@T("Seçenek 4", "Option 4", "Вариант 4", "الخيار 4")': ['4', '5'], '@T("Seçenek 5", "Option 5", "Вариант 5", "الخيار 5")': ['5'] } },
+                    { key: 'filter4', dependsOn: 'filter3', optionsByParent: { '1': ['A'], '2': ['A', 'B'], '3': ['B', 'C'], '4': ['C', 'D'], '5': ['D'] } },
+                    { key: 'filter5', dependsOn: 'filter4', optionsByParent: { A: ['@T("Var", "Yes", "Есть", "متوفر")'], B: ['@T("Var", "Yes", "Есть", "متوفر")', '@T("Yok", "No", "Нет", "غير متوفر")'], C: ['@T("Yok", "No", "Нет", "غير متوفر")'], D: ['@T("Sınırlı", "Limited", "Ограничено", "محدود")'] } }
+                ]
+            };
+
+            // hide the main price selector from the primary row (moved to subfilters)
+            if (priceRangeSelect) {
+                const parent = priceRangeSelect.closest('.search-panel__main-field');
+                if (parent) parent.style.display = 'none';
+            }
+
+            function normalizeCategoryKey(categoryKey) {
+                const normalized = (categoryKey || '').toLowerCase();
+                if (normalized === 'estate' || normalized === 'emlak') return 'realestate';
+                if (normalized === 'furniture' || normalized === 'mobilya') return 'home';
+                if (normalized === 'other' || normalized === 'diger') return 'secondhand';
+                return normalized;
+            }
+
+            const categoryFilterLabels = {
+                realestate: {
+                    subCategory: 'Emlak Tipi',
+                    propertyType: 'Emlak Tipi',
+                    roomCount: 'Oda Sayısı',
+                    area: 'Toplam Alan',
+                    heating: 'Isıtma',
+                    furnished: 'Eşya Durumu',
+                    zoning: 'İmar Durumu',
+                    parcelArea: 'Parsel Alanı',
+                    deed: 'Tapu Durumu',
+                    infrastructure: 'Altyapı',
+                    slope: 'Eğim'
+                },
+                vehicle: {
+                    subCategory: 'Vasıta Tipi',
+                    brand: 'Marka',
+                    model: 'Model',
+                    year: 'Yıl',
+                    transmission: 'Şanzıman',
+                    km: 'Km',
+                    priceRange: 'Fiyat Aralığı',
+                    budgetBand: 'Bütçe',
+                    deliverySpeed: 'Teslim Hızı',
+                    fuel: 'Yakıt',
+                    priceBand: 'Fiyat',
+                    bodyType: 'Kasa Tipi'
+                },
+                electronics: {
+                    subCategory: 'Elektronik Türü',
+                    brand: 'Marka',
+                    model: 'Model',
+                    condition: 'Cihaz Durumu',
+                    warranty: 'Garanti / Fatura',
+                    serial: 'IMEI / Seri No',
+                    usage: 'Kullanım Süresi'
+                },
+                home: {
+                    subCategory: 'Eşya Türü',
+                    brand: 'Marka / Üretici',
+                    model: 'Ürün / Takım Adı',
+                    condition: 'Durum',
+                    warranty: 'Teslimat / Kurulum',
+                    serial: 'Ölçü / Boyut',
+                    usage: 'Kullanım Süresi'
+                },
+                services: {
+                    subCategory: 'Hizmet Türü',
+                    brand: 'Firma / Uzman Adı',
+                    model: 'Paket / Hizmet Adı',
+                    warranty: 'Uygunluk / Çalışma Saatleri',
+                    usage: 'Tahmini Hizmet Süresi'
+                },
+                tutoring: {
+                    subCategory: 'Ders Alanı',
+                    brand: 'Eğitmen / Kurum Adı',
+                    model: 'Ders / Program Adı',
+                    warranty: 'Uygunluk / Ders Planı',
+                    usage: 'Ders Süresi / Program Uzunluğu'
+                },
+                jobs: {
+                    subCategory: 'Pozisyon Türü',
+                    brand: 'Şirket / İşveren Adı',
+                    model: 'Pozisyon / Rol Adı',
+                    warranty: 'Çalışma Düzeni / Vardiya'
+                },
+                helper: {
+                    subCategory: 'Yardımcı Türü',
+                    brand: 'Aile / İşveren Adı',
+                    model: 'Aranan Destek Türü',
+                    warranty: 'Çalışma Saatleri / Konaklama',
+                    usage: 'İhtiyaç Süresi'
+                },
+                secondhand: {
+                    subCategory: 'Ürün Grubu',
+                    productGroup: 'Ürün Grubu',
+                    condition: 'Durum',
+                    usageLevel: 'Kullanım Süresi',
+                    delivery: 'Teslimat',
+                    warranty: 'Garanti / Ek Bilgi'
+                },
+                pets: {
+                    subCategory: 'Hayvan Türü',
+                    brand: 'Cins / Irk',
+                    model: 'Detay',
+                    condition: 'Sağlık Durumu',
+                    warranty: 'Sahiplendirme / Teslim',
+                    usage: 'Yaş / Bakım'
+                },
+                parts: {
+                    subCategory: 'Parça Türü',
+                    brand: 'Marka / Üretici',
+                    model: 'Parça / Set Adı',
+                    condition: 'Durum',
+                    warranty: 'Uyumluluk / Not',
+                    serial: 'Parça No / Kod',
+                    usage: 'Kullanım Süresi'
+                },
+                default: {
+                    subCategory: 'Alt Kategori',
+                    brand: 'Marka',
+                    model: 'Model',
+                    priceRange: 'Fiyat Aralığı',
+                    budgetBand: 'Bütçe',
+                    deliverySpeed: 'Teslim Hızı',
+                    deliveryMode: 'Teslim Biçimi',
+                    serviceType: 'Hizmet Türü',
+                    packageLevel: 'Paket Seviyesi',
+                    responseTime: 'Yanıt Süresi',
+                    contract: 'Sözleşme'
+                }
+            };
+
+            // Hide sort controls when listing type is adoption (Sahiplendirme)
+            function toggleSortVisibility() {
+                try {
+                    const isAdoption = (listingTypeSelect && listingTypeSelect.value === 'adoption');
+
+                    if (sortBySelect) {
+                        const parent = sortBySelect.closest('.search-panel__main-field');
+                        if (parent) parent.style.display = isAdoption ? 'none' : '';
+                        sortBySelect.disabled = !!isAdoption;
+                    }
+
+                    if (listingSortSelect) {
+                        const toolbar = listingSortSelect.closest('.listing-sort-toolbar') || listingSortSelect.parentElement;
+                        if (toolbar) toolbar.style.display = isAdoption ? 'none' : '';
+                        listingSortSelect.disabled = !!isAdoption;
+                    }
+                } catch (e) {
+                    // swallow errors to avoid breaking the rest of the page JS
+                    console && console.debug && console.debug('toggleSortVisibility error', e);
+                }
+            }
 
 
+            function getFilterPrompt(categoryKey, filter, index) {
+                const normalizedCategory = normalizeCategoryKey(categoryKey);
+                const labelSet = categoryFilterLabels[normalizedCategory] || categoryFilterLabels.default;
+                return labelSet[filter.key] || filter.label || (index === 0 ? 'Alt Kategori' : filter.key);
+            }
 
-<section class="section site-sponsor-band site-sponsor-band--home reveal">
-    <div class="container wide-panel">
-        <div class="site-sponsor-grid reveal-stagger">
-            <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
-                <span class="site-ad__label">@L["homeSponsorLabel1"]</span>
-                <strong>@L["homeSponsorTitle1"]</strong>
-                <p>@L["homeSponsorText1"]</p>
-                <span class="site-ad__pill">@L["homeSponsorCta1"]</span>
-                <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80');"></span>
-            </a>
-            <a asp-controller="Account" asp-action="Register" class="site-ad site-ad--warm">
-                <span class="site-ad__label">@L["homeSponsorLabel2"]</span>
-                <strong>@L["homeSponsorTitle2"]</strong>
-                <p>@L["homeSponsorText2"]</p>
-                <span class="site-ad__pill">@L["homeSponsorCta2"]</span>
-                <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=900&q=80');"></span>
-            </a>
-        </div>
-    </div>
-</section>
+            const supplementalFilters = [
+                {
+                    key: 'priceRange',
+                    options: allPriceRangeOptions.map(o => o.text)
+                },
+                {
+                    key: 'budgetBand',
+                    options: [
+                        '@T("Bütçe Dostu", "Budget Friendly", "Бюджетно", "اقتصادي")',
+                        '@T("Denge", "Balanced", "Сбалансировано", "متوازن")',
+                        '@T("Premium", "Premium", "Премиум", "بريميوم")'
+                    ]
+                },
+                {
+                    key: 'deliverySpeed',
+                    dependsOn: 'budgetBand',
+                    optionsByParent: {
+                        '@T("Bütçe Dostu", "Budget Friendly", "Бюджетно", "اقتصادي")': ['@T("Standart", "Standard", "Стандарт", "قياسي")', '@T("Hızlı", "Fast", "Быстро", "سريع")'],
+                        '@T("Denge", "Balanced", "Сбалансировано", "متوازن")': ['@T("Hızlı", "Fast", "Быстро", "سريع")', '@T("Aynı Gün", "Same Day", "В тот же день", "نفس اليوم")'],
+                        '@T("Premium", "Premium", "Премиум", "بريميوم")': ['@T("Aynı Gün", "Same Day", "В тот же день", "نفس اليوم")', '@T("Öncelikli", "Priority", "Приоритет", "أولوية")']
+                    }
+                }
+            ];
 
+            function getCategoryFilters(categoryKey, selectedSubCategory) {
+                const normalized = normalizeCategoryKey(categoryKey);
+                if (!normalized || normalized === 'all') {
+                    return [];
+                }
 
+                const filters = [];
+                let categoryDetailFilters = categorySpecific[normalized] || [];
 
+                if (normalized === 'realestate') {
+                    if (selectedSubCategory === 'arsa') {
+                        categoryDetailFilters = [];
+                    } else if (selectedSubCategory === 'ticari') {
+                        categoryDetailFilters = [
+                            {
+                                ...categorySpecific.realestate[0],
+                                options: ['@T("Ofis", "Office", "Офис", "مكتب")', '@T("Dükkan", "Store", "Магазин", "متجر")', '@T("Depo", "Warehouse", "Склад", "مستودع")', '@T("Mağaza", "Shop", "Магазин", "متجر")', '@T("Atölye", "Workshop", "Мастерская", "ورشة")']
+                            }
+                        ];
+                    } else {
+                        categoryDetailFilters = categorySpecific.realestate || [];
+                    }
+                }
+
+                if (categoryDetailFilters.length > 0) {
+                    filters.push(...categoryDetailFilters);
+                }
+
+                const supplementalAllowedCategories = new Set(['electronics', 'home', 'services', 'tutoring', 'jobs', 'helper', 'parts']);
+                if (filters.length > 0 && supplementalAllowedCategories.has(normalized)) {
+                    filters.push(...supplementalFilters);
+                }
+
+                return filters;
+            }
+
+            function resolveOptions(filter, selectedValues) {
+                if (filter.dependsOn && filter.optionsByParent) {
+                    const parentValue = selectedValues[filter.dependsOn] || '';
+                    if (parentValue && filter.optionsByParent[parentValue]) {
+                        return filter.optionsByParent[parentValue];
+                    }
+
+                    if (filter.key === 'heating' && parentValue) {
+                        const allHeatingOptions = Object.values(filter.optionsByParent).flat();
+                        return Array.from(new Set(allHeatingOptions));
+                    }
+
+                    return [];
+                }
+
+                if (filter.dependsOn) {
+                    const parentValue = selectedValues[filter.dependsOn] || '';
+                    if (!parentValue) {
+                        return [];
+                    }
+                }
+
+                return filter.options || [];
+            }
+
+            function syncListingTabs(listingType, selectedCategory) {
+                listingTypeTabs.forEach((tab) => {
+                    const tabType = tab.getAttribute('data-listing-type') || 'all';
+                    const presetCategory = tab.getAttribute('data-preset-category') || 'all';
+                    const isActive = tabType === listingType && (
+                        presetCategory === 'helper'
+                            ? selectedCategory === 'helper'
+                            : tabType === 'job' && presetCategory === 'jobs'
+                                ? selectedCategory !== 'helper'
+                                : true
+                    );
+
+                    tab.classList.toggle('is-active', isActive);
+                    tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
+
+            function applyPrimarySelectChain() {
+                if (!listingTypeSelect || !citySelect || !categorySelect || !priceRangeSelect || !sortBySelect) {
+                    updateFilters();
+                    return;
+                }
+
+                const listingType = listingTypeSelect.value || 'all';
+                const preservedCity = citySelect.value || 'all';
+                const preservedCategory = categorySelect.value || 'all';
+                const preservedPrice = priceRangeSelect.value || 'any';
+                const preservedSort = sortBySelect.value || 'latest';
+
+                const allowedCategories = categoryByListingType[listingType] || categoryByListingType.all || allCategoryOptions.map((x) => x.value);
+                const categoryCandidates = allCategoryOptions.filter((x) => allowedCategories.includes(x.value));
+                setSelectOptions(categorySelect, categoryCandidates, preservedCategory, 'all');
+                categorySelect.disabled = false;
+
+                const selectedCategory = categorySelect.value || 'all';
+                const allowedCities = cityByCategory[selectedCategory] || cityByCategory.all;
+                const cityCandidates = allCityOptions.filter((x) =>
+                    allowedCities.includes(x.value) ||
+                    allowedCities.some((allowedCity) => x.value.startsWith(`${allowedCity}::`))
+                );
+                setSelectOptions(citySelect, cityCandidates, preservedCity, 'all');
+                citySelect.disabled = false;
+
+                const selectedPrice = priceRangeSelect.value || preservedPrice;
+                const selectedSort = sortBySelect.value || preservedSort;
+
+                setSelectOptions(priceRangeSelect, allPriceRangeOptions, selectedPrice, 'any');
+                priceRangeSelect.disabled = false;
+
+                setSelectOptions(sortBySelect, allSortOptions, selectedSort, 'latest');
+                sortBySelect.disabled = false;
+
+                if (!allCategoryOptions.some((x) => x.value === categorySelect.value)) {
+                    setSelectOptions(categorySelect, categoryCandidates, 'all', 'all');
+                }
+
+                syncListingTabs(listingTypeSelect.value, categorySelect.value || 'all');
+
+                updateFilters();
+            }
+
+            function updateFilters() {
+                if (!categorySelect || !featuresContainer) return;
+
+                featuresContainer.classList.add('is-updating');
+                window.setTimeout(() => featuresContainer.classList.remove('is-updating'), 260);
+                
+                const selectedCategory = categorySelect.value;
+                const selectedSubCategory = subCategorySelect?.value || 'all';
+
+                const filters = getCategoryFilters(selectedCategory || 'all', selectedSubCategory);
+
+                if (filters && filters.length > 0) {
+                    featuresContainer.innerHTML = '';
+                    featuresContainer.classList.add('search-subfilters');
+
+                    const selectRegistry = {};
+
+                    filters.forEach(function(filter, idx) {
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className = 'subfilter-card';
+
+                        const isManualInput = filter.manual === true || filter.key === 'area';
+                        const selectEl = isManualInput
+                            ? document.createElement('input')
+                            : document.createElement('select');
+                        if (isManualInput) {
+                            selectEl.type = 'text';
+                            selectEl.className = 'subfilter-card__input';
+                        } else {
+                            selectEl.className = 'subfilter-card__select';
+                        }
+                        selectEl.name = filter.key;
+                        selectEl.dataset.filterKey = filter.key;
+                        selectEl.setAttribute('aria-label', getFilterPrompt(selectedCategory, filter, idx));
+                        selectEl.title = getFilterPrompt(selectedCategory, filter, idx);
+                        selectRegistry[filter.key] = selectEl;
+
+                        groupDiv.appendChild(selectEl);
+
+                        featuresContainer.appendChild(groupDiv);
+                    });
+
+                    const refreshFrom = (startIndex = 0) => {
+                        const selectedValues = {};
+
+                        filters.forEach(function(filter, index) {
+                            const selectEl = selectRegistry[filter.key];
+                            if (index < startIndex) {
+                                selectedValues[filter.key] = selectEl.value;
+                                return;
+                            }
+
+                            const previous = selectEl.value;
+                            const options = resolveOptions(filter, selectedValues);
+
+                            selectEl.innerHTML = '';
+                            const defaultOption = document.createElement('option');
+                            defaultOption.value = 'all';
+                            defaultOption.textContent = getFilterPrompt(selectedCategory, filter, index);
+                            selectEl.appendChild(defaultOption);
+
+                            if (filter.key === 'area') {
+                                const inputEl = selectEl;
+                                inputEl.disabled = false;
+                                inputEl.value = previous !== 'all' ? previous : '';
+                                inputEl.placeholder = getFilterPrompt(selectedCategory, filter, index);
+                                inputEl.addEventListener('input', function () {
+                                    selectedValues[filter.key] = inputEl.value.trim() || 'all';
+                                    refreshFrom(index + 1);
+                                });
+                                selectedValues[filter.key] = inputEl.value.trim() || 'all';
+                                return;
+                            }
+
+                            if (options.length === 0) {
+                                selectEl.disabled = true;
+                                selectedValues[filter.key] = 'all';
+                                return;
+                            }
+
+                            selectEl.disabled = false;
+                            options.forEach(function(optLabel) {
+                                const normalizedValue = typeof optLabel === 'string'
+                                    ? decodeLocalized(optLabel)
+                                    : decodeLocalized(optLabel.value || '');
+                                const normalizedLabel = typeof optLabel === 'string'
+                                    ? decodeLocalized(optLabel)
+                                    : decodeLocalized(optLabel.label || optLabel.value || '');
+                                const optionEl = document.createElement('option');
+                                optionEl.value = normalizedValue;
+                                optionEl.textContent = normalizedLabel;
+                                if (previous === normalizedValue || (previous === 'all' && currentSubCategory === normalizedValue)) {
+                                    optionEl.selected = true;
+                                }
+                                selectEl.appendChild(optionEl);
+                            });
+
+                            selectedValues[filter.key] = selectEl.value;
+                        });
+                    };
+
+                    filters.forEach(function(filter, index) {
+                        const selectEl = selectRegistry[filter.key];
+                        selectEl.addEventListener('change', function() {
+                            refreshFrom(index + 1);
+                        });
+                    });
+
+                    refreshFrom(0);
+                    
+                    featuresContainer.style.display = 'grid';
+                } else {
+                    featuresContainer.style.display = 'none';
+                    featuresContainer.innerHTML = '';
+                }
+            }
+
+            if (listingTypeSelect) {
+                listingTypeSelect.addEventListener('change', applyPrimarySelectChain);
+            }
+            listingTypeTabs.forEach((tab) => {
+                tab.addEventListener('click', function() {
+                    if (!listingTypeSelect) {
+                        return;
+                    }
+
+                    const nextListingType = tab.getAttribute('data-listing-type') || 'all';
+                    const presetCategory = tab.getAttribute('data-preset-category') || 'all';
+
+                    listingTypeSelect.value = nextListingType;
+                    applyPrimarySelectChain();
+
+                    if (categorySelect && presetCategory !== 'all') {
+                        const hasPresetCategory = Array.from(categorySelect.options).some((option) => option.value === presetCategory);
+                        if (hasPresetCategory) {
+                            categorySelect.value = presetCategory;
+                            applyPrimarySelectChain();
+                        }
+                    }
+                    // When switching to the Services listing/tab, clear any selected subcategory
+                    if (presetCategory === 'services' || nextListingType === 'service') {
+                        if (subCategorySelect) {
+                            subCategorySelect.value = 'all';
+                            subCategorySelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+                });
+            });
+            if (citySelect) {
+                citySelect.addEventListener('change', applyPrimarySelectChain);
+            }
+            if (categorySelect) {
+                categorySelect.addEventListener('change', applyPrimarySelectChain);
+            }
+            if (subCategorySelect) {
+                subCategorySelect.addEventListener('change', updateFilters);
+            }
+            if (priceRangeSelect) {
+                priceRangeSelect.addEventListener('change', applyPrimarySelectChain);
+            }
+
+            applyPrimarySelectChain();
+
+            const counters = document.querySelectorAll('.js-countup[data-target]');
+            if (counters.length > 0) {
+                const animateCounter = (el) => {
+                    const target = parseInt(el.dataset.target || '0', 10);
+                    if (Number.isNaN(target) || target < 1) {
+                        el.textContent = '0';
+                        return;
+                    }
+
+                    const duration = 1200;
+                    const start = performance.now();
+                    const step = (now) => {
+                        const progress = Math.min((now - start) / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        el.textContent = Math.round(target * eased).toString();
+                        if (progress < 1) {
+                            requestAnimationFrame(step);
+                        }
+                    };
+
+                    requestAnimationFrame(step);
+                };
+
+                const observer = new IntersectionObserver((entries, obs) => {
+                    entries.forEach((entry) => {
+                        if (!entry.isIntersecting) return;
+                        animateCounter(entry.target);
+                        obs.unobserve(entry.target);
+                    });
+                }, { threshold: 0.45 });
+
+                counters.forEach((counter) => observer.observe(counter));
+            }
+
+            const notificationButton = document.getElementById('enableNotificationsBtn');
+            if (notificationButton) {
+                notificationButton.addEventListener('click', async () => {
+                    if (!('Notification' in window)) {
+                        alert('@T("Tarayıcı bildirimleri desteklemiyor.", "Browser does not support notifications.", "Браузер не поддерживает уведомления.", "المتصفح لا يدعم الإشعارات.")');
+                        return;
+                    }
+
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') {
+                        localStorage.setItem('sent-notification-consent', 'granted');
+                        const notificationTitle = '@T("Bildirimler açıldı", "Notifications enabled", "Уведомления включены", "تم تفعيل الإشعارات")';
+                        const notificationBody = '@T("Yeni ilân, fiyat düşüşü ve favori eşleşmelerinden haberdar olacaksınız.", "You will be notified about new listings, price drops and favorites.", "Вы будете получать уведомления о новых объявлениях и снижении цен.", "ستتلقى إشعارات عن الإعلانات الجديدة وانخفاض الأسعار والمفضلة.")';
+
+                        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({
+                                type: 'SHOW_NOTIFICATION',
+                                title: notificationTitle,
+                                body: notificationBody
+                            });
+                        } else {
+                            new Notification(notificationTitle, { body: notificationBody });
+                        }
+                        notificationButton.textContent = '@T("Bildirimler Etkin", "Notifications Active", "Уведомления активны", "الإشعارات مفعّلة")';
+                    } else {
+                        localStorage.setItem('sent-notification-consent', permission);
+                    }
+                });
+            }
+
+            const loadMoreGrids = document.querySelectorAll('.market-board__grid[data-load-more-grid="true"]');
+            loadMoreGrids.forEach((loadMoreGrid) => {
+                const cards = Array.from(loadMoreGrid.querySelectorAll('.listing-card'));
+                const perPage = Math.max(1, parseInt(loadMoreGrid.dataset.pageSize || '12', 10));
+                const counterId = loadMoreGrid.dataset.counterId;
+                const buttonId = loadMoreGrid.dataset.buttonId;
+                const counterElement = counterId ? document.getElementById(counterId) : null;
+                const loadMoreButton = buttonId ? document.getElementById(buttonId) : null;
+                let visibleCount = Math.min(perPage, cards.length);
+
+                const renderVisibleCards = () => {
+                    cards.forEach((card, index) => {
+                        card.style.display = index < visibleCount ? '' : 'none';
+                    });
+
+                    if (counterElement) {
+                        const shownStart = cards.length === 0 ? 0 : 1;
+                        const shownEnd = Math.min(visibleCount, cards.length);
+                        counterElement.textContent = `${shownStart} - ${shownEnd} / ${cards.length} ilan görüntüleniyor`;
+                    }
+
+                    if (loadMoreButton) {
+                        loadMoreButton.hidden = visibleCount >= cards.length;
+                    }
+                };
+
+                renderVisibleCards();
+
+                if (loadMoreButton) {
+                    loadMoreButton.addEventListener('click', () => {
+                        visibleCount = Math.min(cards.length, visibleCount + perPage);
+                        renderVisibleCards();
+                    });
+                }
+            });
+
+            if (mobileSearchDock) {
+                mobileSearchDock.addEventListener('click', function (event) {
+                    const target = event.target.closest('[data-dock-action]');
+                    if (!target) {
+                        return;
+                    }
+
+                    const action = target.getAttribute('data-dock-action');
+                    if (action === 'filter') {
+                        if (advancedButton) {
+                            advancedButton.click();
+                            return;
+                        }
+
+                        if (cityPickerToggle) {
+                            cityPickerToggle.click();
+                        }
+                        return;
+                    }
+
+                    if (action === 'sort') {
+                        const sortTarget = listingSortSelect || sortBySelect;
+                        if (sortTarget) {
+                            sortTarget.focus();
+                            sortTarget.click();
+                        }
+                        return;
+                    }
+
+                    if (action === 'top') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            }
+
+            const initSpotlightCarousels = () => {
+                const spotlightRails = document.querySelectorAll('[data-spotlight-rail]');
+
+                spotlightRails.forEach((rail) => {
+                    const viewport = rail.querySelector('.homepage-spotlight-rail__viewport');
+                    if (!viewport) {
+                        return;
+                    }
+
+                    const pages = Array.from(viewport.querySelectorAll('[data-spotlight-page]'));
+                    if (pages.length === 0) {
+                        return;
+                    }
+
+                    const pageIndicator = rail.querySelector('[data-spotlight-page-indicator]');
+                    const intervalMs = Math.max(2500, parseInt(viewport.dataset.spotlightInterval || '4000', 10));
+                    let currentPageIndex = 0;
+
+                    const showPage = (targetIndex) => {
+                        pages.forEach((page, idx) => {
+                            const isActive = idx === targetIndex;
+                            page.classList.toggle('is-active', isActive);
+                            page.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+                        });
+
+                        if (pageIndicator) {
+                            pageIndicator.textContent = `${targetIndex + 1} / ${pages.length}`;
+                        }
+
+                        currentPageIndex = targetIndex;
+                    };
+
+                    showPage(0);
+
+                    if (pages.length === 1) {
+                        return;
+                    }
+
+                    let timer = window.setInterval(() => {
+                        showPage((currentPageIndex + 1) % pages.length);
+                    }, intervalMs);
+
+                    rail.addEventListener('mouseenter', () => {
+                        window.clearInterval(timer);
+                    });
+
+                    rail.addEventListener('mouseleave', () => {
+                        window.clearInterval(timer);
+                        timer = window.setInterval(() => {
+                            showPage((currentPageIndex + 1) % pages.length);
+                        }, intervalMs);
+                    });
+                });
+            };
+
+            initSpotlightCarousels();
+        });
+    </script>
+}

@@ -1,0 +1,45 @@
+@model SEN_T_PAZAR.Models.ListingMessageInboxViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = "Mesajlar";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Mesajlarim</h2>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm">Ana Sayfa</a>
+    </div>
+
+    @if (Model.Conversations.Count == 0)
+    {
+        <div class="alert alert-light border">
+            Henuz bir mesajlasmaniz bulunmuyor.
+        </div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var conversation in Model.Conversations)
+            {
+                <a asp-action="Thread"
+                   asp-route-listingId="@conversation.ListingId"
+                   asp-route-userId="@conversation.OtherUserId"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
+                    <div class="me-3">
+                        <div class="fw-semibold">@conversation.ListingTitle</div>
+                        <div class="small text-muted">@conversation.OtherUserDisplayName</div>
+                        <div class="small mt-1 text-truncate" style="max-width: 700px;">@conversation.LastMessage</div>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">@conversation.LastMessageAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+                        @if (conversation.UnreadCount > 0)
+                        {
+                            <span class="badge text-bg-danger mt-1">@conversation.UnreadCount yeni</span>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>

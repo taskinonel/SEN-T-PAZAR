@@ -1,0 +1,114 @@
+@model SEN_T_PAZAR.Models.CorporateStoreViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en,
+        _ => tr
+    };
+    string BrowseCategoryText(SEN_T_PAZAR.Models.PropertyCard item) => L.CategoryLabel(SEN_T_PAZAR.Models.ListingTaxonomy.GetBrowseCategoryCode(item.Category, item.SubCategory));
+}
+
+<section class="section corporate-store-page">
+    <div class="container wide-panel">
+        <div class="corporate-store-hero">
+            <div class="corporate-store-hero__brand">
+                @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                {
+                    <img src="@Model.LogoUrl" alt="@Model.StoreName" class="corporate-store-hero__logo" loading="lazy" referrerpolicy="no-referrer" />
+                }
+                else
+                {
+                    <div class="corporate-store-hero__avatar">@Model.StoreName[..1]</div>
+                }
+                <div class="corporate-store-hero__copy">
+                    <span class="detail-corporate-banner__eyebrow">@T("Kurumsal Mağaza", "Corporate Store", "Корпоративный магазин", "المتجر المؤسسي", "فروشگاه شرکتی")</span>
+                    <h1>@Model.StoreName</h1>
+                    <p>@T("Mağaza merkezi", "Store hub", "Центр магазина", "مركز المتجر", "مرکز فروشگاه"): @Model.City</p>
+                    <div class="corporate-store-hero__chips">
+                        <span><i class="bi bi-patch-check-fill"></i>@T("Doğrulanmış mağaza", "Verified store", "Проверенный магазин", "متجر موثّق", "فروشگاه تاییدشده")</span>
+                        <span><i class="bi bi-collection"></i>@Model.ActiveListingCount @T("aktif ilan", "active listings", "активных объявлений", "إعلانًا نشطًا", "آگهی فعال")</span>
+                        <span><i class="bi bi-geo-alt-fill"></i>@Model.City</span>
+                    </div>
+                </div>
+            </div>
+            <div class="corporate-store-hero__meta">
+                <div class="corporate-store-hero__stats">
+                    <article>
+                        <small>@T("Aktif ilan", "Active listings", "Активные объявления", "الإعلانات النشطة", "آگهی فعال")</small>
+                        <strong>@Model.ActiveListingCount</strong>
+                    </article>
+                    <article>
+                        <small>@T("Şehir", "City", "Город", "المدينة", "شهر")</small>
+                        <strong>@Model.City</strong>
+                    </article>
+                </div>
+                <div class="corporate-store-hero__actions">
+                    @if (!string.IsNullOrWhiteSpace(Model.ContactPhone))
+                    {
+                        <a href="tel:@Model.ContactPhone"><i class="bi bi-telephone-fill"></i>@Model.ContactPhone</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.WebsiteUrl))
+                    {
+                        <a href="@Model.WebsiteUrl" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right"></i>@T("Web Sitesini Aç", "Open Website", "Открыть сайт", "فتح الموقع", "باز کردن وب‌سایت")</a>
+                    }
+                    <a asp-controller="Home" asp-action="SecurePayment"><i class="bi bi-shield-check"></i>@T("Güvenli ödeme bilgisi", "Secure payment info", "Информация о безопасной оплате", "معلومات الدفع الآمن", "اطلاعات پرداخت امن")</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section__head section__head--light corporate-store-page__head">
+            <h2>@T("Mağaza İlanları", "Store Listings", "Объявления магазина", "إعلانات المتجر", "آگهی‌های فروشگاه")</h2>
+            <p>@T("Kurumsal mağazanın yayındaki tüm aktif ilanları bu sayfada listelenir.", "All active listings from this corporate store are listed here.", "Здесь показаны все активные объявления этого корпоративного магазина.", "تظهر هنا جميع الإعلانات النشطة لهذا المتجر المؤسسي.", "تمام آگهی‌های فعال این فروشگاه شرکتی در این صفحه نمایش داده می‌شود.")</p>
+        </div>
+
+        <div class="market-board__grid corporate-store-grid">
+            @foreach (var listing in Model.Listings)
+            {
+                <article class="listing-card">
+                    <div class="listing-card__media-shell">
+                        <a class="listing-card__media" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">
+                            <img src="@listing.ImageUrl" alt="@listing.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                        </a>
+                        <button type="button"
+                                class="btn-favorite heart-btn listing-card__favorite"
+                                data-listing-id="@listing.Id"
+                                title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقه‌مندی‌ها")"
+                                aria-label="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقه‌مندی‌ها")">
+                            <svg class="heart-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="listing-card__body">
+                        <div class="listing-card__topline">
+                            <span class="listing-card__category">@BrowseCategoryText(listing)</span>
+                        </div>
+                        <h3>
+                            <a asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@listing.Title</a>
+                        </h3>
+                        <p class="listing-card__location">@listing.City - @listing.Location</p>
+                        <p class="listing-card__summary">@listing.Summary</p>
+                        <div class="listing-card__meta">
+                            @if (!string.IsNullOrWhiteSpace(listing.PrimarySpec))
+                            {
+                                <span><i class="bi bi-speedometer2"></i>@listing.PrimarySpec</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(listing.SecondarySpec))
+                            {
+                                <span><i class="bi bi-tags"></i>@listing.SecondarySpec</span>
+                            }
+                        </div>
+                        <div class="listing-card__footer">
+                            <strong class="listing-card__price">@listing.PriceLabel</strong>
+                            <a class="project-link btn btn-sm" asp-action="Details" asp-controller="Home" asp-route-id="@listing.Id">@T("Detaya Git", "Open Listing", "Открыть объявление", "فتح الإعلان", "مشاهده آگهی")</a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    </div>
+</section>

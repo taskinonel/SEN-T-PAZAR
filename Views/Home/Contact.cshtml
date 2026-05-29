@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = L["contactTitle"];
+    var subjectPrefill = Context.Request.Query["subject"].ToString();
+    var messagePrefill = Context.Request.Query["message"].ToString();
+    var whatsappText = Uri.EscapeDataString("Merhaba, SEN-T PAZAR üzerinden iletişime geçiyorum.");
 }
 
 <section class="section info-page" style="background-image: linear-gradient(110deg, rgba(20,34,59,.92), rgba(20,34,59,.55)), url('https://images.unsplash.com/photo-1423666639041-f56000c27a9a?auto=format&fit=crop&w=1200&q=60');">
@@ -9,11 +12,25 @@
         <h1>@L["contactTitle"]</h1>
         <p>@L["contactSubtitle"]</p>
 
+        @if (TempData["ContactSuccess"] is string contactSuccess)
+        {
+            <div class="alert alert-success mt-4">@contactSuccess</div>
+        }
+
         <div class="row justify-content-center mt-4">
             <div class="col-md-8">
                 <div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
                     <div class="card-body p-4">
+                        <div class="d-flex flex-wrap gap-2 mb-4 justify-content-center">
+                            <a href="https://wa.me/905308824777?text=@whatsappText" target="_blank" rel="noopener noreferrer" class="btn btn-success">
+                                <i class="bi bi-whatsapp me-2"></i>WhatsApp ile Ulaşın
+                            </a>
+                            <a href="tel:+905308824777" class="btn btn-outline-primary">
+                                <i class="bi bi-telephone me-2"></i>Telefonla Arayın
+                            </a>
+                        </div>
                         <form method="post" asp-action="Contact">
+                            @Html.AntiForgeryToken()
                             <div class="mb-3">
                                 <label class="form-label fw-bold">@L["contactName"]</label>
                                 <input type="text" name="name" class="form-control" required />
@@ -24,11 +41,11 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">@L["contactSubject"]</label>
-                                <input type="text" name="subject" class="form-control" required />
+                                <input type="text" name="subject" class="form-control" value="@subjectPrefill" required />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">@L["contactMessage"]</label>
-                                <textarea name="message" class="form-control" rows="5" required></textarea>
+                                <textarea name="message" class="form-control" rows="5" required>@messagePrefill</textarea>
                             </div>
                             <button type="submit" class="btn btn-success btn-lg w-100">@L["contactSend"]</button>
                         </form>

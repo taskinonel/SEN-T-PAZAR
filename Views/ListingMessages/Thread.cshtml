@@ -1,0 +1,61 @@
+@model SEN_T_PAZAR.Models.ListingMessageThreadViewModel
+
+@{
+    ViewData["Title"] = "Mesaj Detayi";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-1">@Model.ListingTitle</h2>
+            <div class="text-muted small">Konusulan kullanici: @Model.OtherUserDisplayName</div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Tum Mesajlar</a>
+    </div>
+
+    @if (TempData["MessageError"] is string messageError)
+    {
+        <div class="alert alert-danger">@messageError</div>
+    }
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body" style="max-height: 520px; overflow-y: auto;">
+            @if (Model.Messages.Count == 0)
+            {
+                <div class="text-muted">Bu ilan icin henuz mesaj yok.</div>
+            }
+            else
+            {
+                @foreach (var item in Model.Messages)
+                {
+                    <div class="d-flex mb-2 @(item.IsMine ? "justify-content-end" : "justify-content-start")">
+                        <div class="p-2 rounded @(item.IsMine ? "bg-primary text-white" : "bg-light border")" style="max-width: 75%;">
+                            <div>@item.Body</div>
+                            <div class="small mt-1 @(item.IsMine ? "text-white-50" : "text-muted")">@item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    @if (Model.CanSendMessages)
+    {
+        <form asp-action="Reply" method="post" class="card shadow-sm">
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <input type="hidden" name="listingId" value="@Model.ListingId" />
+                <input type="hidden" name="userId" value="@Model.OtherUserId" />
+                <div class="mb-2">
+                    <label for="threadBody" class="form-label fw-semibold">Mesajiniz</label>
+                    <textarea id="threadBody" name="body" class="form-control" rows="3" maxlength="2000" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Gonder</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-warning">Bu ilan icin mesajlasma kapatilmis.</div>
+    }
+</div>

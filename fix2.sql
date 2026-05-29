@@ -1,0 +1,1 @@
+ALTER SEQUENCE listingimages_id_seq RESTART WITH 3;

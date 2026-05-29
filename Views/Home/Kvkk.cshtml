@@ -1,0 +1,152 @@
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = "KVKK Aydınlatma Metni";
+}
+
+<style>
+    .legal-page { background: #f8f9fc; min-height: 70vh; }
+    .legal-hero {
+        background: radial-gradient(circle at top left, rgba(255,255,255,.16), transparent 34%), linear-gradient(135deg, #1e3a66 0%, #0d6efd 100%);
+        padding: 4rem 0 3rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .legal-hero h1 { font-size: 2rem; font-weight: 800; }
+    .legal-hero p { opacity: .85; max-width: 620px; }
+    .legal-hero__grid { display: grid; grid-template-columns: 1.45fr .85fr; gap: 1.5rem; align-items: center; }
+    .legal-hero__panel {
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 20px;
+        padding: 1.1rem 1.15rem;
+        backdrop-filter: blur(8px);
+    }
+    .legal-hero__panel strong { display: block; font-size: 1rem; margin-bottom: .25rem; }
+    .legal-hero__panel span { font-size: .88rem; opacity: .9; }
+    .kvkk-pill-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+    .kvkk-pill-row span { border-radius: 999px; padding: .35rem .75rem; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.1); font-size: .85rem; }
+    .legal-card { border: none; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
+    .legal-card .card-body { padding: 2.5rem; }
+    .legal-section h5 { color: #1e3a66; font-weight: 700; margin-top: 2rem; margin-bottom: .75rem; border-left: 4px solid #0d6efd; padding-left: .75rem; }
+    .legal-section p, .legal-section li { line-height: 1.85; color: #444; }
+    @@media (max-width: 991px) { .legal-hero__grid { grid-template-columns: 1fr; } }
+</style>
+
+<section class="legal-hero">
+    <div class="container">
+        <div class="legal-hero__grid">
+            <div>
+                <h1><i class="bi bi-shield-lock me-2"></i>KVKK Aydınlatma Metni</h1>
+                <p>6698 Sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel verilerinize ilişkin aydınlatma metni</p>
+                <small class="opacity-75">Son güncelleme: Mart 2025</small>
+                <div class="kvkk-pill-row">
+                    <span>@T("Veri güvenliği", "Data security", "Безопасность данных", "أمان البيانات", "امنیت داده")</span>
+                    <span>@T("Şeffaf kullanım", "Transparent use", "Прозрачное использование", "استخدام شفاف", "استفاده شفاف")</span>
+                    <span>@T("Haklarınızı korur", "Protects your rights", "Защищает ваши права", "يحمي حقوقك", "از حقوق شما محافظت می‌کند")</span>
+                </div>
+            </div>
+            <div class="legal-hero__panel">
+                <strong>@T("İşleme amacı", "Processing purpose", "Цель обработки", "غرض المعالجة", "هدف پردازش")</strong>
+                <span>@T("Üyelik, ilan, destek ve güvenlik süreçleri için kullanılır.", "Used for membership, listings, support and security flows.", "Используется для членства, объявлений, поддержки и безопасности.", "يستخدم للعضوية والإعلانات والدعم والأمان.", "برای عضویت، آگهی، پشتیبانی و امنیت استفاده می‌شود.")</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="legal-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="card legal-card">
+                    <div class="card-body legal-section">
+
+                        <h5>1. Veri Sorumlusunun Kimliği</h5>
+                        <p>
+                            SEN-T PAZAR, SEN-T SOFTWARE bünyesinde faaliyet gösteren bir online pazar yeri platformudur. 
+                            Kişisel verileriniz veri sorumlusu sıfatıyla <strong>SEN-T SOFTWARE</strong> tarafından 
+                            6698 Sayılı Kişisel Verilerin Korunması Kanunu'na ("KVKK") uygun olarak işlenmektedir.
+                        </p>
+
+                        <h5>2. Kişisel Verilerin İşlenme Amacı</h5>
+                        <p>Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:</p>
+                        <ul>
+                            <li>Üyelik kaydı ve hesap yönetimi</li>
+                            <li>İlan yayınlama, onaylama ve yönetme hizmetleri</li>
+                            <li>Kurumsal üyelik süreçlerinin yürütülmesi</li>
+                            <li>İletişim taleplerinin karşılanması</li>
+                            <li>Platform güvenliğinin sağlanması ve doğrulama işlemleri</li>
+                            <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                            <li>İstatistiksel analiz ve hizmet kalitesinin iyileştirilmesi</li>
+                        </ul>
+
+                        <h5>3. İşlenen Kişisel Veri Kategorileri</h5>
+                        <ul>
+                            <li><strong>Kimlik Bilgileri:</strong> Ad, soyad, T.C. kimlik numarası (gerekli hâllerde)</li>
+                            <li><strong>İletişim Bilgileri:</strong> E-posta adresi, telefon numarası, adres</li>
+                            <li><strong>Hesap Bilgileri:</strong> Kullanıcı adı, şifreli giriş kaydı</li>
+                            <li><strong>İşlem Bilgileri:</strong> İlan içerikleri, başvurular, mesajlar</li>
+                            <li><strong>Teknik Veriler:</strong> IP adresi, tarayıcı bilgisi, çerez verileri</li>
+                        </ul>
+
+                        <h5>4. Kişisel Verilerin Aktarılması</h5>
+                        <p>
+                            Kişisel verileriniz; yasal zorunluluklar kapsamında kamu kurumlarıyla, hizmet alınan iş ortaklarıyla 
+                            ve teknik altyapı sağlayıcılarıyla, KVKK'nın 8. ve 9. maddeleri çerçevesinde paylaşılabilir. 
+                            Üçüncü taraflarla yapılacak paylaşımlar her koşulda gizlilik sözleşmesi kapsamındadır.
+                        </p>
+
+                        <h5>5. Kişisel Veri Toplamanın Yöntemi ve Hukuki Sebebi</h5>
+                        <p>
+                            Verileriniz; web sitesi formları, üyelik ekranları, çerezler ve e-posta aracılığıyla toplanmaktadır. 
+                            Hukuki dayanaklar: Açık rıza, sözleşmenin ifası, meşru menfaat ve kanuni yükümlülük.
+                        </p>
+
+                        <h5>6. Veri Sahibinin Hakları (KVKK Madde 11)</h5>
+                        <p>KVKK kapsamında aşağıdaki haklara sahipsiniz:</p>
+                        <ul>
+                            <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+                            <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+                            <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+                            <li>Yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme</li>
+                            <li>Eksik veya yanlış işlenen verilerin düzeltilmesini isteme</li>
+                            <li>Verilerin silinmesini veya yok edilmesini isteme</li>
+                            <li>İşleme itiraz etme ve zararın tazminini talep etme</li>
+                        </ul>
+
+                        <h5>7. Başvuru Yolu</h5>
+                        <p>
+                            Haklarınıza ilişkin başvurularınızı 
+                            <a href="@Url.Action("Contact", "Home")" class="text-primary">İletişim</a> sayfamız üzerinden 
+                            veya <strong>kvkk@sent-pazar.com</strong> e-posta adresine yazılı olarak iletebilirsiniz. 
+                            Başvurularınız en geç 30 gün içinde yanıtlanacaktır.
+                        </p>
+
+                        <div class="alert alert-light border mt-4">
+                            <i class="bi bi-info-circle text-primary me-2"></i>
+                            Bu metin, 6698 Sayılı KVKK'nın 10. maddesi uyarınca hazırlanmıştır.
+                        </div>
+
+                        <div class="mt-4">
+                            <a asp-action="Index" asp-controller="Home" class="btn btn-outline-primary me-2">
+                                <i class="bi bi-house me-1"></i> Ana Sayfa
+                            </a>
+                            <a asp-action="Contact" asp-controller="Home" class="btn btn-primary">
+                                <i class="bi bi-envelope me-1"></i> Bize Ulaşın
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

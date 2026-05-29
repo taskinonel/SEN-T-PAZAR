@@ -1,0 +1,55 @@
+@model SEN_T_PAZAR.Models.PricingPackage
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+<div class="col">
+    <div class="card h-100 shadow-sm @(Model.Tier == "gold" || Model.Tier == "vip" ? "border-warning" : "")">
+        @if (Model.Tier == "gold" || Model.Tier == "vip")
+        {
+            <div class="card-header bg-warning text-dark text-center">
+                <strong>@L["mostPopular"]</strong>
+            </div>
+        }
+        <div class="card-body text-center">
+            <h5 class="card-title">@L.LocalizePackageName(Model.PackageType, Model.Tier)</h5>
+            <p class="text-muted small">@L.LocalizePackageDescription(Model.PackageType, Model.DurationDays)</p>
+            <div class="my-3">
+                <span class="display-6 fw-bold">@Model.Price.ToString("N0")</span>
+                <span class="text-muted">@Model.Currency</span>
+            </div>
+            <ul class="list-unstyled mb-3 text-start mx-auto" style="max-width: 200px;">
+                <li><i class="bi bi-check-circle text-success"></i> @L.Format("daysValid", Model.DurationDays)</li>
+                <li><i class="bi bi-check-circle text-success"></i> @L.Format("listingsValid", Model.ListingsIncluded)</li>
+                @if (Model.PackageType == "featured")
+                {
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inFeatured"]</li>
+                }
+                @if (Model.PackageType == "vitrin")
+                {
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inShowcase"]</li>
+                }
+                @if (Model.PackageType == "popular")
+                {
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inPopular"]</li>
+                }
+                @if (Model.PackageType == "combo")
+                {
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inFeatured"]</li>
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inShowcase"]</li>
+                    <li><i class="bi bi-check-circle text-success"></i> @L["inPopular"]</li>
+                }
+            </ul>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="@Url.Action("Purchase", "Pricing", new { id = Model.Id })" class="btn btn-primary w-100">
+                    @L["purchase"]
+                </a>
+            }
+            else
+            {
+                <a href="@Url.Action("Login", "Account", new { returnUrl = Url.Action("Index", "Pricing") })" class="btn btn-outline-primary w-100">
+                    @L["login"]
+                </a>
+            }
+        </div>
+    </div>
+</div>

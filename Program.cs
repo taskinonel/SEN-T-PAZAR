@@ -20,6 +20,19 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args });
 builder.Host.UseSerilog();
 
+// Allow large file uploads (IIS / Kestrel)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 104857600; // 100 MB
+});
+
+// Configure form options for multipart uploads
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; // 100 MB
+    options.ValueLengthLimit = int.MaxValue;
+});
+
 // Email ayarları
 var smtpHost = builder.Configuration["Smtp:Host"] ?? "smtp.example.com";
 var smtpPort = int.TryParse(builder.Configuration["Smtp:Port"], out var port) ? port : 587;
@@ -144,7 +157,8 @@ using (var scope = app.Services.CreateScope())
     }
     else
     {
-        dbContext.Database.Migrate();
+        // Tables already created by fix-db tool
+        // dbContext.Database.Migrate();
     }
 
     // Admin rolü yoksa oluştur

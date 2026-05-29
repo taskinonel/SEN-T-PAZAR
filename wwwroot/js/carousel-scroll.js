@@ -12,7 +12,8 @@
         touchThreshold: 50,      // Minimum swipe distance
         touchVelocity: 0.5,      // Velocity multiplier for momentum scrolling
         keyScrollAmount: 300,    // Pixels to scroll on arrow keys
-        resizeDebounce: 150      // ms to wait before recalculating on resize
+        resizeDebounce: 150,     // ms to wait before recalculating on resize
+        autoAdvanceMs: 10000
     };
 
     /**
@@ -42,7 +43,10 @@
             lastX: 0,
             lastTime: 0,
             cardWidth: 0,
-            visibleCount: 1
+            visibleCount: 1,
+            autoTimer: null,
+            isHovered: false,
+            userInteracted: false
         };
 
         // Calculate dimensions
@@ -53,10 +57,16 @@
                 const gap = parseInt(getComputedStyle(track).gap) || 16;
                 state.cardWidth = card.offsetWidth + gap;
             }
-            
-            const viewport = track.parentElement;
-            if (viewport) {
-                state.visibleCount = Math.max(1, Math.floor(viewport.offsetWidth / (state.cardWidth || 1)));
+
+            const perViewRaw = getComputedStyle(carousel).getPropertyValue('--cards-per-view');
+            const perView = Number.parseInt(perViewRaw, 10);
+            if (!Number.isNaN(perView) && perView > 0) {
+                state.visibleCount = perView;
+            } else {
+                const viewport = track.parentElement;
+                if (viewport) {
+                    state.visibleCount = Math.max(1, Math.floor(viewport.offsetWidth / (state.cardWidth || 1)));
+                }
             }
             
             updateArrowVisibility();
@@ -77,6 +87,7 @@
 
         // Scroll handlers
         function scrollLeft() {
+            state.userInteracted = true;
             track.scrollBy({
                 left: -state.cardWidth * state.visibleCount,
                 behavior: CONFIG.scrollBehavior
@@ -84,15 +95,47 @@
         }
 
         function scrollRight() {
+            state.userInteracted = true;
             track.scrollBy({
                 left: state.cardWidth * state.visibleCount,
                 behavior: CONFIG.scrollBehavior
             });
         }
 
+        function autoAdvance() {
+            if (state.isHovered || state.isDragging) {
+                return;
+            }
+
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            if (maxScroll <= 0) {
+                return;
+            }
+
+            const nearEnd = track.scrollLeft >= maxScroll - 2;
+            if (nearEnd) {
+                track.scrollTo({ left: 0, behavior: CONFIG.scrollBehavior });
+            } else {
+                scrollRight();
+            }
+        }
+
+        function startAutoAdvance() {
+            stopAutoAdvance();
+            state.autoTimer = window.setInterval(autoAdvance, CONFIG.autoAdvanceMs);
+        }
+
+        function stopAutoAdvance() {
+            if (state.autoTimer !== null) {
+                window.clearInterval(state.autoTimer);
+                state.autoTimer = null;
+            }
+        }
+
         // Touch / Mouse drag handlers
         function handleDragStart(e) {
             state.isDragging = true;
+            state.userInteracted = true;
             state.startX = (e.pageX || e.touches[0].pageX) - track.offsetLeft;
             state.scrollLeft = track.scrollLeft;
             state.lastX = state.startX;
@@ -196,6 +239,14 @@
         track.addEventListener('touchend', handleDragEnd);
         track.addEventListener('touchcancel', handleDragEnd);
 
+        carousel.addEventListener('mouseenter', () => {
+            state.isHovered = true;
+        });
+
+        carousel.addEventListener('mouseleave', () => {
+            state.isHovered = false;
+        });
+
         // Scroll event for arrow visibility
         let scrollTimeout;
         track.addEventListener('scroll', () => {
@@ -228,6 +279,7 @@
 
         // Initial setup
         updateDimensions();
+        startAutoAdvance();
         
         // Expose API for external control
         carousel.carouselAPI = {

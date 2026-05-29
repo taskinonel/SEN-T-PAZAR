@@ -3,16 +3,24 @@
 @{
     ViewData["Title"] = L["myAccount"];
     var activeTab = (ViewData["ActiveTab"] as string ?? "overview").ToLowerInvariant();
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
 }
 
 <div class="account-dashboard container py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div class="d-flex align-items-center gap-3">
             <img src="@(string.IsNullOrWhiteSpace(Model.User.AvatarUrl) ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.User.FullName) + "&background=1e3a66&color=fff" : Model.User.AvatarUrl)"
-                 alt="Profil fotoğrafı"
+                 alt="@T("Profil fotoğrafı", "Profile photo", "Фотография профиля", "صورة الملف الشخصي", "عکس پروفایل")"
                  class="account-dashboard__avatar" />
             <div>
-                <h2 class="mb-1">Merhaba, @Model.User.FullName</h2>
+                <h2 class="mb-1">@T("Merhaba", "Hello", "Здравствуйте", "مرحبًا", "سلام") , @Model.User.FullName</h2>
                 <div class="text-muted">@Model.User.Email</div>
             </div>
         </div>
@@ -27,196 +35,246 @@
         <div asp-validation-summary="All" class="alert alert-danger"></div>
     }
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Toplam İlan</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.TotalListings</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Yayındaki İlan</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.ApprovedListings</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Onay Bekleyen</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.PendingListings</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Öne Çıkan</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.FeaturedListings</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Vitrin</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.VitrinListings</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Favoriler</div>
-                    <div class="fs-4 fw-bold">@Model.Stats.FavoritesCount</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <ul class="nav nav-tabs account-dashboard__tabs mb-3">
-        <li class="nav-item"><a class="nav-link @(activeTab == "overview" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="overview">Genel Bakış</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "profile" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="profile">Profil</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "security" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="security">Güvenlik</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "listings" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="listings">İlanlarım</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "favorites" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="favorites">Favoriler</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "notifications" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="notifications">Bildirimler</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "billing" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="billing">Fatura</a></li>
-        <li class="nav-item"><a class="nav-link @(activeTab == "corporate" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="corporate"><i class="bi bi-building me-1"></i>Kurumsal</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "overview" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="overview" asp-route-culture="@L.CultureCode">@L["tab_overview"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "profile" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="profile" asp-route-culture="@L.CultureCode">@L["tab_profile"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "security" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="security" asp-route-culture="@L.CultureCode">@L["tab_security"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "listings" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="listings" asp-route-culture="@L.CultureCode">@L["tab_listings"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "favorites" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="favorites" asp-route-culture="@L.CultureCode">@L["tab_favorites"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "messages" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="messages" asp-route-culture="@L.CultureCode">@L["tab_messages"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "notifications" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="notifications" asp-route-culture="@L.CultureCode">@L["tab_notifications"]</a></li>
+        <li class="nav-item"><a class="nav-link @(activeTab == "billing" ? "active" : string.Empty)" asp-action="Dashboard" asp-route-tab="billing" asp-route-culture="@L.CultureCode">@L["tab_billing"]</a></li>
     </ul>
 
     <div class="card shadow-sm">
         <div class="card-body p-4">
             @if (activeTab == "overview")
             {
-                <h5 class="mb-3">Hesap Özeti</h5>
-                <p class="text-muted mb-4">Profil, güvenlik, ilanlar ve bildirim ayarlarınızı yukarıdaki sekmelerden yönetebilirsiniz.</p>
-                
-                @if (Model.User.IsCorporateMember)
-                {
-                    <div class="alert alert-info mb-4">
-                        <h6><i class="bi bi-building"></i> Kurumsal Üye</h6>
-                        <p class="mb-0">
-                            Şirket: <strong>@Model.User.CompanyName</strong> | 
-                            Plan: <strong>@Model.User.SubscriptionPlan</strong>
-                        </p>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 bg-primary bg-opacity-10">
+                            <div class="card-body text-center py-3">
+                                <i class="bi bi-megaphone text-primary fs-3"></i>
+                                <div class="fs-4 fw-bold text-primary mt-1">@Model.Stats.TotalListings</div>
+                                <small class="text-muted">@T("Toplam İlan", "Total Listings", "Всего объявлений", "إجمالي الإعلانات", "کل آگهی‌ها")</small>
+                            </div>
+                        </div>
                     </div>
-                }
-                
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 bg-success bg-opacity-10">
+                            <div class="card-body text-center py-3">
+                                <i class="bi bi-check-circle text-success fs-3"></i>
+                                <div class="fs-4 fw-bold text-success mt-1">@Model.Stats.ApprovedListings</div>
+                                <small class="text-muted">@T("Yayındaki İlan", "Published Listings", "Опубликованные объявления", "الإعلانات المنشورة", "آگهی‌های منتشرشده")</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 bg-info bg-opacity-10">
+                            <div class="card-body text-center py-3">
+                                <i class="bi bi-eye text-info fs-3"></i>
+                                <div class="fs-4 fw-bold text-info mt-1">@Model.Stats.TotalViews.ToString("N0")</div>
+                                <small class="text-muted">@T("Görüntülenme", "Views", "Просмотры", "المشاهدات", "بازدید")</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100 bg-danger bg-opacity-10">
+                            <div class="card-body text-center py-3">
+                                <i class="bi bi-heart text-danger fs-3"></i>
+                                <div class="fs-4 fw-bold text-danger mt-1">@Model.Stats.TotalFavorites</div>
+                                <small class="text-muted">@T("Favori", "Favorites", "Избранное", "المفضلة", "علاقه‌مندی")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <a href="@Url.Action("Publish", "Home")" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>@T("Yeni İlan Ver", "Post New Listing", "Разместить новое объявление", "أضف إعلانًا جديدًا", "ثبت آگهی جدید")
+                    </a>
+                </div>
                 @if (Model.ActivePackages.Any())
                 {
-                    <h6 class="mt-4">Aktif Paketler</h6>
-                    <div class="row">
+                    <h6 class="mb-3"><i class="bi bi-box-seam me-1"></i>@T("Aktif Paketler", "Active Packages", "Активные пакеты", "الباقات النشطة", "بسته‌های فعال")</h6>
+                    <div class="row g-2 mb-4">
                         @foreach (var pkg in Model.ActivePackages)
                         {
-                            <div class="col-md-4 mb-3">
-                                <div class="card border-success">
-                                    <div class="card-body">
-                                        <h6>@pkg.PackageName</h6>
-                                        <p class="mb-1">Kalan: <strong>@pkg.RemainingUses</strong></p>
-                                        @if (pkg.ExpiryDate.HasValue)
-                                        {
-                                            <small class="text-muted">Bitiş: @pkg.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
-                                        }
+                            <div class="col-md-4">
+                                <div class="card border-success shadow-sm">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong class="small">@pkg.PackageName</strong>
+                                                <div class="small text-muted">@T("Kalan", "Remaining", "Осталось", "المتبقي", "باقی") : <strong>@pkg.RemainingUses</strong></div>
+                                            </div>
+                                            @if (pkg.ExpiryDate.HasValue)
+                                            {
+                                                <small class="text-muted">@pkg.ExpiryDate.Value.ToString("dd.MM.yyyy")</small>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         }
                     </div>
-                    <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary btn-sm">Tüm Paketler</a>
                 }
-                else
+                @if (Model.MyListings.Any())
                 {
-                    <div class="alert alert-light border">
-                        <p class="mb-2">İlanlarınızı öne çıkarmak veya vitrinde göstermek için paket satın alabilirsiniz.</p>
-                        <a href="@Url.Action("Index", "Pricing")" class="btn btn-primary btn-sm">Fiyatlandırma</a>
+                    var topListings = Model.MyListings.OrderByDescending(x => x.ViewCount).Take(3).ToList();
+                    <h6 class="mb-3"><i class="bi bi-trophy me-1"></i>@T("En Çok Görüntülenen İlanlar", "Most Viewed Listings", "Самые просматриваемые объявления", "الإعلانات الأكثر مشاهدة", "پربازدیدترین آگهی‌ها")</h6>
+                    <div class="row g-2">
+                        @foreach (var item in topListings)
+                        {
+                            <div class="col-md-4">
+                                <div class="card shadow-sm h-100">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center">
+                                            @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                                            {
+                                                <img src="@item.CoverImageUrl" alt="@item.Title" class="rounded me-2" style="width:40px;height:40px;object-fit:cover;" />
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">
+                                                    <i class="bi bi-image text-muted small"></i>
+                                                </div>
+                                            }
+                                            <div class="flex-grow-1" style="min-width:0;">
+                                                <div class="small fw-semibold text-truncate">@item.Title</div>
+                                                <div class="small text-muted"><i class="bi bi-eye"></i> @item.ViewCount</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             }
             else if (activeTab == "profile")
             {
-                <h5 class="mb-3">Profil Bilgileri</h5>
-                <form asp-action="UpdateProfile" method="post" class="row g-3">
-                    @Html.AntiForgeryToken()
-                    <div class="col-md-6">
-                        <label asp-for="ProfileForm.FullName" class="form-label"></label>
-                        <input asp-for="ProfileForm.FullName" class="form-control" />
-                        <span asp-validation-for="ProfileForm.FullName" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-lg-8">
+                        <h5 class="mb-3"><i class="bi bi-person-gear me-1"></i>@T("Profil Bilgileri", "Profile Information", "Информация профиля", "معلومات الملف الشخصي", "اطلاعات پروفایل")</h5>
+                        <form asp-action="UpdateProfile" method="post" enctype="multipart/form-data" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <div class="col-md-6">
+                                <label asp-for="ProfileForm.FirstName" class="form-label small fw-semibold">@T("Ad", "First Name", "Имя", "الاسم", "نام")</label>
+                                <input asp-for="ProfileForm.FirstName" class="form-control" />
+                                <span asp-validation-for="ProfileForm.FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ProfileForm.LastName" class="form-label small fw-semibold">@T("Soyad", "Last Name", "Фамилия", "اللقب", "نام خانوادگی")</label>
+                                <input asp-for="ProfileForm.LastName" class="form-control" />
+                                <span asp-validation-for="ProfileForm.LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ProfileForm.PhoneNumber" class="form-label small fw-semibold">@T("Telefon", "Phone", "Телефон", "الهاتف", "تلفن")</label>
+                                <input asp-for="ProfileForm.PhoneNumber" class="form-control" />
+                                <span asp-validation-for="ProfileForm.PhoneNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ProfileForm.City" class="form-label small fw-semibold">@T("Şehir", "City", "Город", "المدينة", "شهر")</label>
+                                <input asp-for="ProfileForm.City" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ProfileForm.AvatarFile" class="form-label small fw-semibold">@T("Profil Fotoğrafı", "Profile Photo", "Фото профиля", "صورة الملف الشخصي", "عکس پروفایل")</label>
+                                <input asp-for="ProfileForm.AvatarFile" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                                <span asp-validation-for="ProfileForm.AvatarFile" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="ProfileForm.AddressLine" class="form-label small fw-semibold">@T("Adres", "Address", "Адрес", "العنوان", "آدرس")</label>
+                                <textarea asp-for="ProfileForm.AddressLine" class="form-control" rows="2"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>@T("Kaydet", "Save", "Сохранить", "حفظ", "ذخیره")</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="col-md-6">
-                        <label asp-for="ProfileForm.PhoneNumber" class="form-label"></label>
-                        <input asp-for="ProfileForm.PhoneNumber" class="form-control" />
-                        <span asp-validation-for="ProfileForm.PhoneNumber" class="text-danger"></span>
+                    <div class="col-lg-4">
+                        <h6 class="mb-3">@T("Profil Önizleme", "Profile Preview", "Предпросмотр профиля", "معاينة الملف الشخصي", "پیش‌نمایش پروفایل")</h6>
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <img src="@(string.IsNullOrWhiteSpace(Model.User.AvatarUrl) ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.User.FullName) + "&background=1e3a66&color=fff&size=80" : Model.User.AvatarUrl)"
+                                     alt="Avatar" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;" />
+                                <h6 class="mb-0">@Model.User.FullName</h6>
+                                <small class="text-muted">@Model.User.Email</small>
+                                @if (!string.IsNullOrWhiteSpace(Model.User.City))
+                                {
+                                    <div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> @Model.User.City</div>
+                                }
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label asp-for="ProfileForm.City" class="form-label"></label>
-                        <input asp-for="ProfileForm.City" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="ProfileForm.AvatarUrl" class="form-label"></label>
-                        <input asp-for="ProfileForm.AvatarUrl" class="form-control" />
-                        <span asp-validation-for="ProfileForm.AvatarUrl" class="text-danger"></span>
-                    </div>
-                    <div class="col-12">
-                        <label asp-for="ProfileForm.AddressLine" class="form-label"></label>
-                        <textarea asp-for="ProfileForm.AddressLine" class="form-control" rows="3"></textarea>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                    </div>
-                </form>
+                </div>
             }
             else if (activeTab == "security")
             {
-                <h5 class="mb-3">Güvenlik Ayarları</h5>
-                <form asp-action="ChangePassword" method="post" class="row g-3">
-                    @Html.AntiForgeryToken()
-                    <div class="col-md-4">
-                        <label asp-for="PasswordForm.CurrentPassword" class="form-label"></label>
-                        <input asp-for="PasswordForm.CurrentPassword" class="form-control" />
-                        <span asp-validation-for="PasswordForm.CurrentPassword" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h5 class="mb-3"><i class="bi bi-shield-lock me-1"></i>@T("Şifre Değiştir", "Change Password", "Изменить пароль", "تغيير كلمة المرور", "تغییر رمز عبور")</h5>
+                        <form asp-action="ChangePassword" method="post" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <div class="col-12">
+                                <label asp-for="PasswordForm.CurrentPassword" class="form-label small fw-semibold">@T("Mevcut Şifre", "Current Password", "Текущий пароль", "كلمة المرور الحالية", "رمز فعلی")</label>
+                                <input asp-for="PasswordForm.CurrentPassword" class="form-control" type="password" />
+                                <span asp-validation-for="PasswordForm.CurrentPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PasswordForm.NewPassword" class="form-label small fw-semibold">@T("Yeni Şifre", "New Password", "Новый пароль", "كلمة المرور الجديدة", "رمز جدید")</label>
+                                <input asp-for="PasswordForm.NewPassword" class="form-control" type="password" />
+                                <span asp-validation-for="PasswordForm.NewPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PasswordForm.ConfirmNewPassword" class="form-label small fw-semibold">@T("Yeni Şifre (Tekrar)", "Confirm New Password", "Подтвердите новый пароль", "تأكيد كلمة المرور الجديدة", "تکرار رمز جدید")</label>
+                                <input asp-for="PasswordForm.ConfirmNewPassword" class="form-control" type="password" />
+                                <span asp-validation-for="PasswordForm.ConfirmNewPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>@T("Şifreyi Güncelle", "Update Password", "Обновить пароль", "تحديث كلمة المرور", "به‌روزرسانی رمز عبور")</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="PasswordForm.NewPassword" class="form-label"></label>
-                        <input asp-for="PasswordForm.NewPassword" class="form-control" />
-                        <span asp-validation-for="PasswordForm.NewPassword" class="text-danger"></span>
+                    <div class="col-lg-6">
+                        <h5 class="mb-3"><i class="bi bi-info-circle me-1"></i>@T("Güvenlik İpuçları", "Security Tips", "Советы по безопасности", "نصائح الأمان", "نکات امنیتی")</h5>
+                        <div class="alert alert-info small">
+                            <ul class="mb-0 ps-3">
+                                <li>@T("Şifreniz en az 6 karakter olmalıdır", "Your password must be at least 6 characters", "Пароль должен содержать не менее 6 символов", "يجب أن تكون كلمة المرور 6 أحرف على الأقل", "رمز عبور باید حداقل ۶ کاراکتر باشد")</li>
+                                <li>@T("Büyük/küçük harf ve rakam kullanın", "Use upper/lowercase letters and numbers", "Используйте буквы верхнего/нижнего регистра и цифры", "استخدم أحرفًا كبيرة/صغيرة وأرقامًا", "از حروف بزرگ/کوچک و اعداد استفاده کنید")</li>
+                                <li>@T("Şifrenizi düzenli olarak değiştirin", "Change your password regularly", "Регулярно меняйте пароль", "غيّر كلمة المرور بانتظام", "رمز عبور خود را مرتب تغییر دهید")</li>
+                                <li>@T("Şifrenizi kimseyle paylaşmayın", "Do not share your password", "Не делитесь своим паролем", "لا تشارك كلمة المرور الخاصة بك", "رمز عبور خود را با کسی به اشتراک نگذارید")</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="PasswordForm.ConfirmNewPassword" class="form-label"></label>
-                        <input asp-for="PasswordForm.ConfirmNewPassword" class="form-control" />
-                        <span asp-validation-for="PasswordForm.ConfirmNewPassword" class="text-danger"></span>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Şifreyi Güncelle</button>
-                    </div>
-                </form>
+                </div>
             }
             else if (activeTab == "listings")
             {
-                <h5 class="mb-3">İlanlarım</h5>
-                
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-1"></i>@T("İlanlarım", "My Listings", "Мои объявления", "إعلاناتي", "آگهی‌های من") (@Model.MyListings.Count)</h5>
+                    <a href="@Url.Action("Publish", "Home")" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>@T("Yeni İlan", "New Listing", "Новое объявление", "إعلان جديد", "آگهی جدید")</a>
+                </div>
                 @if (Model.MyListings.Count == 0)
                 {
-                    <div class="text-muted">Henüz size ait ilan bulunmuyor.</div>
-                    <a href="@Url.Action("Publish", "Home")" class="btn btn-primary mt-3">İlk İlanını Ver</a>
+                    <div class="text-center py-5">
+                        <i class="bi bi-megaphone text-muted" style="font-size:3rem;"></i>
+                        <h6 class="mt-3">@T("Henüz ilanınız yok", "You have no listings yet", "У вас еще нет объявлений", "ليس لديك إعلانات بعد", "هنوز آگهی‌ای ندارید")</h6>
+                        <p class="text-muted small">@T("İlk ilanınızı vererek satışa başlayın!", "Start selling by posting your first listing!", "Начните продавать, разместив первое объявление!", "ابدأ البيع بإضافة أول إعلانك!", "با ثبت اولین آگهی خود فروش را شروع کنید!")</p>
+                        <a href="@Url.Action("Publish", "Home")" class="btn btn-primary">@T("İlan Ver", "Post Listing", "Разместить объявление", "أضف إعلانًا", "ثبت آگهی")</a>
+                    </div>
                 }
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
+                        <table class="table align-middle table-hover">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Görsel</th>
-                                    <th>Başlık</th>
-                                    <th>Fiyat</th>
-                                    <th>Durum</th>
-                                    <th>Vitrin/Öne Çıkan</th>
-                                    <th>Tarih</th>
-                                    <th>İşlemler</th>
+                                    <th>@T("İlan", "Listing", "Объявление", "الإعلان", "آگهی")</th>
+                                    <th>@T("Fiyat", "Price", "Цена", "السعر", "قیمت")</th>
+                                    <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                                    <th class="text-center">@T("Görüntülenme", "Views", "Просмотры", "المشاهدات", "بازدید")</th>
+                                    <th>@T("Tarih", "Date", "Дата", "التاريخ", "تاریخ")</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -224,61 +282,49 @@
                                 {
                                     <tr>
                                         <td>
-                                            @if (!string.IsNullOrEmpty(item.CoverImageUrl))
-                                            {
-                                                <img src="@item.CoverImageUrl" alt="@item.Title" style="width: 60px; height: 60px; object-fit: cover;" class="rounded" />
-                                            }
-                                            else
-                                            {
-                                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                                    <i class="bi bi-image"></i>
+                                            <div class="d-flex align-items-center">
+                                                @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                                                {
+                                                    <img src="@item.CoverImageUrl" alt="@item.Title" class="rounded me-2" style="width:48px;height:48px;object-fit:cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width:48px;height:48px;">
+                                                        <i class="bi bi-image text-muted"></i>
+                                                    </div>
+                                                }
+                                                <div style="min-width:0;">
+                                                    <div class="fw-semibold text-truncate" style="max-width:200px;">@item.Title</div>
+                                                    <div class="small text-muted">@item.City</div>
+                                                    @if (item.IsFeatured && (item.FeaturedExpiryDate == null || item.FeaturedExpiryDate > DateTime.UtcNow))
+                                                    {
+                                                        <span class="badge bg-primary" style="font-size:0.6rem;">@T("Öne Çıkan", "Featured", "Рекомендуемое", "مميز", "ویژه")</span>
+                                                    }
+                                                    @if (item.IsVitrin && (item.VitrinExpiryDate == null || item.VitrinExpiryDate > DateTime.UtcNow))
+                                                    {
+                                                        <span class="badge bg-warning text-dark" style="font-size:0.6rem;">@T("Vitrin", "Showcase", "Витрина", "الواجهة", "ویترین")</span>
+                                                    }
                                                 </div>
-                                            }
+                                            </div>
                                         </td>
-                                        <td>
-                                            <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="text-decoration-none">
-                                                @item.Title
-                                            </a>
-                                            <div class="small text-muted">@item.City</div>
-                                        </td>
-                                        <td>
-                                            <strong>@item.PriceAmount.ToString("N0") @item.PriceCurrency</strong>
-                                        </td>
+                                        <td><strong>@item.PriceAmount.ToString("N0") @item.PriceCurrency</strong></td>
                                         <td>
                                             @if (item.IsApproved)
                                             {
-                                                <span class="badge bg-success">Yayında</span>
+                                                <span class="badge bg-success">@T("Yayında", "Published", "Опубликовано", "منشور", "منتشر شده")</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-warning text-dark">Bekliyor</span>
+                                                <span class="badge bg-warning text-dark">@T("Bekliyor", "Pending", "В ожидании", "قيد الانتظار", "در انتظار")</span>
                                             }
                                         </td>
+                                        <td class="text-center"><span class="badge bg-light text-dark border"><i class="bi bi-eye"></i> @item.ViewCount</span></td>
+                                        <td><small class="text-muted">@item.CreatedAt.ToString("dd.MM.yyyy")</small></td>
                                         <td>
-                                            @if (item.IsFeatured && (item.FeaturedExpiryDate == null || item.FeaturedExpiryDate > DateTime.UtcNow))
-                                            {
-                                                <span class="badge bg-primary me-1">Öne Çıkan</span>
-                                            }
-                                            @if (item.IsVitrin && (item.VitrinExpiryDate == null || item.VitrinExpiryDate > DateTime.UtcNow))
-                                            {
-                                                <span class="badge bg-warning">Vitrin</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">@item.CreatedAt.ToString("dd.MM.yyyy")</small>
-                                        </td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                                    İşlem
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="@Url.Action("Details", "Home", new { id = item.Id })">Görüntüle</a></li>
-                                                    <li><a class="dropdown-item" href="@Url.Action("Edit", "Home", new { id = item.Id })">Düzenle</a></li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li><a class="dropdown-item text-danger" href="@Url.Action("Pricing", "Promote", new { listingId = item.Id })">Güçlendir</a></li>
-                                                    <li><a class="dropdown-item text-danger" href="@Url.Action("Pricing", "Index")">Paket Satın Al</a></li>
-                                                </ul>
+                                            <div class="d-flex gap-1">
+                                                <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="btn btn-sm btn-primary"><i class="bi bi-eye me-1"></i>@T("Görüntüle", "View", "Просмотр", "عرض", "مشاهده")</a>
+                                                <a href="@Url.Action("EditListing", "Account", new { id = item.Id })" class="btn btn-sm btn-secondary"><i class="bi bi-pencil me-1"></i>@T("Düzenle", "Edit", "Редактировать", "تعديل", "ویرایش")</a>
+                                                <a href="@Url.Action("Index", "Pricing", new { listingId = item.Id })" class="btn btn-sm btn-warning text-dark"><i class="bi bi-star me-1"></i>@T("Güçlendir", "Promote", "Продвинуть", "تعزيز", "ارتقا")</a>
                                             </div>
                                         </td>
                                     </tr>
@@ -288,28 +334,274 @@
                     </div>
                 }
             }
-                            <thead>
-                                <tr>
-                                    <th>Başlık</th>
-                                    <th>Şehir</th>
-                                    <th>Fiyat</th>
-                                    <th>Durum</th>
-                                    <th>Tarih</th>
-                                </tr>
+            else if (activeTab == "favorites")
+            {
+                <h5 class="mb-3"><i class="bi bi-heart me-1"></i>@T("Favoriler", "Favorites", "Избранное", "المفضلة", "علاقه‌مندی‌ها")</h5>
+                @if (!Model.Favorites.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-heart text-muted" style="font-size:3rem;"></i>
+                        <h6 class="mt-3">@T("Henüz favori ilanınız yok", "You don't have any favorite listings yet", "У вас еще нет избранных объявлений", "ليس لديك إعلانات مفضلة بعد", "هنوز آگهی موردعلاقه‌ای ندارید")</h6>
+                        <p class="text-muted small">@T("Beğendiğiniz ilanları favorilere ekleyerek kaydedebilirsiniz.", "Save listings you like by adding them to favorites.", "Сохраняйте понравившиеся объявления, добавляя их в избранное.", "احفظ الإعلانات التي تعجبك بإضافتها إلى المفضلة.", "آگهی‌های موردعلاقه را با افزودن به علاقه‌مندی‌ها ذخیره کنید.")</p>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-outline-primary btn-sm">@T("İlanlara Göz At", "Browse Listings", "Просмотреть объявления", "تصفح الإعلانات", "مشاهده آگهی‌ها")</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-2">
+                        @foreach (var item in Model.Favorites)
+                        {
+                            <div class="col-md-6">
+                                <div class="card shadow-sm">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center" style="min-width:0;">
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">
+                                                    <i class="bi bi-image text-muted small"></i>
+                                                </div>
+                                                <div style="min-width:0;">
+                                                    <div class="small fw-semibold text-truncate">@item.Title</div>
+                                                    <div class="small text-muted">@item.PriceAmount.ToString("N0") @item.PriceCurrency</div>
+                                                </div>
+                                            </div>
+                                            <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="btn btn-sm btn-outline-primary">Görüntüle</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else if (activeTab == "messages")
+            {
+                var msgFilter = ViewData["MsgFilter"] as string ?? "all";
+                var totalMessages = Model.VisitorMessages.Count;
+                var unreadMessages = Model.VisitorMessages.Count(t => !t.IsRead);
+                if (!Model.VisitorMessages.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-chat-square-text text-muted" style="font-size:3rem;"></i>
+                        <h6 class="mt-3">@T("Henüz mesaj yok", "No messages yet", "Сообщений пока нет", "لا توجد رسائل بعد", "هنوز پیامی نیست")</h6>
+                        <p class="text-muted small">@T("İlanlarınıza gelen ziyaretçi mesajları burada görünecektir.", "Visitor messages for your listings will appear here.", "Сообщения посетителей по вашим объявлениям будут отображаться здесь.", "ستظهر رسائل الزوار لإعلاناتك هنا.", "پیام‌های بازدیدکنندگان برای آگهی‌های شما اینجا نمایش داده می‌شود.")</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-pill">@totalMessages</span>
+                            <small class="text-muted">@T("Toplam", "Total", "Всего", "الإجمالي", "مجموع")</small>
+                            @if (unreadMessages > 0)
+                            {
+                                <span class="badge bg-danger rounded-pill ms-1">@unreadMessages @T("yeni", "new", "новых", "جديدة", "جدید")</span>
+                            }
+                        </div>
+                        @if (unreadMessages > 0)
+                        {
+                            <form asp-action="MarkAllMessagesAsRead" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check2-all me-1"></i>@T("Tümünü Okundu İşaretle", "Mark All as Read", "Отметить все как прочитанные", "تمييز الكل كمقروء", "علامت‌گذاری همه به‌عنوان خوانده‌شده")</button>
+                            </form>
+                        }
+                    </div>
+                    <div class="row g-0" style="border:1px solid #e2e5e9;border-radius:12px;overflow:hidden;min-height:480px;">
+                        <div class="col-md-4" style="border-right:1px solid #e2e5e9;background:#f8f9fb;">
+                            <div class="p-2">
+                                <input type="text" class="form-control form-control-sm" placeholder="@T("Ara...", "Search...", "Поиск...", "ابحث...", "جستجو...")" oninput="filterThreads(this.value)" style="border-radius:8px;" />
+                                <div class="d-flex gap-1 mt-2">
+                                    <a href="@Url.Action("Dashboard", new { tab = "messages", filter = "all" })" class="btn btn-sm @(msgFilter == "all" ? "btn-primary" : "btn-outline-secondary") flex-fill">@T("Tümü", "All", "Все", "الكل", "همه")</a>
+                                    <a href="@Url.Action("Dashboard", new { tab = "messages", filter = "unread" })" class="btn btn-sm @(msgFilter == "unread" ? "btn-primary" : "btn-outline-secondary") flex-fill">@T("Okunmamış", "Unread", "Непрочитанные", "غير مقروءة", "خوانده‌نشده")</a>
+                                </div>
+                            </div>
+                            <div style="max-height:400px;overflow-y:auto;">
+                                @foreach (var thread in Model.VisitorMessages)
+                                {
+                                    var isSelected = Model.SelectedThreadId == thread.Id;
+                                    var activeClass = isSelected ? "border-start border-3 border-primary bg-light" : "";
+                                    var roleBadge = (thread.SenderRole ?? "").ToLowerInvariant() switch { "admin" => "bg-primary", "owner" => "bg-success", _ => "bg-warning text-dark" };
+                                    <div class="msg-sidebar-item text-decoration-none @activeClass" style="border-bottom:1px solid #f0f1f3;padding:8px 10px;" data-search="@(thread.Subject + " " + thread.SenderName + " " + thread.ListingTitle)">
+                                        <a href="@Url.Action("Dashboard", new { tab = "messages", threadId = thread.Id })" class="text-decoration-none d-block">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="small fw-semibold text-truncate" style="max-width:160px;color:#111827;">@thread.Subject</span>
+                                                @if (!thread.IsRead) { <span class="rounded-circle bg-danger" style="width:8px;height:8px;display:inline-block;"></span> }
+                                            </div>
+                                            <div class="small text-muted text-truncate mb-1">@(thread.SenderName ?? "Bilinmiyor") · @thread.ListingTitle</div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge @roleBadge" style="font-size:0.6rem;">@(thread.SenderRole ?? "-")</span>
+                                                <small class="text-muted" style="font-size:0.65rem;">@thread.CreatedAtUtc.ToLocalTime().ToString("dd.MM HH:mm")</small>
+                                            </div>
+                                        </a>
+                                         <div class="d-flex gap-1 mt-1">
+                                             @if (!thread.IsRead)
+                                             {
+                                                 <form asp-action="MarkMessageAsRead" method="post" class="d-inline">
+                                                     @Html.AntiForgeryToken()
+                                                     <input type="hidden" name="id" value="@thread.RootMessageId" />
+                                                     <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check2 me-1"></i>@T("Okundu", "Read", "Прочитано", "مقروء", "خوانده شد")</button>
+                                                 </form>
+                                             }
+                                             <form asp-action="ArchiveMessage" method="post" class="d-inline">
+                                                 @Html.AntiForgeryToken()
+                                                 <input type="hidden" name="id" value="@thread.RootMessageId" />
+                                                 <button type="submit" class="btn btn-sm btn-warning text-dark"><i class="bi bi-archive me-1"></i>@T("Arşivle", "Archive", "В архив", "أرشفة", "بایگانی")</button>
+                                             </form>
+                                             <form asp-action="DeleteMessage" method="post" class="d-inline" onsubmit="return confirm('@T("Bu mesajı silmek istediğinize emin misiniz?", "Are you sure you want to delete this message?", "Вы уверены, что хотите удалить это сообщение?", "هل أنت متأكد أنك تريد حذف هذه الرسالة؟", "آیا مطمئنید می‌خواهید این پیام را حذف کنید؟")')">
+                                                 @Html.AntiForgeryToken()
+                                                 <input type="hidden" name="id" value="@thread.RootMessageId" />
+                                                 <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash me-1"></i>Sil</button>
+                                             </form>
+                                         </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            @if (!Model.SelectedThreadId.HasValue)
+                            {
+                                <div class="d-flex flex-column align-items-center justify-content-center text-muted" style="height:480px;">
+                                    <i class="bi bi-chat-left-text" style="font-size:3rem;opacity:.4;"></i>
+                                    <p class="mt-3 small">@T("Görüntülemek için bir mesaj seçin", "Select a message to view", "Выберите сообщение для просмотра", "اختر رسالة لعرضها", "برای مشاهده یک پیام را انتخاب کنید")</p>
+                                </div>
+                            }
+                            else
+                            {
+                                var selectedThread = Model.VisitorMessages.FirstOrDefault(t => t.Id == Model.SelectedThreadId);
+                                if (selectedThread != null)
+                                {
+                                    <div class="p-3" style="border-bottom:1px solid #e2e5e9;background:#f8f9fb;">
+                                        <h6 class="mb-1">@selectedThread.Subject</h6>
+                                        <small class="text-muted"><strong>@(selectedThread.SenderName ?? "Bilinmiyor")</strong>@if (!string.IsNullOrWhiteSpace(selectedThread.SenderEmail)) { <span> · <a href="mailto:@selectedThread.SenderEmail">@selectedThread.SenderEmail</a></span> }@if (!string.IsNullOrWhiteSpace(selectedThread.SenderPhone)) { <span> · <a href="tel:@selectedThread.SenderPhone">@selectedThread.SenderPhone</a></span> }</small>
+                                        @if (!string.IsNullOrWhiteSpace(selectedThread.ListingTitle)) { <a href="@Url.Action("Details", "Home", new { id = selectedThread.ListingId })" class="d-block mt-1 small text-decoration-none"><i class="bi bi-box-arrow-up-right me-1"></i>@selectedThread.ListingTitle</a> }
+                                    </div>
+                                    <div id="msgChatBody" style="max-height:350px;overflow-y:auto;padding:16px;background:#fafbfc;">
+                                        @foreach (var message in selectedThread.Messages)
+                                        {
+                                            var isOwner = message.SenderRole == "owner";
+                                            <div class="mb-3 d-flex @(isOwner ? "justify-content-end" : "justify-content-start")">
+                                                <div class="rounded-3 p-3 @(isOwner ? "bg-primary text-white" : "bg-white border")" style="max-width:75%;font-size:0.875rem;">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1"><strong style="font-size:0.8rem;">@message.SenderName</strong><small class="@(isOwner ? "text-white-50" : "text-muted")" style="font-size:0.7rem;">@message.CreatedAtUtc.ToLocalTime().ToString("dd.MM HH:mm")</small></div>
+                                                    <div class="small mb-1">@(message.SenderRole ?? "-")</div>
+                                                    <div>@message.Message</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="p-3" style="border-top:1px solid #e2e5e9;">
+                                        <form id="replyForm" asp-action="ReplyMessage" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@selectedThread.RootMessageId" />
+                                            <textarea name="replyText" id="replyText" class="form-control mb-2" rows="2" placeholder="@T("Cevabınızı yazın...", "Write your reply...", "Напишите ответ...", "اكتب ردك...", "پاسخ خود را بنویسید...")"></textarea>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted"><i class="bi bi-shield-check me-1"></i>@T("Mesajlarınız güvendedir", "Your messages are safe", "Ваши сообщения в безопасности", "رسائلك آمنة", "پیام‌های شما امن هستند")</small>
+                                                <button type="submit" id="replyBtn" class="btn btn-primary btn-sm"><i class="bi bi-send me-1"></i>@T("Gönder", "Send", "Отправить", "إرسال", "ارسال")</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    @if (!selectedThread.IsRead)
+                                    {
+                                        <div class="p-2" style="border-top:1px dashed #e2e5e9;background:#f8f9fb;">
+                                            <form asp-action="MarkMessageAsRead" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@selectedThread.RootMessageId" />
+                                                <button type="submit" class="btn btn-sm btn-secondary w-100"><i class="bi bi-check2-circle me-1"></i>@T("Okundu İşaretle", "Mark as Read", "Отметить как прочитанное", "تمييز كمقروء", "علامت‌گذاری به‌عنوان خوانده‌شده")</button>
+                                            </form>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="d-flex flex-column align-items-center justify-content-center text-muted" style="height:480px;">
+                                        <i class="bi bi-exclamation-circle" style="font-size:2rem;opacity:.4;"></i>
+                                        <p class="mt-2 small">@T("Mesaj bulunamadı", "Message not found", "Сообщение не найдено", "لم يتم العثور على الرسالة", "پیامی یافت نشد")</p>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <script>
+                        function filterThreads(q) {
+                            var query = q.toLowerCase().trim();
+                            document.querySelectorAll('.msg-sidebar-item').forEach(function (item) {
+                                var t = (item.getAttribute('data-search') || '').toLowerCase();
+                                item.style.display = t.includes(query) ? '' : 'none';
+                            });
+                        }
+                        (function () { var c = document.getElementById('msgChatBody'); if (c) c.scrollTop = c.scrollHeight; })();
+                        (function () {
+                            var f = document.getElementById('replyForm'), t = document.getElementById('replyText'), b = document.getElementById('replyBtn');
+                            if (!f) return;
+                            f.addEventListener('submit', async function (e) {
+                                e.preventDefault(); if (!t.value.trim()) { t.focus(); return; }
+                                b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Gönderiliyor...';
+                                try {
+                                    var r = await fetch(f.action, { method: 'POST', body: new FormData(f), headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                                    var j = await r.json();
+                                    if (j.success) {
+                                        t.value = '';
+                                        var chat = document.getElementById('msgChatBody');
+                                        if (chat) {
+                                            var ts = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                            var div = document.createElement('div');
+                                            div.className = 'mb-3 d-flex justify-content-end';
+                                            div.innerHTML = '<div class="rounded-3 p-3 bg-primary text-white" style="max-width:75%;font-size:0.875rem;"><div class="d-flex justify-content-between align-items-center mb-1"><strong style="font-size:0.8rem;">Siz</strong><small class="text-white-50" style="font-size:0.7rem;">' + ts + '</small></div><div>' + j.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div></div>';
+                                            chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
+                                        }
+                                    } else { alert(j.message || 'Bir hata oluştu.'); }
+                                } catch (err) { console.error(err); alert('Mesaj gönderilemedi.'); }
+                                finally { b.disabled = false; b.innerHTML = '<i class="bi bi-send me-1"></i>Gönder'; }
+                            });
+                        })();
+                    </script>
+                }
+            }
+            else if (activeTab == "notifications")
+            {
+                <h5 class="mb-3"><i class="bi bi-bell me-1"></i>@T("Bildirimler", "Notifications", "Уведомления", "الإشعارات", "اعلان‌ها")</h5>
+                <form asp-action="NotificationSettings" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@T("E-posta Bildirimleri", "Email Notifications", "Email-уведомления", "إشعارات البريد الإلكتروني", "اعلان‌های ایمیلی")</strong>
+                                    <div class="small text-muted">@T("Yeni mesaj ve ilan güncellemeleri hakkında e-posta alın", "Receive emails about new messages and listing updates", "Получайте письма о новых сообщениях и обновлениях объявлений", "استلم رسائل بريد إلكتروني حول الرسائل الجديدة وتحديثات الإعلانات", "درباره پیام‌های جدید و به‌روزرسانی آگهی‌ها ایمیل دریافت کنید")</div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input asp-for="NotificationForm.EmailNotifications" class="form-check-input" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>@T("Tercihleri Kaydet", "Save Preferences", "Сохранить настройки", "حفظ التفضيلات", "ذخیره ترجیحات")</button>
+                </form>
+            }
+            else if (activeTab == "billing")
+            {
+                <h5 class="mb-3"><i class="bi bi-receipt me-1"></i>@T("Fatura ve Ödeme Geçmişi", "Invoice and Payment History", "История счетов и платежей", "سجل الفواتير والمدفوعات", "تاریخچه فاکتورها و پرداخت‌ها")</h5>
+                @if (!Model.BillingItems.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-receipt text-muted" style="font-size:3rem;"></i>
+                        <h6 class="mt-3">@T("Henüz fatura yok", "No invoices yet", "Счетов пока нет", "لا توجد فواتير بعد", "هنوز فاکتوری وجود ندارد")</h6>
+                        <p class="text-muted small">@T("Paket satın aldığınızda faturalarınız burada görünecektir.", "Your invoices will appear here after you purchase a package.", "Ваши счета появятся здесь после покупки пакета.", "ستظهر فواتيرك هنا بعد شراء باقة.", "پس از خرید بسته، فاکتورهای شما اینجا نمایش داده می‌شود.")</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr><th>@T("Fatura No", "Invoice No", "Номер счета", "رقم الفاتورة", "شماره فاکتور")</th><th>@T("Tarih", "Date", "Дата", "التاريخ", "تاریخ")</th><th>@T("Tutar", "Amount", "Сумма", "المبلغ", "مبلغ")</th><th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th></tr>
                             </thead>
                             <tbody>
-                                @foreach (var item in Model.MyListings)
+                                @foreach (var item in Model.BillingItems)
                                 {
                                     <tr>
-                                        <td>@item.Title</td>
-                                        <td>@item.City</td>
-                                        <td>@item.PriceAmount @item.PriceCurrency</td>
-                                        <td>
-                                            <span class="badge @(item.IsApproved ? "text-bg-success" : "text-bg-warning")">
-                                                @(item.IsApproved ? "Yayında" : "Onay Bekliyor")
-                                            </span>
-                                        </td>
-                                        <td>@item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                        <td>@item.InvoiceNo</td>
+                                        <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                        <td><strong>@item.Amount.ToString("N0") @item.Currency</strong></td>
+                                        <td><span class="badge bg-success">@item.Status</span></td>
                                     </tr>
                                 }
                             </tbody>
@@ -317,176 +609,9 @@
                     </div>
                 }
             }
-            else if (activeTab == "favorites")
-            {
-                <h5 class="mb-3">Favoriler</h5>
-                <div class="text-muted">Favori sistemi bir sonraki adımda ilan kartlarıyla entegre edilecek. Altyapı panelde hazırlandı.</div>
-            }
-            else if (activeTab == "notifications")
-            {
-                <h5 class="mb-3">Bildirim Tercihleri</h5>
-                <form asp-action="NotificationSettings" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="form-check form-switch mb-2">
-                        <input asp-for="NotificationForm.EmailNotifications" class="form-check-input" />
-                        <label asp-for="NotificationForm.EmailNotifications" class="form-check-label"></label>
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        <input asp-for="NotificationForm.SmsNotifications" class="form-check-input" />
-                        <label asp-for="NotificationForm.SmsNotifications" class="form-check-label"></label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Tercihleri Kaydet</button>
-                </form>
-            }
-            else if (activeTab == "billing")
-            {
-                <h5 class="mb-3">Fatura ve Ödeme Geçmişi</h5>
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead>
-                            <tr>
-                                <th>Fatura No</th>
-                                <th>Tarih</th>
-                                <th>Tutar</th>
-                                <th>Durum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model.BillingItems)
-                            {
-                                <tr>
-                                    <td>@item.InvoiceNo</td>
-                                    <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
-                                    <td>@item.Amount @item.Currency</td>
-                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else if (activeTab == "corporate")
-            {
-                @if (TempData["CorporateSuccess"] is string corpSuccess)
-                {
-                    <div class="alert alert-success">@corpSuccess</div>
-                }
-
-                @if (Model.User.IsCorporateMember)
-                {
-                    <div class="row">
-                        <div class="col-lg-4 mb-4">
-                            <div class="card border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <h6 class="mb-0"><i class="bi bi-building me-2"></i>@L["corporateStore"]</h6>
-                                </div>
-                                <div class="card-body text-center">
-                                    @if (!string.IsNullOrEmpty(Model.User.CompanyLogoUrl))
-                                    {
-                                        <img src="@Model.User.CompanyLogoUrl" alt="@Model.User.CompanyName" class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;" />
-                                    }
-                                    else
-                                    {
-                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                            <i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i>
-                                        </div>
-                                    }
-                                    <h5>@Model.User.CompanyName</h5>
-                                    @if (Model.User.IsCorporateApproved)
-                                    {
-                                        <span class="badge bg-success mb-2"><i class="bi bi-patch-check-fill me-1"></i>@L["verifiedStore"]</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning text-dark mb-2"><i class="bi bi-clock me-1"></i>Onay Bekliyor</span>
-                                    }
-                                    <div class="mt-3 text-start">
-                                        <p class="mb-1"><strong>@L["selectPlan"]:</strong> @Model.User.SubscriptionPlan</p>
-                                        <p class="mb-1"><strong>Vergi No:</strong> @Model.User.CompanyTaxNumber</p>
-                                        <p class="mb-0"><strong>Telefon:</strong> @Model.User.CompanyPhone</p>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-light">
-                                    <a asp-action="UpdateCorporate" class="btn btn-outline-primary btn-sm w-100">
-                                        <i class="bi bi-pencil me-1"></i>Bilgileri Güncelle
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-8 mb-4">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <i class="bi bi-file-earmark-text text-primary" style="font-size: 2rem;"></i>
-                                            <h6 class="mt-2 mb-1">İlan Kotası</h6>
-                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.ListingsRemainingThisMonth == 999999 ? "∞" : Model.User.ListingsRemainingThisMonth.ToString())</p>
-                                            <small class="text-muted">/@(Model.User.TotalListingsAllowed == 999999 ? "∞" : Model.User.TotalListingsAllowed.ToString()) @L["listingsPerMonth"]</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
-                                            <h6 class="mt-2 mb-1">@L["featuredListings"]</h6>
-                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.FeaturedListingsIncluded - Model.User.FeaturedListingsUsed)</p>
-                                            <small class="text-muted">/@Model.User.FeaturedListingsIncluded kaldı</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="card bg-light">
-                                        <div class="card-body text-center">
-                                            <i class="bi bi-eye-fill text-info" style="font-size: 2rem;"></i>
-                                            <h6 class="mt-2 mb-1">@L["vitrinListings"]</h6>
-                                            <p class="mb-0 fs-5 fw-bold">@(Model.User.VitrinListingsIncluded - Model.User.VitrinListingsUsed)</p>
-                                            <small class="text-muted">/@Model.User.VitrinListingsIncluded kaldı</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card mt-3">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Abonelik Detayları</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <p class="mb-1"><strong>Başlangıç:</strong> @(Model.User.SubscriptionStartDate?.ToString("dd.MM.yyyy") ?? "-")</p>
-                                            <p class="mb-1"><strong>Bitiş:</strong> @(Model.User.SubscriptionEndDate?.ToString("dd.MM.yyyy") ?? "-")</p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <p class="mb-1"><strong>Durum:</strong> 
-                                                @if (Model.User.IsSubscriptionActive)
-                                                {
-                                                    <span class="badge bg-success">Aktif</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning text-dark">Beklemede</span>
-                                                }
-                                            </p>
-                                            <p class="mb-0"><strong>Not:</strong> @(Model.User.CorporateNote ?? "-")</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-5">
-                        <i class="bi bi-building text-muted" style="font-size: 4rem;"></i>
-                        <h5 class="mt-3">@L["corporateMembership"]</h5>
-                        <p class="text-muted mb-4">İşletmenizi profesyonel bir şekilde sergileyin. Onaylı rozet, sınırsız ilan ve öncelikli destek ile satışlarınızı artırın.</p>
-                        <a asp-action="CorporateMembership" class="btn btn-primary btn-lg">
-                            <i class="bi bi-arrow-right-circle me-2"></i>@L["submitApplication"]
-                        </a>
-                    </div>
-                }
-            }
         </div>
     </div>
+    <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary" style="position:fixed;top:12px;left:12px;z-index:1050;border-radius:20px;padding:4px 12px;font-size:0.75rem;">
+        <i class="bi bi-arrow-left me-1"></i>@T("Geri", "Back", "Назад", "رجوع", "بازگشت")
+    </a>
 </div>

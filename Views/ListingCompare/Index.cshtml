@@ -1,0 +1,221 @@
+@model List<SEN_T_PAZAR.Models.Listing>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    ViewData["Title"] = T("İlan Karşılaştırma", "Compare Listings", "Сравнение объявлений", "مقارنة الإعلانات", "مقایسه آگهی‌ها");
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+    var categories = Model.Select(l => l.Category).Distinct().ToList();
+    var isSameCategory = categories.Count <= 1;
+    string AvailabilityLabel(bool exists) => exists
+        ? T("✅ Var", "✅ Available", "✅ Есть", "✅ متوفر", "✅ موجود")
+        : T("❌ Yok", "❌ Not available", "❌ Нет", "❌ غير متوفر", "❌ موجود نیست");
+}
+
+<style>
+    .comparison-container {
+        overflow-x: auto;
+        padding: 2rem 0;
+    }
+    .comparison-table {
+        min-width: 1000px;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+    }
+    .comparison-table th, .comparison-table td {
+        padding: 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        width: 25%;
+    }
+    .comparison-table th {
+        background: #fcfcfc;
+        font-weight: 700;
+        color: #1e3a66;
+        text-align: left;
+    }
+    .comparison-table th:first-child {
+        border-top-left-radius: 16px;
+        background: #fff;
+        width: 20%;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 10;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .listing-thumb {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    .price-tag {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #FF6F00;
+    }
+    .spec-row th {
+        background: #f8fbff;
+        color: #007ACC;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 100px;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold text-gradient">@T("İlan Karşılaştırma", "Compare Listings", "Сравнение объявлений", "مقارنة الإعلانات")</h1>
+            <p class="text-muted">@Model.Count @T("ilanı yan yana inceleyin.", "listings side by side.", "объявления рядом.", "إعلانات جنبًا إلى جنب.")</p>
+        </div>
+        @if (Model.Any())
+        {
+            <button onclick="clearComparison()" class="btn btn-outline-danger btn-sm rounded-pill">
+                <i class="bi bi-trash me-1"></i>@T("Tümünü Temizle", "Clear All", "Очистить все", "مسح الكل")
+            </button>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state card border-0 rounded-4 shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-intersect fs-1 text-muted mb-3 d-block"></i>
+                <h3>@T("Karşılaştırılacak ilan bulunamadı", "No listings to compare", "Нет объявлений для сравнения", "لا يوجد إعلانات للمقارنة")</h3>
+                <p class="text-muted">@T("En az iki ilanı seçip karşılaştırma yapmaya başlayabilirsiniz.", "Select at least two listings to start comparing.", "Выберите как минимум два объявления, чтобы начать сравнение.", "اختر إعلانين على الأقل لبدء المقارنة.")</p>
+                <a href="/" class="btn btn-primary px-4 py-2 mt-2">@T("Keşfet", "Explore", "Смотреть объявления", "استكشف")</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="comparison-container">
+            <table class="comparison-table">
+                <tbody>
+                    <tr class="sticky-header">
+                        <th></th>
+                        @foreach (var item in Model)
+                        {
+                            <td>
+                                <img src="@(item.Images.FirstOrDefault()?.FilePath ?? "/img/placeholder.svg")" class="listing-thumb" alt="@item.Title" />
+                                <h5 class="fw-bold fs-6 mb-2">@item.Title</h5>
+                                <div class="price-tag">@SEN_T_PAZAR.Services.CurrencyDisplay.Format(item.PriceAmount, item.PriceCurrency)</div>
+                                <a asp-action="Details" asp-controller="Home" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm w-100 mt-2 rounded-pill">@L["details"]</a>
+                            </td>
+                        }
+                    </tr>
+
+                    @if (!isSameCategory)
+                    {
+                        <tr>
+                            <th colspan="@(Model.Count + 1)" class="bg-warning-subtle text-warning-emphasis text-center py-2 small">
+                                <i class="bi bi-exclamation-triangle me-1"></i> @T("Farklı kategorilerdeki ilanlar karşılaştırılıyor.", "Comparing listings from different categories.", "Сравнение объявлений из разных категорий.", "مقارنة إعلانات من فئات مختلفة.")
+                            </th>
+                        </tr>
+                    }
+
+                    <tr class="spec-row">
+                        <th colspan="@(Model.Count + 1)">@T("TEMEL BİLGİLER", "BASIC INFO", "ОСНОВНАЯ ИНФОРМАЦИЯ", "معلومات أساسية")</th>
+                    </tr>
+                    <tr>
+                        <th>@L["city"]</th>
+                        @foreach (var item in Model) { <td>@item.City</td> }
+                    </tr>
+                    <tr>
+                        <th>@L["category"]</th>
+                        @foreach (var item in Model) { <td>@L.CategoryLabel(item.Category)</td> }
+                    </tr>
+                    <tr>
+                        <th>@T("Tarih", "Date", "Дата", "التاريخ")</th>
+                        @foreach (var item in Model) { <td>@item.CreatedAt.ToString("dd.MM.yyyy")</td> }
+                    </tr>
+
+                    @if (isSameCategory && categories.FirstOrDefault() == "realestate")
+                    {
+                        <tr class="spec-row">
+                            <th colspan="@(Model.Count + 1)">@T("EMLAK ÖZELLİKLERİ", "ESTATE FEATURES", "ОСОБЕННОСТИ НЕДВИЖИМОСТИ", "خصائص العقار")</th>
+                        </tr>
+                        <tr>
+                            <th>@T("Net M²", "Net Area", "Чистая площадь", "المساحة الصافية")</th>
+                            @foreach (var item in Model) { <td>@item.EstateNetArea m²</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Oda Sayısı", "Rooms", "Комнаты", "عدد الغرف")</th>
+                            @foreach (var item in Model) { <td>@item.EstateRoomCount</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Bina Yaşı", "Building Age", "Возраст здания", "عمر المبنى")</th>
+                            @foreach (var item in Model) { <td>@item.EstateBuildingAge</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Isıtma", "Heating", "Отопление", "التدفئة")</th>
+                            @foreach (var item in Model) { <td>@item.HeatingType</td> }
+                        </tr>
+                    }
+
+                    @if (isSameCategory && categories.FirstOrDefault() == "vehicle")
+                    {
+                        <tr class="spec-row">
+                            <th colspan="@(Model.Count + 1)">@T("ARAÇ ÖZELLİKLERİ", "VEHICLE FEATURES", "ОСОБЕННОСТИ АВТО", "خصائص المركبة")</th>
+                        </tr>
+                        <tr>
+                            <th>@T("Marka / Model", "Brand / Model", "Марка / Модель", "العلامة / الموديل")</th>
+                            @foreach (var item in Model) { <td>@item.VehicleBrand @item.VehicleModel</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Yıl", "Year", "Год", "السنة")</th>
+                            @foreach (var item in Model) { <td>@item.VehicleYear</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Kilometre", "Mileage", "Пробег", "المسافة المقطوعة")</th>
+                            @foreach (var item in Model) { <td>@item.VehicleKM?.ToString("N0") KM</td> }
+                        </tr>
+                        <tr>
+                            <th>@T("Yakıt", "Fuel", "Топливо", "الوقود")</th>
+                            @foreach (var item in Model) { <td>@item.VehicleFuelType</td> }
+                        </tr>
+                    }
+
+                    <tr class="spec-row">
+                        <th colspan="@(Model.Count + 1)">@T("MEDYA", "MEDIA", "МЕДИА", "الوسائط")</th>
+                    </tr>
+                    <tr>
+                        <th>@T("360° Tur", "360° Tour", "360° Тур", "جولة 360")</th>
+                        @foreach (var item in Model) { <td>@AvailabilityLabel(item.Has360Tour)</td> }
+                    </tr>
+                    <tr>
+                        <th>@T("Video", "Video", "Видео", "فيديو")</th>
+                        @foreach (var item in Model) { <td>@AvailabilityLabel(!string.IsNullOrEmpty(item.VideoUrl))</td> }
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function clearComparison() {
+            if(confirm('@T("Karşılaştırma listesini boşaltmak istediğinize emin misiniz?", "Are you sure you want to clear comparison list?", "Уверены, что хотите очистить сравнение?", "هل أنت متأكد من مسح قائمة المقارنة؟")')) {
+                localStorage.removeItem('sen_t_compare');
+                window.location.href = '/';
+            }
+        }
+    </script>
+}

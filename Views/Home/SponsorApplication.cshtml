@@ -1,0 +1,158 @@
+@{
+    ViewData["Title"] = "Sponsorluk Başvuru Süreci";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2">Kurumsal İşbirliği</span>
+                <h1 class="fw-bold">Sponsorluk Başvuru Formu</h1>
+                <p class="text-muted">Gerekli bilgileri doldurarak reklam sürecinizi başlatın.</p>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="SponsorApplicationPost" method="post" enctype="multipart/form-data">
+                        <!-- 1. Firma Bilgileri -->
+                        <h5 class="fw-bold mb-3"><i class="bi bi-building me-2 text-primary"></i>1. Firma Bilgileri</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small">Firma Adı (Unvan) *</label>
+                                <input type="text" class="form-control form-control-lg" required placeholder="Örn: XYZ Ltd. Şti.">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small">Vergi Dairesi ve No *</label>
+                                <input type="text" class="form-control form-control-lg" required placeholder="Örn: Merkez VD / 1234567890">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small">Kurumsal İletişim E-posta *</label>
+                                <input type="email" class="form-control form-control-lg" required placeholder="iletisim@sirketiniz.com">
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted">
+
+                        <!-- 2. Kampanya Detayları -->
+                        <h5 class="fw-bold mb-3"><i class="bi bi-megastack me-2 text-primary"></i>2. Kampanya ve Hedef Kitle</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small">Kampanya Başlığı *</label>
+                                <input type="text" class="form-control form-control-lg" required placeholder="Örn: 2026 Yaz İndirimi">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small">Hedef Kategori *</label>
+                                <select class="form-select form-select-lg" required>
+                                    <option value="">Kategori Seçin</option>
+                                    <option>Tüm Site (Genel)</option>
+                                    <option>Sadece Emlak Aramaları</option>
+                                    <option>Sadece Vasıta Aramaları</option>
+                                    <option>Sadece Teknoloji Ürünleri</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small">Kampanya Açıklaması veya Notunuz</label>
+                                <textarea class="form-control" rows="3" placeholder="Sponsorluk içeriğinde vurgulanmasını istediğiniz notlar..."></textarea>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <label class="form-label text-muted small">Reklam Görselleri (Zip, Jpg, Png. Maks: 5MB) *</label>
+                                <input type="file" class="form-control form-control-lg" required accept=".zip,.jpg,.jpeg,.png">
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted">
+
+                        <!-- 3. Paket ve Ödeme Tutarı -->
+                        <h5 class="fw-bold mb-3"><i class="bi bi-cart-check me-2 text-primary"></i>3. Paket Seçimi</h5>
+                        <div class="mb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="w-100">
+                                        <input type="radio" name="package" class="card-input-element d-none" value="1500" checked />
+                                        <div class="card card-body px-3 py-4 border-2 text-center package-select-card h-100 cursor-pointer">
+                                            <h6 class="fw-bold mb-2">Standart Banner</h6>
+                                            <div class="fs-4 fw-bold text-primary">₺1.500<span class="fs-6 text-muted fw-normal">/ay</span></div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-md-4 position-relative">
+                                    <label class="w-100">
+                                        <input type="radio" name="package" class="card-input-element d-none" value="3500"/>
+                                        <div class="card card-body px-3 py-4 border-2 text-center package-select-card h-100 cursor-pointer">
+                                            <div class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle" style="z-index: 2;">Popüler</div>
+                                            <h6 class="fw-bold mb-2">Sponsor Kart</h6>
+                                            <div class="fs-4 fw-bold text-primary">₺3.500<span class="fs-6 text-muted fw-normal">/ay</span></div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="w-100">
+                                        <input type="radio" name="package" class="card-input-element d-none" value="8500"/>
+                                        <div class="card card-body px-3 py-4 border-2 text-center package-select-card h-100 cursor-pointer">
+                                            <h6 class="fw-bold mb-2">Tam Sayfa Hero</h6>
+                                            <div class="fs-4 fw-bold text-primary">₺8.500<span class="fs-6 text-muted fw-normal">/ay</span></div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted">
+
+                        <!-- 4. Ödeme Bilgileri -->
+                        <h5 class="fw-bold mb-3"><i class="bi bi-credit-card me-2 text-primary"></i>4. Ödeme Aşaması</h5>
+                        <div class="bg-light p-4 rounded-3 border mb-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label text-muted small">Kart Üzerindeki İsim</label>
+                                    <input type="text" class="form-control" placeholder="AD SOYAD">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-muted small">Kart Numarası</label>
+                                    <input type="text" class="form-control" placeholder="0000 0000 0000 0000">
+                                </div>
+                                <div class="col-8">
+                                    <label class="form-label text-muted small">Son Kullanma (AA/YY)</label>
+                                    <input type="text" class="form-control" placeholder="12/26">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label text-muted small">CVV</label>
+                                    <input type="text" class="form-control" placeholder="123">
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mt-3 text-muted small">
+                                <i class="bi bi-shield-lock-fill text-success fs-5 me-2"></i>256-bit SSL Güvence Sertifikası ile ödemeniz koruma altındadır.
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                            <label class="form-check-label text-muted small" for="termsCheck">
+                                <a href="#" class="text-decoration-none">Sponsorluk sözleşmesini</a> okudum, yasadışı reklam içermediğini taahhüt ve kabul ediyorum.
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow-sm rounded-4">
+                            Ödemeyi Tamamla ve Başvur</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-input-element:checked + .package-select-card {
+        border-color: #7c3aed !important;
+        background-color: #f8f5ff;
+        box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
+    }
+    .package-select-card {
+        transition: all 0.2s;
+    }
+    .package-select-card:hover {
+        border-color: #c4b5fd;
+    }
+    .cursor-pointer { cursor: pointer; }
+</style>

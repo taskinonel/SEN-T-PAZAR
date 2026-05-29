@@ -1,0 +1,154 @@
+@model List<SEN_T_PAZAR.Models.VisitorMessageThreadViewModel>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    ViewData["Title"] = "Mesajlar";
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+}
+
+<style>
+    .admin-messages-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 52%, #14b8a6 100%);
+        color: #fff;
+        border-radius: 24px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, .18);
+    }
+    .message-thread-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+        overflow: hidden;
+    }
+    .message-thread-card .card-header {
+        background: linear-gradient(180deg, #fff, #f8fafc);
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .message-bubble {
+        border-radius: 16px;
+        padding: 1rem 1.1rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+    }
+    .message-bubble.is-admin {
+        background: #ecfeff;
+        border-color: #a5f3fc;
+    }
+    .message-meta { font-size: .82rem; color: #64748b; }
+</style>
+
+<div class="container py-4">
+    <div class="admin-messages-hero">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="text-uppercase small opacity-75">@T("Canlı konuşmalar", "Live conversations", "Живые диалоги", "محادثات مباشرة", "گفتگوهای زنده")</div>
+                <h1 class="h3 mb-1">@T("Kullanıcı mesajları", "User messages", "Сообщения пользователей", "رسائل المستخدمين", "پیام‌های کاربران")</h1>
+                <p class="mb-0 opacity-75">@T("Admin olarak sohbet başlatabilir, cevaplayabilir ve konuşmaları tek ekrandan takip edebilirsin.", "As an admin, you can start chats, reply, and follow conversations from one screen.", "Как администратор вы можете отвечать и следить за диалогами на одном экране.", "بصفتك مسؤولاً، يمكنك الرد وتتبع المحادثات من شاشة واحدة.", "به‌عنوان ادمین می‌توانی پاسخ بدهی و گفتگوها را از یک صفحه دنبال کنی.")</p>
+            </div>
+            <a asp-action="Index" class="btn btn-light fw-semibold"><i class="bi bi-speedometer2 me-1"></i>@T("Panele dön", "Back to panel", "Назад к панели", "العودة إلى اللوحة", "بازگشت به پنل")</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div>
+                    <h5 class="mb-1">@T("Hızlı uyarı gönder", "Send quick alert", "Отправить быстрое уведомление", "إرسال تنبيه سريع", "ارسال اعلان سریع")</h5>
+                    <div class="text-muted small">@T("Kayıtlı kullanıcılara veya kurumsal müşterilere sistem mesajı gönderebilirsin.", "You can send a system message to registered users or corporate customers.", "Вы можете отправить системное сообщение зарегистрированным или корпоративным пользователям.", "يمكنك إرسال رسالة نظامية إلى المستخدمين المسجلين أو العملاء المؤسسيين.", "می‌توانی برای کاربران ثبت‌نام‌شده یا مشتریان شرکتی پیام سیستمی ارسال کنی.")</div>
+                </div>
+            </div>
+            <form asp-action="SendBroadcastMessage" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">@T("Hedef kitle", "Audience", "Аудитория", "الفئة المستهدفة", "مخاطب")</label>
+                    <select class="form-select" name="audience" required>
+                        <option value="registered">@T("Kayıtlı kullanıcılar", "Registered users", "Зарегистрированные пользователи", "المستخدمون المسجلون", "کاربران ثبت‌نام‌شده")</option>
+                        <option value="corporate">@T("Kurumsal müşteriler", "Corporate customers", "Корпоративные клиенты", "العملاء المؤسسيون", "مشتریان شرکتی")</option>
+                        <option value="all">@T("Tüm kullanıcılar", "All users", "Все пользователи", "جميع المستخدمين", "همه کاربران")</option>
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">@T("Konu", "Subject", "Тема", "الموضوع", "موضوع")</label>
+                    <input type="text" name="subject" class="form-control" maxlength="180" required placeholder="@T("Önemli duyuru", "Important notice", "Важное объявление", "إعلان مهم", "اطلاعیه مهم")" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">@T("Mesaj", "Message", "Сообщение", "الرسالة", "پیام")</label>
+                    <textarea name="message" class="form-control" rows="4" maxlength="4000" required placeholder="@T("Uyarı metnini yazın...", "Write the alert text...", "Введите текст уведомления...", "اكتب نص التنبيه...", "متن اعلان را بنویسید...")"></textarea>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-megaphone me-1"></i>@T("Gönder", "Send", "Отправить", "إرسال", "ارسال")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (TempData["AdminSuccess"] is string successMessage)
+    {
+        <div class="alert alert-success border-0 shadow-sm">@successMessage</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-light border">@T("Henüz mesaj yok.", "No messages yet.", "Сообщений пока нет.", "لا توجد رسائل بعد.", "هنوز پیامی وجود ندارد.")</div>
+    }
+    else
+    {
+        <div class="d-grid gap-4">
+            @foreach (var thread in Model)
+            {
+                <div class="card message-thread-card @(thread.IsRead ? string.Empty : "border-warning")">
+                    <div class="card-header py-3">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                            <div>
+                                <div class="fw-bold">@thread.Subject</div>
+                                <div class="small text-muted">@thread.ListingTitle</div>
+                                <div class="message-meta">@thread.SenderName - @thread.SenderEmail</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted">@thread.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                @if (!thread.IsRead)
+                                {
+                                    <form asp-action="MarkMessageAsRead" method="post" class="mt-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@thread.RootMessageId" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">@T("Okundu işaretle", "Mark as read", "Отметить прочитанным", "تمييز كمقروء", "علامت‌گذاری به‌عنوان خوانده‌شده")</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3 mb-4">
+                            @foreach (var message in thread.Messages)
+                            {
+                                <div class="message-bubble @(message.SenderRole == "admin" ? "is-admin" : string.Empty)">
+                                    <div class="d-flex justify-content-between gap-2 mb-2">
+                                        <strong>@message.SenderName</strong>
+                                        <small class="message-meta">@message.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</small>
+                                    </div>
+                                    <div class="message-meta mb-2">@message.SenderRole</div>
+                                    <div style="white-space:pre-wrap;">@message.Message</div>
+                                </div>
+                            }
+                        </div>
+
+                        <form asp-action="ReplyMessage" method="post" class="mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@thread.RootMessageId" />
+                            <label class="form-label fw-semibold">@T("Cevap yaz", "Write a reply", "Написать ответ", "اكتب ردًا", "پاسخ بنویس")</label>
+                            <textarea name="replyText" class="form-control mb-2" rows="4" placeholder="@T("Mesajınızı yazın...", "Write your message...", "Напишите сообщение...", "اكتب رسالتك...", "پیام خود را بنویسید...")"></textarea>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>@T("Gönder", "Send", "Отправить", "إرسال", "ارسال")</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

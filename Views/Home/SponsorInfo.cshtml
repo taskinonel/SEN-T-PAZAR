@@ -1,0 +1,154 @@
+@{
+    ViewData["Title"] = "Sponsorlu Alan Başvuru Şartları";
+}
+
+<style>
+    .sponsor-hero {
+        background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c026d3 100%);
+        padding: 4rem 0 3rem;
+        color: #fff;
+        text-align: center;
+    }
+    .sponsor-hero h1 { font-size: 2.2rem; font-weight: 800; }
+    .sponsor-hero p { opacity: .9; max-width: 580px; margin: 0 auto; }
+    .package-card { border: 2px solid #e9ecef; border-radius: 16px; transition: all .25s; cursor: pointer; }
+    .package-card:hover { border-color: #7c3aed; box-shadow: 0 8px 30px rgba(124,58,237,.15); transform: translateY(-4px); }
+    .package-card.highlight { border-color: #7c3aed; background: linear-gradient(135deg, #faf5ff, #fff); }
+    .package-card.selected { border-color: #198754; border-width: 3px; background: linear-gradient(135deg, rgba(25,135,84,.05), rgba(25,135,84,.1)); box-shadow: 0 0 0 3px rgba(25,135,84,.15); }
+    .package-badge { background: linear-gradient(135deg, #7c3aed, #c026d3); color: #fff; font-size: .7rem; font-weight: 700; padding: .3rem .7rem; border-radius: 20px; }
+    .requirement-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem 0; border-bottom: 1px solid #f0f0f0; }
+    .requirement-item:last-child { border-bottom: none; }
+    .req-icon { width: 36px; height: 36px; border-radius: 8px; background: #faf5ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #7c3aed; }
+    .selected-package-info { background: #e2f5e9; border-left: 4px solid #198754; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: none; }
+    .selected-package-info.show { display: block; }
+</style>
+
+<script>
+function selectSponsorPackage(card, name, price) {
+    // Tüm kartlardan selected sınıfını kaldır
+    const cards = document.querySelectorAll('.package-card');
+    cards.forEach(c => c.classList.remove('selected'));
+    
+    // Tıklanan karta selected sınıfını ekle
+    card.classList.add('selected');
+    
+    // Seçilen paket bilgisini göster
+    const info = document.getElementById('selectedPackageInfo');
+    if (info) {
+        info.innerHTML = `<strong>✓ Seçilen Paket:</strong> ${name} (₺${price}/ay) - Devam etmek için aşağıya gidin.`;
+        info.classList.add('show');
+    }
+}
+</script>
+
+<section class="sponsor-hero">
+    <div class="container">
+        <h1><i class="bi bi-megaphone-fill me-2"></i>Sponsorlu Alan Başvuru Şartları</h1>
+        <p class="mt-3">Ana sayfada markanızı öne çıkarın. Hedef kitlenize doğrudan ulaşın.</p>
+    </div>
+</section>
+
+<div class="bg-light py-5">
+    <div class="container">
+
+        <!-- Paketler -->
+        <h2 class="text-center fw-bold mb-2">Sponsorlu Alan Paketleri</h2>
+        <p class="text-center text-muted mb-5">Platformumuzun yoğun trafiğinden yararlanın</p>
+        <div id="selectedPackageInfo" class="selected-package-info"></div>
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card package-card h-100 p-4" onclick="selectSponsorPackage(this, 'Banner Reklamı', 1500)" style="cursor: pointer;">
+                    <div class="mb-3"><span class="package-badge">STANDART</span></div>
+                    <h4 class="fw-bold">Banner Reklamı</h4>
+                    <div class="display-6 fw-bold my-3" style="color:#7c3aed;">₺1.500<small class="fs-6 text-muted">/ay</small></div>
+                    <ul class="list-unstyled text-muted">
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Ana sayfa üst banner alanı</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>750×90 px görsel boyutu</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Tıklama başına raporlama</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>30 günlük gösterim</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card package-card highlight h-100 p-4" onclick="selectSponsorPackage(this, 'Sponsor Kart', 3500)" style="cursor: pointer;">
+                    <div class="mb-3"><span class="package-badge">EN POPÜLER ⭐</span></div>
+                    <h4 class="fw-bold">Sponsor Kart</h4>
+                    <div class="display-6 fw-bold my-3" style="color:#7c3aed;">₺3.500<small class="fs-6 text-muted">/ay</small></div>
+                    <ul class="list-unstyled text-muted">
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Ana sayfa sponsor kart bölümü</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Logo + başlık + açıklama</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Mobil uyumlu görünüm</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Haftalık performans raporu</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>30 günlük showcase</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card package-card h-100 p-4" onclick="selectSponsorPackage(this, 'Tam Sayfa Reklam', 8500)" style="cursor: pointer;">
+                    <div class="mb-3"><span class="package-badge">PREMIUM</span></div>
+                    <h4 class="fw-bold">Tam Sayfa Reklam</h4>
+                    <div class="display-6 fw-bold my-3" style="color:#7c3aed;">₺8.500<small class="fs-6 text-muted">/ay</small></div>
+                    <ul class="list-unstyled text-muted">
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Ana sayfa hero bölümü</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>İlan listesi önceliği</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Video destekli reklam</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Günlük detaylı analitik</li>
+                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>Özel hesap yöneticisi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Başvuru Şartları -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 rounded-4 shadow-sm">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4"><i class="bi bi-clipboard-check text-primary me-2"></i>Başvuru Şartları</h4>
+                        <div class="requirement-item">
+                            <div class="req-icon"><i class="bi bi-building"></i></div>
+                            <div>
+                                <strong>Kayıtlı İşletme</strong>
+                                <p class="text-muted mb-0 small">Başvuran kişinin geçerli ticaret siciline kayıtlı bir işletmesi olmalıdır.</p>
+                            </div>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="req-icon"><i class="bi bi-image"></i></div>
+                            <div>
+                                <strong>Hazır Reklam Görseli</strong>
+                                <p class="text-muted mb-0 small">Belirtilen boyut ve formatlara uygun, kötü içerik barındırmayan görseller sunulmalıdır.</p>
+                            </div>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="req-icon"><i class="bi bi-patch-check"></i></div>
+                            <div>
+                                <strong>İçerik Onayı</strong>
+                                <p class="text-muted mb-0 small">Tüm reklam içerikleri yayınlanmadan önce platform editörü tarafından onaylanır.</p>
+                            </div>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="req-icon"><i class="bi bi-credit-card"></i></div>
+                            <div>
+                                <strong>Ön Ödeme</strong>
+                                <p class="text-muted mb-0 small">Reklam yayına girmeden önce seçilen pakete ait ücret tahsil edilir.</p>
+                            </div>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="req-icon"><i class="bi bi-shield-check"></i></div>
+                            <div>
+                                <strong>Uygun İçerik Politikası</strong>
+                                <p class="text-muted mb-0 small">Reklam içeriği yanıltıcı, uygunsuz veya yasadışı materyal içeremez.</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <a asp-action="SponsorApplication" asp-controller="Home" class="btn btn-primary btn-lg">
+                                <i class="bi bi-envelope me-2"></i>Sponsorluk Bilgi & Ödeme Formu
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

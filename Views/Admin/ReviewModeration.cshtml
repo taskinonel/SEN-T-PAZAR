@@ -1,0 +1,194 @@
+@model IEnumerable<SEN_T_PAZAR.Models.Review>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+    ViewData["Title"] = T("Yorum Moderasyonu", "Review Moderation", "Модерация отзывов", "إدارة التعليقات", "مدیریت بررسی‌ها");
+}
+
+@section Styles {
+<style>
+    .review-moderation-card {
+        transition: all 0.2s ease;
+    }
+    .review-moderation-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .review-moderation-card.is-selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
+    }
+    .mod-rating-star {
+        color: #f59e0b;
+    }
+    .mod-rating-star-empty {
+        color: #d1d5db;
+    }
+</style>
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">
+            <i class="bi bi-chat-square-text me-2 text-primary"></i>
+            @T("Yorum Moderasyonu", "Review Moderation", "Модерация отзывов", "إدارة التعليقات", "مدیریت بررسی‌ها")
+        </h4>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>@T("Panele Dön", "Back to Dashboard", "Вернуться на панель", "العودة إلى اللوحة", "بازگشت به پنل")
+        </a>
+    </div>
+
+    @if (TempData["ReviewSuccess"] is string successMsg)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@successMsg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="mt-3 mb-0 text-muted">@T("Onay bekleyen yorum yok.", "No pending reviews.", "Нет ожидающих отзывов.", "لا توجد تعليقات معلقة.", "بررسی در انتظاری وجود ندارد.")</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <form id="bulkModerateForm" asp-action="BulkModerateReviews" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="bulkAction" name="action" value="" />
+
+            <div class="card shadow-sm border-0 rounded-4 mb-3">
+                <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAllReviews" />
+                        <label class="form-check-label" for="selectAllReviews">
+                            @T("Tümünü Seç", "Select All", "Выбрать все", "تحديد الكل", "انتخاب همه")
+                        </label>
+                    </div>
+                    <div class="vr mx-2"></div>
+                    <button type="button" class="btn btn-success btn-sm" id="bulkApproveBtn" disabled>
+                        <i class="bi bi-check-lg me-1"></i>@T("Seçilenleri Onayla", "Approve Selected", "Одобрить выбранные", "اعتماد المحدد", "تأیید انتخاب‌شده‌ها")
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" id="bulkRejectBtn" disabled>
+                        <i class="bi bi-x-lg me-1"></i>@T("Seçilenleri Reddet", "Reject Selected", "Отклонить выбранные", "رفض المحدد", "رد انتخاب‌شده‌ها")
+                    </button>
+                    <span class="text-muted small ms-auto" id="selectedCount">@T("0 seçili", "0 selected", "0 выбрано", "0 محدد", "0 انتخاب شده")</span>
+                </div>
+            </div>
+
+            @foreach (var review in Model)
+            {
+                <div class="card review-moderation-card shadow-sm border rounded-3 mb-2" data-review-id="@review.Id">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <div class="form-check">
+                                    <input class="form-check-input review-checkbox" type="checkbox" name="ids" value="@review.Id" />
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <strong class="me-2">@review.UserName</strong>
+                                        <span class="text-muted small">@review.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                                        <div class="mt-1">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                <i class="bi @(i <= review.Rating ? "bi-star-fill mod-rating-star" : "bi-star mod-rating-star-empty")"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <form asp-action="ApproveReview" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@review.Id" />
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bi bi-check-lg"></i> @T("Onayla", "Approve", "Одобрить", "اعتماد", "تأیید")
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="collapse" data-bs-target="#rejectForm-@review.Id">
+                                            <i class="bi bi-x-lg"></i> @T("Reddet", "Reject", "Отклонить", "رفض", "رد")
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="mb-2">@review.Comment</p>
+                                <div class="text-muted small">
+                                    <i class="bi bi-tag me-1"></i>@T("İlan", "Listing", "Объявление", "الإعلان", "آگهі"): ID #@review.ListingId
+                                </div>
+
+                                <div class="collapse mt-2" id="rejectForm-@review.Id">
+                                    <form asp-action="RejectReview" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@review.Id" />
+                                        <div class="mb-2">
+                                            <textarea name="note" class="form-control form-control-sm" rows="2" placeholder="@T("Red nedeni (opsiyonel)...", "Rejection reason (optional)...", "Причина отклонения (необязательно)...", "سبب الرفض (اختياري)...", "دلیل رد (اختیاری)...")"></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="bi bi-x-lg me-1"></i>@T("Reddet", "Reject", "Отклонить", "رفض", "رد")
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </form>
+    }
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const selectAll = document.getElementById('selectAllReviews');
+    const checkboxes = document.querySelectorAll('.review-checkbox');
+    const bulkApprove = document.getElementById('bulkApproveBtn');
+    const bulkReject = document.getElementById('bulkRejectBtn');
+    const bulkAction = document.getElementById('bulkAction');
+    const form = document.getElementById('bulkModerateForm');
+    const selectedCount = document.getElementById('selectedCount');
+
+    function updateSelection() {
+        const checked = document.querySelectorAll('.review-checkbox:checked');
+        const count = checked.length;
+        selectedCount.textContent = count + ' @(T("seçili", "selected", "выбрано", "محدد", "انتخاب شده"))';
+        bulkApprove.disabled = count === 0;
+        bulkReject.disabled = count === 0;
+        checkboxes.forEach(cb => {
+            cb.closest('.review-moderation-card').classList.toggle('is-selected', cb.checked);
+        });
+    }
+
+    selectAll?.addEventListener('change', function () {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        updateSelection();
+    });
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelection);
+    });
+
+    bulkApprove?.addEventListener('click', function () {
+        bulkAction.value = 'approve';
+        form.submit();
+    });
+
+    bulkReject?.addEventListener('click', function () {
+        if (confirm('@(T("Seçilen yorumları reddetmek istediğinize emin misiniz?", "Are you sure you want to reject the selected reviews?", "Вы уверены, что хотите отклонить выбранные отзывы?", "هل أنت متأكد أنك تريد رفض التعليقات المحددة?", "آیا مطمئن هستید که می‌خواهید بررسی‌های انتخاب شده را رد کنید؟"))')) {
+            bulkAction.value = 'reject';
+            form.submit();
+        }
+    });
+})();
+</script>
+}

@@ -1,9 +1,14 @@
-@model SEN_T_PAZAR.Models.PropertyCard
+﻿@model SEN_T_PAZAR.Models.PropertyCard
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
+@using System.Globalization
+@using System.Linq
 
 @{
-    ViewData["Title"] = L["detailsTitle"];
-    // Compute gallery images from Listing.Images
+    if (ViewData["Title"] is null)
+    {
+        ViewData["Title"] = L["detailsTitle"];
+    }
+
     var gallery = new List<string>();
     if (Model.GalleryImages != null && Model.GalleryImages.Count > 0)
     {
@@ -13,33 +18,112 @@
     {
         gallery = new List<string> { Model.ImageUrl };
     }
-    string T(string tr, string en, string ru, string ar) => L.CultureCode switch
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
     {
         "en" => en,
         "ru" => ru,
         "ar" => ar,
+        "fa" => fa ?? en ?? tr,
         _ => tr
     };
+    string NormalizeText(string? value)
+    {
+        return (value ?? string.Empty).Trim().ToLowerInvariant()
+            .Replace('ı', 'i')
+            .Replace('ğ', 'g')
+            .Replace('ü', 'u')
+            .Replace('ş', 's')
+            .Replace('ö', 'o')
+            .Replace('ç', 'c');
+    }
+    string LocalizeCityName(string? cityName) => cityName switch
+    {
+        "Lefkoşa" => T("Lefkoşa", "Nicosia", "Никосия", "نيقوسيا", "لفکوشا"),
+        "Girne" => T("Girne", "Kyrenia", "Кирения", "كيرينيا", "گیرنه"),
+        "Gazimağusa" => T("Gazimağusa", "Famagusta", "Фамагуста", "فاماغوستا", "قازی‌ماغوسا"),
+        "Güzelyurt" => T("Güzelyurt", "Morphou", "Морфу", "مورفو", "گوزل‌یورت"),
+        "İskele" => T("İskele", "Trikomo", "Трикомо", "تريكومو", "ایسکله"),
+        "Lefke" => T("Lefke", "Lefka", "Лефке", "لفكة", "لفکه"),
+        "Karpaz" => T("Karpaz", "Karpasia", "Карпасия", "كارباسيا", "کارپاز"),
+        "Belirtilmemiş" => T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده"),
+        _ => cityName ?? T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده")
+    };
+    string SellerRoleText(string? role) => NormalizeText(role) switch
+    {
+        "owner" or "sahibinden" or "bireysel" => T("Sahibinden", "From Owner", "От собственника", "من المالك", "از مالک"),
+        "agent" or "emlakcidan" => T("Emlakçıdan", "From Agency", "От агентства", "من الوكالة", "از بنگاه"),
+        "developer" or "insaat-firmasindan" or "insaat firmasindan" => T("İnşaat firmasından", "From Developer", "От застройщика", "من شركة التطوير", "از شرکت سازنده"),
+        _ => string.IsNullOrWhiteSpace(role)
+            ? T("Sahibinden", "From Owner", "От собственника", "من المالك", "از مالک")
+            : role!
+    };
+    string FormatListingLocation(string? cityName, string? location)
+    {
+        var localizedCity = LocalizeCityName(cityName);
+        if (string.IsNullOrWhiteSpace(location) || string.Equals(location, cityName, StringComparison.OrdinalIgnoreCase))
+        {
+            return localizedCity;
+        }
+        return $"{localizedCity} - {location}";
+    }
+    var whatsappNumber = new string((Model.SellerPhone ?? string.Empty).Where(char.IsDigit).ToArray());
+    if (whatsappNumber.StartsWith("0"))
+    {
+        whatsappNumber = "90" + whatsappNumber[1..];
+    }
+    else if (whatsappNumber.Length == 10)
+    {
+        whatsappNumber = "90" + whatsappNumber;
+    }
+    var whatsappMessage = Uri.EscapeDataString(T(
+        $"Merhaba, {Model.Title} ilanı için sizinle iletişime geçmek istiyorum. İlan No: {Model.ListingCode}",
+        $"Hello, I would like to contact you about the listing {Model.Title}. Listing No: {Model.ListingCode}",
+        $"Здравствуйте, я хотел(а) бы связаться с вами по объявлению {Model.Title}. Номер объявления: {Model.ListingCode}",
+        $"مرحبًا، أود التواصل معكم بخصوص الإعلان {Model.Title}. رقم الإعلان: {Model.ListingCode}",
+        $"سلام، مایل هستم درباره آگهی {Model.Title} با شما تماس بگیرم. شماره آگهی: {Model.ListingCode}"));
+    var detailLocationText = string.IsNullOrWhiteSpace(Model.Neighborhood)
+        ? (string.IsNullOrWhiteSpace(Model.Location) ? Model.City : Model.Location)
+        : (string.IsNullOrWhiteSpace(Model.Location) ? $"{Model.Neighborhood}, {Model.City}" : $"{Model.Neighborhood}, {Model.Location}");
+    var detailHighlights = Model.Highlights
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Take(6)
+        .ToList();
+    var hasMapCoordinates = Model.Latitude.HasValue && Model.Longitude.HasValue;
+    var mapQuery = string.IsNullOrWhiteSpace(detailLocationText)
+        ? Model.Title
+        : $"{Model.Title}, {detailLocationText}";
+    var mapLink = $"https://www.google.com/maps/search/?api=1&query={System.Uri.EscapeDataString(mapQuery)}";
+    string? mapEmbedUrl = null;
+
+    if (hasMapCoordinates)
+    {
+        string Invariant(double value) => value.ToString(CultureInfo.InvariantCulture);
+        var latitude = Model.Latitude!.Value;
+        var longitude = Model.Longitude!.Value;
+        var delta = 0.008d;
+        mapEmbedUrl = $"https://www.openstreetmap.org/export/embed.html?bbox={Invariant(longitude - delta)},{Invariant(latitude - delta)},{Invariant(longitude + delta)},{Invariant(latitude + delta)}&layer=mapnik&marker={Invariant(latitude)},{Invariant(longitude)}";
+        mapLink = $"https://www.openstreetmap.org/?mlat={Invariant(latitude)}&mlon={Invariant(longitude)}#map=15/{Invariant(latitude)}/{Invariant(longitude)}";
+    }
 }
 
 <section class="section detail-page">
     <div class="container detail-shell">
+        @if (TempData["ContactSuccess"] is string contactStatus && !string.IsNullOrWhiteSpace(contactStatus))
+        {
+            <div class="alert alert-info">@contactStatus</div>
+        }
+
         <div class="detail-hero">
             <div class="detail-gallery">
                 <div class="detail-main-image">
+                    <button type="button" class="detail-gallery__zoom" id="detailZoomButton" title="@T("Tam ekran görüntüle", "View fullscreen", "На весь экран", "عرض بالشاشة الكاملة", "نمایش تمام صفحه")" aria-label="@T("Resmi büyüt", "Zoom image", "Увеличить фото", "تكبير الصورة", "بزرگنمایی تصویر")">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                        <span>@T("Büyüt", "Zoom", "Увеличить", "تكبير", "بزرگنمایی")</span>
+                    </button>
                     <img id="detailMainImage" src="@gallery[0]" alt="@Model.Title" loading="eager" referrerpolicy="no-referrer" />
-                    <div class="detail-gallery__overlay">
-                        <div class="detail-gallery__badges">
-                            @foreach (var badge in Model.FeatureBadges.Take(3))
-                            {
-                                <span>@badge</span>
-                            }
-                        </div>
-                        <div class="detail-gallery__count">@T($"{gallery.Count} fotoğraf", $"{gallery.Count} photos", $"{gallery.Count} фото", $"{gallery.Count} صورة")</div>
-                    </div>
                 </div>
 
-                @if (gallery.Count > 1)
+                @if (gallery.Count > 1 || Model.Has360Tour || !string.IsNullOrEmpty(Model.VideoUrl))
                 {
                     <div class="detail-thumbs">
                         @for (var i = 0; i < gallery.Count; i++)
@@ -47,8 +131,8 @@
                             <button type="button"
                                     class="detail-thumb @(i == 0 ? "is-active" : string.Empty)"
                                     data-image="@gallery[i]"
-                                    aria-label="@T($"Fotoğraf {i + 1}", $"Photo {i + 1}", $"Фото {i + 1}", $"صورة {i + 1}")">
-                                <img src="@gallery[i]" alt="@T($"{Model.Title} fotoğraf {i + 1}", $"{Model.Title} photo {i + 1}", $"{Model.Title} фото {i + 1}", $"{Model.Title} صورة {i + 1}")" loading="lazy" referrerpolicy="no-referrer" />
+                                    aria-label="@T($"Fotoğraf {i + 1}", $"Photo {i + 1}", $"Фото {i + 1}", $"صورة {i + 1}", $"عکس {i + 1}")">
+                                <img src="@gallery[i]" alt="@T($"{Model.Title} fotoğraf {i + 1}", $"{Model.Title} photo {i + 1}", $"{Model.Title} фото {i + 1}", $"{Model.Title} صورة {i + 1}", $"{Model.Title} عکس {i + 1}")" loading="lazy" referrerpolicy="no-referrer" />
                             </button>
                         }
                     </div>
@@ -56,51 +140,74 @@
             </div>
 
             <aside class="detail-summary-card">
-                <div class="detail-summary-card__top">
-                    <span class="detail-pill">@L.TypeLabel(Model.Type)</span>
-                    <span class="detail-pill detail-pill--light">@L.CategoryLabel(Model.Category)</span>
-                </div>
-
                 <div class="detail-summary-card__header">
                     <h1>@Model.Title</h1>
-                    <button type="button" 
-                            class="btn-favorite heart-btn" 
-                            data-listing-id="@Model.Id" 
-                            title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة")"
-                            aria-label="@T("Favori butonu", "Favorite button", "Кнопка избранного", "زر المفضلة")">
+                    <button type="button"
+                            class="btn-favorite heart-btn"
+                            data-listing-id="@Model.Id"
+                            title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة", "افزودن به علاقه‌مندی‌ها")"
+                            aria-label="@T("Favori butonu", "Favorite button", "Кнопка избранного", "زر المفضلة", "دکمه علاقه‌مند")">
                         <svg class="heart-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
-                        <span class="favorite-count">0</span>
+                        <span class="favorite-count" id="listing-favorite-count">@(ViewData["FavoritesCount"] ?? 0)</span>
                     </button>
                 </div>
-                <p class="detail-location">@Model.City - @Model.Neighborhood</p>
+                @if (Model.IsImported && !string.IsNullOrWhiteSpace(Model.SourceName))
+                {
+                    <div class="alert alert-light border mt-2 mb-2 py-2 px-3 small">
+                        <strong>@T("Kaynak", "Source", "Источник", "المصدر", "منبع"):</strong> @Model.SourceName<br />
+                        @T("Bu kayıt dış siteye yönlendirme yapmaz; ilan ayrıntıları bu sayfada yerel olarak görüntülenir.", "This record does not redirect to an external site; listing details are shown locally on this page.", "Эта запись не перенаправляет на внешний сайт; детали объявления показываются локально на этой странице.", "هذا السجل لا يعيد التوجيه إلى موقع خارجي؛ يتم عرض تفاصيل الإعلان محليًا في هذه الصفحة.", "این پست به یک سایت خارجی منتقل نمی‌شود؛ جزئیات آگهی به صورت محلی در این صفحه نمایش داده می‌شود.")
+                    </div>
+                }
+                <p class="detail-location">@detailLocationText</p>
                 <p class="detail-summary">@Model.Summary</p>
+
+                @if (detailHighlights.Any())
+                {
+                    <div class="detail-highlights detail-highlights--compact">
+                        @foreach (var item in detailHighlights)
+                        {
+                            <span class="detail-highlight-chip">@item</span>
+                        }
+                    </div>
+                }
 
                 <div class="detail-price-box">
                     <small>@L["price"]</small>
                     <strong>@Model.PriceLabel</strong>
-                    <span>@Model.AvailabilityNote</span>
+                    @if (!string.IsNullOrWhiteSpace(Model.AvailabilityNote))
+                    {
+                        <span>@Model.AvailabilityNote</span>
+                    }
                 </div>
 
                 <div class="detail-quick-meta">
                     <div>
-                        <small>@T("İlan no", "Listing no", "Номер объявления", "رقم الإعلان")</small>
+                        <small>@T("İlan no", "Listing no", "Номер объявления", "رقم الإعلان", "شماره آگهی")</small>
                         <strong>@Model.ListingCode</strong>
                     </div>
                     <div>
-                        <small>@T("Güncelleme", "Updated", "Обновлено", "آخر تحديث")</small>
+                        <small>@T("Yayın Tarihi", "Published", "Дата публикации", "تاريخ النشر", "تاریخ انتشار")</small>
                         <strong>@Model.PostedAtLabel</strong>
                     </div>
                     <div>
-                        <small>@T("Satıcı", "Seller", "Продавец", "البائع")</small>
+                        <small>@T("Kimden", "Who listed", "Кто разместил", "الجهة المعلنة", "منتشرکننده")</small>
                         <strong>@Model.SellerRole</strong>
+                    </div>
+                    <div>
+                        <small>@T("Satıcının şehri", "Seller city", "Город продавца", "مدينة البائع", "شهر فروشنده")</small>
+                        <strong>@Model.SellerCity</strong>
                     </div>
                 </div>
 
-                <div class="detail-actions">
-                    <a asp-action="Index" asp-controller="Home" class="btn btn-outline-primary">@L["backToList"]</a>
-                    <a asp-action="Publish" asp-controller="Home" class="btn btn-primary">@L["similarPost"]</a>
+                <div class="detail-promo-cta">
+                    <h3>@T("İlanını vitrine taşı, daha hızlı sat", "Move your listing to showcase and sell faster", "Перенесите объявление в витрину и продайте быстрее", "انقل إعلانك إلى الواجهة وبِع بشكل أسرع", "آگهی را به ویترین ببرید و سریع‌تر بفروشید")</h3>
+                    <p>@T("Öne çıkan paketler ile daha fazla görüntülenme, daha çok güven ve daha fazla dönüşüm alırsınız.", "Featured packages bring more views, stronger trust, and better conversion.", "Пакеты продвижения дают больше просмотров, больше доверия и выше конверсию.", "باقات الترويج تمنحك مشاهدات أكثر وثقة أعلى وتحويلًا أفضل.", "بسته‌های ویژه بازدید بیشتر، اعتماد قوی‌تر و تبدیل بالاتر می‌آورند.")</p>
+                    <div class="detail-promo-cta__actions">
+                        <a asp-controller="Pricing" asp-action="Index" asp-route-type="combo" class="btn btn-primary">@T("Vitrin + Öne Çıkan", "Showcase + Featured", "Витрина + Продвижение", "الواجهة + المميز", "ویترین + ویژه")</a>
+                        <a asp-controller="Pricing" asp-action="Index" asp-route-type="vitrin" class="btn btn-outline-primary">@T("Paketleri İncele", "View Packages", "Смотреть пакеты", "عرض الباقات", "مشاهده بسته‌ها")</a>
+                    </div>
                 </div>
             </aside>
         </div>
@@ -109,16 +216,16 @@
             <div class="detail-body-main">
                 <section class="detail-section">
                     <div class="detail-section__head">
-                        <h2>@T("İlan Açıklaması", "Listing Description", "Описание объявления", "وصف الإعلان")</h2>
-                        <p>@T("Detayları mümkün olduğunca açık ve karşılaştırılabilir şekilde sunuyoruz.", "We present the details as clearly and comparably as possible.", "Мы показываем детали максимально ясно и удобно для сравнения.", "نعرض التفاصيل بأوضح شكل ممكن وبطريقة سهلة للمقارنة.")</p>
+                        <h2>@T("İlan Açıklaması", "Listing Description", "Описание объявления", "وصف الإعلان", "توضیحات آگهی")</h2>
+                        <p>@T("Detayları mümkün olduğunca açık ve karşılaştırılabilir şekilde sunuyoruz.", "We present the details as clearly and comparably as possible.", "Мы показываем детали максимально ясно и удобно для сравнения.", "نعرض التفاصيل بأوضح شكل ممكن وبطریقة سهلة للمقارنة.", "ما جزئیات را تا حد امکان واضح و قابل مقایسه ارائه می‌دهیم.")</p>
                     </div>
                     <p class="detail-body-text">@Model.DetailBody</p>
                 </section>
 
                 <section class="detail-section">
                     <div class="detail-section__head">
-                        <h2>@T("Temel Bilgiler", "Key Information", "Основная информация", "المعلومات الأساسية")</h2>
-                        <p>@T("Kategoriye göre en sık sorulan nitelikler burada yer alır.", "The most frequently requested details for this category appear here.", "Здесь собраны самые важные параметры этой категории.", "أهم التفاصيل المطلوبة لهذه الفئة تظهر هنا.")</p>
+                        <h2>@T("Temel Bilgiler", "Key Information", "Основная информация", "المعلومات الأساسية", "اطلاعات اساسی")</h2>
+                        <p>@T("Kategoriye göre en sık sorulan nitelikler burada yer alır.", "The most frequently requested details for this category appear here.", "Здесь собраны самые важные параметры этой категории.", "أهم التفاصيل المطلوبة لهذه الفئة تظهر هنا.", "مهم‌ترین جزئیات مورد درخواست برای این دسته در اینجا نمایش داده می‌شود.")</p>
                     </div>
                     <div class="detail-facts-grid">
                         @foreach (var fact in Model.Facts)
@@ -131,72 +238,396 @@
                     </div>
                 </section>
 
-                <section class="detail-section">
-                    <div class="detail-section__head">
-                        <h2>@T("Öne Çıkanlar", "Highlights", "Преимущества", "أبرز المزايا")</h2>
-                        <p>@T("Karar sürecini hızlandıran kritik noktalar.", "The points that help buyers make a faster decision.", "Ключевые пункты, которые помогают принять решение быстрее.", "النقاط الأساسية التي تساعد على اتخاذ القرار بسرعة.")</p>
-                    </div>
-                    <div class="detail-highlights">
-                        @foreach (var highlight in Model.Highlights)
-                        {
-                            <article class="detail-highlight">
-                                <span class="detail-highlight__dot"></span>
-                                <p>@highlight</p>
-                            </article>
-                        }
-                    </div>
-                 </section>
-             </div>
-         </div>
+                @if (hasMapCoordinates || !string.IsNullOrWhiteSpace(detailLocationText))
+                {
+                    <section class="detail-section detail-section--map">
+                        <div class="detail-section__head">
+                            <div class="detail-section__head">
+                            </div>
+                        </div>
+                    </section>
+                }
 
-         <div class="detail-side-panel">
-             <section class="detail-section detail-section--compact">
-                 <div class="detail-section__head">
-                     <h2>@T("Satıcı Profili", "Seller Profile", "Профиль продавца", "ملف البائع")</h2>
-                     <p>@T("İlanla ilgili ilk iletişim noktası.", "Your first contact point about this listing.", "Первая точка контакта по объявлению.", "أول نقطة تواصل بخصوص هذا الإعلان.")</p>
-                 </div>
+                @if (Model.IsResidentialEstate)
+                {
+                    <section class="detail-section">
+                        <div class="detail-section__head">
+                            <h2>@T("İlan Özellikleri", "Listing Features", "Характеристики объявления", "خصائص الإعلان", "ویژگی‌های آگهی")</h2>
+                            <p>@T("Dış, iç ve konum özellikleri bu ilanda belirtilen bilgilere göre listelenir.", "Exterior, interior and location features are listed from the details provided in this listing.", "Внешние, внутренние и локационные характеристики отображаются по данным объявления.", "يتم عرض الخصائص الخارجية والداخلية وخصائص الموقع بحسب البيانات المدخلة في الإعلان.", "ویژگی‌های بیرونی، داخلی و موقعیت بر اساس اطلاعات همین آگهی نمایش داده می‌شود.")</p>
+                        </div>
+                        <div class="detail-feature-columns">
+                            <article class="detail-feature-column">
+                                <h3>@T("Dış Özellikler", "Exterior Features", "Внешние особенности", "الميزات الخارجية", "ویژگی‌های بیرونی")</h3>
+                                @if (Model.ExteriorFeatures.Any())
+                                {
+                                    <ul class="detail-feature-list">
+                                        @foreach (var item in Model.ExteriorFeatures)
+                                        {
+                                            <li>@item</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="detail-feature-empty">@T("Belirtilmedi", "Not specified", "Не указано", "غير محدد", "ثبت نشده")</p>
+                                }
+                            </article>
+                            <article class="detail-feature-column">
+                                <h3>@T("İç Özellikler", "Interior Features", "Внутренние особенности", "الميزات الداخلية", "ویژگی‌های داخلی")</h3>
+                                @if (Model.InteriorFeatures.Any())
+                                {
+                                    <ul class="detail-feature-list">
+                                        @foreach (var item in Model.InteriorFeatures)
+                                        {
+                                            <li>@item</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="detail-feature-empty">@T("Belirtilmedi", "Not specified", "Не указано", "غير محدد", "ثبت نشده")</p>
+                                }
+                            </article>
+                            <article class="detail-feature-column">
+                                <h3>@T("Konum Özellikleri", "Location Features", "Особенности расположения", "ميزات الموقع", "ویژگی‌های موقعیت")</h3>
+                                @if (Model.LocationFeatures.Any())
+                                {
+                                    <ul class="detail-feature-list">
+                                        @foreach (var item in Model.LocationFeatures)
+                                        {
+                                            <li>@item</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="detail-feature-empty">@T("Belirtilmedi", "Not specified", "Не указано", "غير محدد", "ثبت نشده")</p>
+                                }
+                            </article>
+                        </div>
+                    </section>
+                }
+
+                @if (Model.PopularListings.Any())
+                {
+                    <section class="detail-section">
+                        <div class="detail-section__head">
+                            <h2>@T("Popüler İlanlar", "Popular Listings", "Популярные объявления", "الإعلانات الشائعة", "آگهی‌های محبوب")</h2>
+                            <p>@T("Kontrol panelinden popüler olarak işaretlenen ilanlar.", "Listings marked as popular from the admin panel.", "Объявления, отмеченные как популярные в панели администратора.", "الإعلانات المعلّمة كشائعة من لوحة التحكم.", "آگهی‌هایی که از پنل مدیریت به‌عنوان محبوب انتخاب شده‌اند.")</p>
+                        </div>
+                        <div class="detail-mini-list detail-mini-list--cards">
+                            @foreach (var item in Model.PopularListings)
+                            {
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@item.Id" class="detail-mini-item detail-mini-item--listing-card">
+                                    <img src="@item.ImageUrl" alt="@item.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                    <strong>@item.Title</strong>
+                                    <span>@FormatListingLocation(item.City, item.Location)</span>
+                                    <em>@item.PriceLabel</em>
+                                </a>
+                            }
+                        </div>
+                    </section>
+                }
+
+                @if (Model.CorporateProfiles.Any())
+                {
+                    <section class="detail-section detail-section--banner">
+                        <div class="detail-corporate-banner">
+                            <div class="detail-corporate-banner__content">
+                                <span class="detail-corporate-banner__eyebrow">@T("Kurumsal Ağ", "Corporate Network", "Корпоративная сеть", "الشبكة المؤسسية", "شبکه سازمانی")</span>
+                            </div>
+                            <div class="detail-corporate-banner__chips">
+                                @foreach (var corp in Model.CorporateProfiles.Take(3))
+                                {
+                                    <article class="detail-corporate-chip">
+                                        <div class="detail-corporate-chip__brand">
+                                            @if (!string.IsNullOrWhiteSpace(corp.LogoUrl))
+                                            {
+                                                <img src="@corp.LogoUrl" alt="@corp.DisplayName" class="detail-corporate-chip__logo" loading="lazy" referrerpolicy="no-referrer" />
+                                            }
+                                            else
+                                            {
+                                                <span class="detail-corporate-chip__avatar">@corp.DisplayName[..1]</span>
+                                            }
+                                        </div>
+                                        <div>
+                                            <strong>@corp.DisplayName</strong>
+                                            <span>@LocalizeCityName(corp.City)</span>
+                                        </div>
+                                        <em>@T("Aktif ilan", "Active listings", "Активные объявления", "الإعلانات النشطة", "آگهی فعال"): @corp.ActiveListingCount</em>
+                                        <div class="detail-corporate-chip__actions">
+                                            <a asp-controller="Home" asp-action="Store" asp-route-id="@corp.UserId">@T("Mağazayı Gör", "View Store", "Открыть магазин", "عرض المتجر", "مشاهده فروشگاه")</a>
+                                            @if (!string.IsNullOrWhiteSpace(corp.WebsiteUrl))
+                                            {
+                                                <a href="@corp.WebsiteUrl" target="_blank" rel="noopener noreferrer">@T("Web Sitesi", "Website", "Сайт", "الموقع", "وب‌سایت")</a>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(corp.ContactPhone))
+                                            {
+                                                <a href="tel:@corp.ContactPhone">@corp.ContactPhone</a>
+                                            }
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        </div>
+                    </section>
+                }
+
+                @if (Model.Reviews.Any())
+                {
+                    <section class="detail-section">
+                        <div class="detail-section__head">
+                            <h2>@T("Değerlendirmeler", "Reviews", "Отзывы", "التعليقات", "بررسی‌ها")</h2>
+                            <p>@T("Bu ilan için kullanıcı değerlendirmeleri.", "User reviews for this listing.", "Отзывы пользователей по этому объявлению.", "تعليقات المستخدمين حول هذا الإعلان.", "بررسی‌های کاربرانه برای این آگهی.")</p>
+                        </div>
+                        <div class="detail-reviews-list">
+                            @foreach (var review in Model.Reviews.Where(r => r.ModerationStatus == SEN_T_PAZAR.Models.ReviewModerationStatus.Approved).OrderByDescending(r => r.CreatedAt))
+                            {
+                                <div class="detail-review-card">
+                                    <div class="detail-review-header">
+                                        <div class="detail-review-user">
+                                            <span class="detail-review-user-avatar">@review.UserName[..1]</span>
+                                            <div>
+                                                <strong>@review.UserName</strong>
+                                                <span class="detail-review-date">@review.CreatedAt.ToString("d MMMM yyyy")</span>
+                                            </div>
+                                        </div>
+                                        <div class="detail-review-rating">
+                                            @for (int i = 0; i < 5; i++)
+                                            {
+                                                <i class="bi @(i < review.Rating ? "bi-star-fill" : "bi-star")"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                    <p class="detail-review-text">@review.Comment</p>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+
+            <aside class="detail-side-panel">
+                <section class="detail-section detail-section--compact">
+                    <div class="detail-section__head">
+                        <h2>@T("Satıcı Profili", "Seller Profile", "Профиль продавца", "ملف البائع", "نمایه فروشنده")</h2>
+                        <p>@T("İlanla ilgili ilk iletişim noktası.", "Your first contact point about this listing.", "Первая точка контакта по объявлению.", "أول نقطة تواصل بخصوص هذا الإعلان.", "اولین نقطه تماس در مورد این آگهی.")</p>
+                    </div>
                     <div class="detail-seller-card">
                         <div class="detail-seller-card__avatar">@Model.SellerName[..1]</div>
                         <div>
-                            <strong>@Model.SellerName</strong>
-                            <span>@Model.SellerRole</span>
+                            <strong>
+                                @Model.SellerName
+                                @if (Model.IsVerifiedSeller)
+                                {
+                                    <span class="badge badge-verified ms-1" title="@T("Doğrulanmış Satıcı", "Verified Seller", "Проверенный продавец", "بائع موثق", "فروشنده تأیید شده")">
+                                        <i class="bi bi-patch-check-fill"></i>
+                                    </span>
+                                }
+                            </strong>
+                            <span>@SellerRoleText(Model.SellerRole)</span>
+                            <span>@LocalizeCityName(Model.SellerCity)</span>
                             <a href="tel:@Model.SellerPhone">@Model.SellerPhone</a>
                         </div>
                     </div>
+                    <div class="detail-contact-actions mt-3">
+                        <a href="tel:@Model.SellerPhone" class="btn btn-outline-primary">
+                            <i class="bi bi-telephone-fill me-2"></i>@T("Satıcıyı Ara", "Call Seller", "Позвонить продавцу", "اتصل بالبائع", "تماس با فروشنده")
+                        </a>
+                        @if (Model.AllowWhatsApp && !string.IsNullOrWhiteSpace(whatsappNumber))
+                        {
+                            <a href="https://wa.me/@(whatsappNumber)?text=@whatsappMessage" target="_blank" rel="noopener noreferrer" class="btn btn-success">
+                                <i class="bi bi-whatsapp me-2"></i>WhatsApp
+                            </a>
+                        }
+                        @if (Model.AllowMessages)
+                        {
+                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#listingMessageForm" aria-expanded="false" aria-controls="listingMessageForm">
+                                <i class="bi bi-chat-dots-fill me-2"></i>@T("Mesaj Gönder", "Send Message", "Отправить сообщение", "إرسال رسالة", "ارسال پیام")
+                            </button>
+                        }
+                        @if (hasMapCoordinates || !string.IsNullOrWhiteSpace(detailLocationText))
+                        {
+                            <a href="@mapLink" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-geo-alt-fill me-2"></i>@T("Haritada Göster", "Show on map", "Показать на карте", "عرض على الخريطة", "نمایش در نقشه")
+                            </a>
+                        }
+                    </div>
+                    @if (Model.AllowMessages)
+                    {
+                        <div class="collapse mt-3" id="listingMessageForm">
+                            <form asp-action="SendListingMessage" asp-controller="Home" method="post" class="card card-body border-0 bg-light">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="listingId" value="@Model.Id" />
+
+                                <div class="mb-2">
+                                    <label class="form-label">@T("Ad Soyad", "Full Name", "Имя и фамилия", "الاسم الكامل", "نام و نام خانوادگی")</label>
+                                    <input name="senderName" class="form-control" maxlength="120" required />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">@T("E-posta", "Email", "Эл. почта", "البريد الإلكتروني", "ایمیل")</label>
+                                    <input name="senderEmail" type="email" class="form-control" maxlength="180" required />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">@T("Telefon (opsiyonel)", "Phone (optional)", "Телефон (необязательно)", "الهاتف (اختياري)", "تلفن (اختیاری)")</label>
+                                    <input name="senderPhone" class="form-control" maxlength="40" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">@T("Konu", "Subject", "Тема", "الموضوع", "موضوع")</label>
+                                    <input name="subject" class="form-control" maxlength="180" value="@T($"{Model.ListingCode} için iletişim talebi", $"Contact request for {Model.ListingCode}", $"Запрос по объявлению {Model.ListingCode}", $"طلب تواصل بخصوص الإعلان {Model.ListingCode}", $"درخواست تماس برای آگهی {Model.ListingCode}")" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">@T("Mesaj", "Message", "Сообщение", "الرسالة", "پیام")</label>
+                                    <textarea name="message" class="form-control" rows="4" maxlength="4000" required>@T($"{Model.Title} ilanı hakkında bilgi almak istiyorum.", $"I would like to get more information about the listing {Model.Title}.", $"Я хотел(а) бы получить больше информации об объявлении {Model.Title}.", $"أرغب في الحصول على مزيد من المعلومات حول الإعلان {Model.Title}.", $"مایلم اطلاعات بیشتری درباره آگهی {Model.Title} دریافت کنم.")</textarea>
+                                </div>
+
+                                <button class="btn btn-primary" type="submit">@T("Mesajı Gönder", "Send Message", "Отправить сообщение", "إرسال الرسالة", "ارسال پیام")</button>
+                            </form>
+                        </div>
+                    }
                 </section>
 
+                @if (Model.ShowcaseListings.Any())
+                {
                 <section class="detail-section detail-section--compact">
                     <div class="detail-section__head">
-                        <h2>@T("Etiketler", "Tags", "Теги", "الوسوم")</h2>
-                        <p>@T("İlanı öne çıkaran kısa anahtarlar.", "Short keywords that make the listing stand out.", "Короткие ключевые слова, которые выделяют объявление.", "كلمات مفتاحية قصيرة تجعل الإعلان أكثر وضوحًا.")</p>
                     </div>
-                    <div class="detail-tags">
-                        @foreach (var badge in Model.FeatureBadges)
+                    <div class="detail-mini-list detail-mini-list--cards">
+                        @foreach (var item in Model.ShowcaseListings)
                         {
-                            <span>@badge</span>
+                            <a asp-controller="Home" asp-action="Details" asp-route-id="@item.Id" class="detail-mini-item detail-mini-item--listing-card">
+                                <img src="@item.ImageUrl" alt="@item.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                <strong>@item.Title</strong>
+                                <span>@FormatListingLocation(item.City, item.Location)</span>
+                                <em>@item.PriceLabel</em>
+                            </a>
                         }
                     </div>
                 </section>
+                }
+
+                @if (Model.FeaturedSideListings.Any())
+                {
+                <section class="detail-section detail-section--compact">
+                    <div class="detail-section__head">
+                    </div>
+                    <div class="detail-mini-list detail-mini-list--cards">
+                        @foreach (var item in Model.FeaturedSideListings)
+                        {
+                            <a asp-controller="Home" asp-action="Details" asp-route-id="@item.Id" class="detail-mini-item detail-mini-item--listing-card">
+                                <img src="@item.ImageUrl" alt="@item.Title" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
+                                <strong>@item.Title</strong>
+                                <span>@FormatListingLocation(item.City, item.Location)</span>
+                                <em>@item.PriceLabel</em>
+                            </a>
+                        }
+                    </div>
+                </section>
+                }
             </aside>
         </div>
     </div>
 </section>
 
+<div class="detail-lightbox" id="detailLightbox" hidden>
+    <button type="button" class="detail-lightbox__close" id="detailLightboxClose" aria-label="@T("Kapat", "Close", "Закрыть", "إغلاق", "بستن")">&times;</button>
+    <button type="button" class="detail-lightbox__nav detail-lightbox__nav--prev" id="detailLightboxPrev" aria-label="@T("Önceki", "Previous", "Предыдущее", "السابق", "قبلی")">&#10094;</button>
+    <img id="detailLightboxImage" src="@gallery[0]" alt="@Model.Title" />
+    <button type="button" class="detail-lightbox__nav detail-lightbox__nav--next" id="detailLightboxNext" aria-label="@T("Sonraki", "Next", "Следующее", "التالي", "بعدی")">&#10095;</button>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const mainImage = document.getElementById('detailMainImage');
-            const thumbs = document.querySelectorAll('.detail-thumb');
+            const thumbs = Array.from(document.querySelectorAll('.detail-thumb'));
+            const zoomButton = document.getElementById('detailZoomButton');
+            const lightbox = document.getElementById('detailLightbox');
+            const lightboxImage = document.getElementById('detailLightboxImage');
+            const lightboxClose = document.getElementById('detailLightboxClose');
+            const lightboxPrev = document.getElementById('detailLightboxPrev');
+            const lightboxNext = document.getElementById('detailLightboxNext');
+            const images = thumbs.length > 0 ? thumbs.map(function (thumb) { return thumb.dataset.image; }) : [mainImage?.src];
+            let currentIndex = 0;
+
+            function setActiveImage(index) {
+                if (!mainImage || !images[index]) return;
+                currentIndex = index;
+                mainImage.src = images[index];
+                if (lightboxImage) {
+                    lightboxImage.src = images[index];
+                }
+                thumbs.forEach(function (item, itemIndex) {
+                    item.classList.toggle('is-active', itemIndex === index);
+                });
+            }
+
+            function stepImage(step) {
+                if (images.length <= 1) return;
+                const nextIndex = (currentIndex + step + images.length) % images.length;
+                setActiveImage(nextIndex);
+            }
+
+            function openLightbox() {
+                if (!lightbox || !lightboxImage || !images[currentIndex]) return;
+                lightbox.hidden = false;
+                lightboxImage.src = images[currentIndex];
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                if (!lightbox) return;
+                lightbox.hidden = true;
+                document.body.style.overflow = '';
+            }
 
             thumbs.forEach(function (thumb) {
                 thumb.addEventListener('click', function () {
-                    const nextImage = thumb.dataset.image;
-                    if (!nextImage || !mainImage) return;
-
-                    mainImage.src = nextImage;
-                    thumbs.forEach(function (item) { item.classList.remove('is-active'); });
-                    thumb.classList.add('is-active');
+                    const targetIndex = thumbs.indexOf(thumb);
+                    if (targetIndex >= 0) {
+                        setActiveImage(targetIndex);
+                    }
                 });
+            });
+
+            if (mainImage) {
+                mainImage.addEventListener('click', function () {
+                    if (images.length > 1) {
+                        stepImage(1);
+                    }
+                });
+            }
+
+            if (zoomButton) {
+                zoomButton.addEventListener('click', openLightbox);
+            }
+
+            if (lightboxClose) {
+                lightboxClose.addEventListener('click', closeLightbox);
+            }
+
+            if (lightboxPrev) {
+                lightboxPrev.addEventListener('click', function () { stepImage(-1); });
+            }
+
+            if (lightboxNext) {
+                lightboxNext.addEventListener('click', function () { stepImage(1); });
+            }
+
+            if (lightbox) {
+                lightbox.addEventListener('click', function (event) {
+                    if (event.target === lightbox) {
+                        closeLightbox();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (lightbox && !lightbox.hidden) {
+                    if (event.key === 'Escape') closeLightbox();
+                    if (event.key === 'ArrowLeft') stepImage(-1);
+                    if (event.key === 'ArrowRight') stepImage(1);
+                }
             });
         });
     </script>

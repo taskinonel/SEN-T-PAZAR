@@ -1,0 +1,203 @@
+﻿@model SEN_T_PAZAR.Models.PropertyCard
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+
+@{
+    ViewData["Title"] = L["detailsTitle"];
+    // Compute gallery images from Listing.Images
+    var gallery = new List<string>();
+    if (Model.GalleryImages != null && Model.GalleryImages.Count > 0)
+    {
+        gallery = Model.GalleryImages;
+    }
+    else
+    {
+        gallery = new List<string> { Model.ImageUrl };
+    }
+    string T(string tr, string en, string ru, string ar) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        _ => tr
+    };
+}
+
+<section class="section detail-page">
+    <div class="container detail-shell">
+        <div class="detail-hero">
+            <div class="detail-gallery">
+                <div class="detail-main-image">
+                    <img id="detailMainImage" src="@gallery[0]" alt="@Model.Title" loading="eager" referrerpolicy="no-referrer" />
+                    <div class="detail-gallery__overlay">
+                        <div class="detail-gallery__badges">
+                            @foreach (var badge in Model.FeatureBadges.Take(3))
+                            {
+                                <span>@badge</span>
+                            }
+                        </div>
+                        <div class="detail-gallery__count">@T($"{gallery.Count} fotoğraf", $"{gallery.Count} photos", $"{gallery.Count} фото", $"{gallery.Count} صورة")</div>
+                    </div>
+                </div>
+
+                @if (gallery.Count > 1)
+                {
+                    <div class="detail-thumbs">
+                        @for (var i = 0; i < gallery.Count; i++)
+                        {
+                            <button type="button"
+                                    class="detail-thumb @(i == 0 ? "is-active" : string.Empty)"
+                                    data-image="@gallery[i]"
+                                    aria-label="@T($"Fotoğraf {i + 1}", $"Photo {i + 1}", $"Фото {i + 1}", $"صورة {i + 1}")">
+                                <img src="@gallery[i]" alt="@T($"{Model.Title} fotoğraf {i + 1}", $"{Model.Title} photo {i + 1}", $"{Model.Title} фото {i + 1}", $"{Model.Title} صورة {i + 1}")" loading="lazy" referrerpolicy="no-referrer" />
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <aside class="detail-summary-card">
+                <div class="detail-summary-card__top">
+                    <span class="detail-pill">@L.TypeLabel(Model.Type)</span>
+                    <span class="detail-pill detail-pill--light">@L.CategoryLabel(Model.Category)</span>
+                </div>
+
+                <div class="detail-summary-card__header">
+                    <h1>@Model.Title</h1>
+                    <button type="button" 
+                            class="btn-favorite heart-btn" 
+                            data-listing-id="@Model.Id" 
+                            title="@T("Favorilerime ekle", "Add to Favorites", "Добавить в избранное", "أضف إلى المفضلة")"
+                            aria-label="@T("Favori butonu", "Favorite button", "Кнопка избранного", "زر المفضلة")">
+                        <svg class="heart-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        <span class="favorite-count">0</span>
+                    </button>
+                </div>
+                <p class="detail-location">@Model.City - @Model.Neighborhood</p>
+                <p class="detail-summary">@Model.Summary</p>
+
+                <div class="detail-price-box">
+                    <small>@L["price"]</small>
+                    <strong>@Model.PriceLabel</strong>
+                    <span>@Model.AvailabilityNote</span>
+                </div>
+
+                <div class="detail-quick-meta">
+                    <div>
+                        <small>@T("İlan no", "Listing no", "Номер объявления", "رقم الإعلان")</small>
+                        <strong>@Model.ListingCode</strong>
+                    </div>
+                    <div>
+                        <small>@T("Güncelleme", "Updated", "Обновлено", "آخر تحديث")</small>
+                        <strong>@Model.PostedAtLabel</strong>
+                    </div>
+                    <div>
+                        <small>@T("Satıcı", "Seller", "Продавец", "البائع")</small>
+                        <strong>@Model.SellerRole</strong>
+                    </div>
+                </div>
+
+                <div class="detail-actions">
+                    <a asp-action="Index" asp-controller="Home" class="btn btn-outline-primary">@L["backToList"]</a>
+                    <a asp-action="Publish" asp-controller="Home" class="btn btn-primary">@L["similarPost"]</a>
+                </div>
+            </aside>
+        </div>
+
+        <div class="detail-body-grid">
+            <div class="detail-body-main">
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>@T("İlan Açıklaması", "Listing Description", "Описание объявления", "وصف الإعلان")</h2>
+                        <p>@T("Detayları mümkün olduğunca açık ve karşılaştırılabilir şekilde sunuyoruz.", "We present the details as clearly and comparably as possible.", "Мы показываем детали максимально ясно и удобно для сравнения.", "نعرض التفاصيل بأوضح شكل ممكن وبطريقة سهلة للمقارنة.")</p>
+                    </div>
+                    <p class="detail-body-text">@Model.DetailBody</p>
+                </section>
+
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>@T("Temel Bilgiler", "Key Information", "Основная информация", "المعلومات الأساسية")</h2>
+                        <p>@T("Kategoriye göre en sık sorulan nitelikler burada yer alır.", "The most frequently requested details for this category appear here.", "Здесь собраны самые важные параметры этой категории.", "أهم التفاصيل المطلوبة لهذه الفئة تظهر هنا.")</p>
+                    </div>
+                    <div class="detail-facts-grid">
+                        @foreach (var fact in Model.Facts)
+                        {
+                            <article class="detail-fact-card">
+                                <small>@fact.Label</small>
+                                <strong>@fact.Value</strong>
+                            </article>
+                        }
+                    </div>
+                </section>
+
+                <section class="detail-section">
+                    <div class="detail-section__head">
+                        <h2>@T("Öne Çıkanlar", "Highlights", "Преимущества", "أبرز المزايا")</h2>
+                        <p>@T("Karar sürecini hızlandıran kritik noktalar.", "The points that help buyers make a faster decision.", "Ключевые пункты, которые помогают принять решение быстрее.", "النقاط الأساسية التي تساعد على اتخاذ القرار بسرعة.")</p>
+                    </div>
+                    <div class="detail-highlights">
+                        @foreach (var highlight in Model.Highlights)
+                        {
+                            <article class="detail-highlight">
+                                <span class="detail-highlight__dot"></span>
+                                <p>@highlight</p>
+                            </article>
+                        }
+                    </div>
+                 </section>
+             </div>
+         </div>
+
+         <div class="detail-side-panel">
+             <section class="detail-section detail-section--compact">
+                 <div class="detail-section__head">
+                     <h2>@T("Satıcı Profili", "Seller Profile", "Профиль продавца", "ملف البائع")</h2>
+                     <p>@T("İlanla ilgili ilk iletişim noktası.", "Your first contact point about this listing.", "Первая точка контакта по объявлению.", "أول نقطة تواصل بخصوص هذا الإعلان.")</p>
+                 </div>
+                    <div class="detail-seller-card">
+                        <div class="detail-seller-card__avatar">@Model.SellerName[..1]</div>
+                        <div>
+                            <strong>@Model.SellerName</strong>
+                            <span>@Model.SellerRole</span>
+                            <a href="tel:@Model.SellerPhone">@Model.SellerPhone</a>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="detail-section detail-section--compact">
+                    <div class="detail-section__head">
+                        <h2>@T("Etiketler", "Tags", "Теги", "الوسوم")</h2>
+                        <p>@T("İlanı öne çıkaran kısa anahtarlar.", "Short keywords that make the listing stand out.", "Короткие ключевые слова, которые выделяют объявление.", "كلمات مفتاحية قصيرة تجعل الإعلان أكثر وضوحًا.")</p>
+                    </div>
+                    <div class="detail-tags">
+                        @foreach (var badge in Model.FeatureBadges)
+                        {
+                            <span>@badge</span>
+                        }
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mainImage = document.getElementById('detailMainImage');
+            const thumbs = document.querySelectorAll('.detail-thumb');
+
+            thumbs.forEach(function (thumb) {
+                thumb.addEventListener('click', function () {
+                    const nextImage = thumb.dataset.image;
+                    if (!nextImage || !mainImage) return;
+
+                    mainImage.src = nextImage;
+                    thumbs.forEach(function (item) { item.classList.remove('is-active'); });
+                    thumb.classList.add('is-active');
+                });
+            });
+        });
+    </script>
+}

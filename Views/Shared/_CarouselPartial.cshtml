@@ -9,19 +9,17 @@
 @if (Model != null && Model.Count > 0)
 {
     <div class="featured-carousel" data-category="@category" role="region" aria-label="@L["projectsTitle"]">
-        <button class="carousel-arrow carousel-arrow--left" aria-label="@L["previous"]">
-            <span aria-hidden="true">&#60;</span>
-        </button>
         <div class="featured-carousel-viewport">
             <div class="featured-carousel-track" role="list">
-                @for (int i = 0; i < Math.Min(Model.Count, 12); i++)
+                @for (int i = 0; i < Model.Count; i++)
                 {
                     var item = Model[i];
                     <article class="project-card" role="listitem">
                         <a asp-action="Details" asp-controller="Home" asp-route-id="@item.Id" class="project-card__media-link">
                             <img src="@(string.IsNullOrWhiteSpace(item.ImageUrl) ? fallbackImage : item.ImageUrl)" 
                                  alt="@item.Name" 
-                                 loading="lazy" 
+                                 loading="lazy"
+                                 decoding="async"
                                  referrerpolicy="no-referrer"
                                  onerror="this.src='@fallbackImage'" />
                         </a>
@@ -39,8 +37,5 @@
                 }
             </div>
         </div>
-        <button class="carousel-arrow carousel-arrow--right" aria-label="@L["next"]">
-            <span aria-hidden="true">&#62;</span>
-        </button>
     </div>
 }

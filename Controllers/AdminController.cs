@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SEN_T_PAZAR.Models;
@@ -424,8 +425,14 @@ public class AdminController : Controller
         var outputName = $"{Guid.NewGuid():N}.jpg";
         var outputPath = Path.Combine(uploadsFolder, outputName);
 
-        await using var input = file.OpenReadStream();
-        using var image = await Image.LoadAsync(input);
+        // Copy to memory stream because form file streams are forward-only and non-seekable
+        // (IsValidImageFileAsync already read the stream above)
+        await using var inputStream = file.OpenReadStream();
+        using var memoryStream = new MemoryStream();
+        await inputStream.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        using var image = await Image.LoadAsync(memoryStream);
 
         // Strip EXIF/metadata to avoid leaking sensitive data
         try

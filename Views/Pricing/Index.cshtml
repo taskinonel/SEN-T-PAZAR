@@ -11,7 +11,6 @@
         <h1 class="display-4 fw-bold">@L["pricingPackages"]</h1>
         <p class="lead text-muted">@L["pricingSubtitle"]</p>
     </div>
-
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -25,6 +24,8 @@
          <div class="btn-group" role="group">
              <a href="@Url.Action("Index", "Pricing")" class="btn btn-outline-primary @((selectedType == null) ? "active" : "")">@L["allPackages"]</a>
              <a href="@Url.Action("Index", "Pricing", new { type = "featured" })" class="btn btn-outline-primary @(selectedType == "featured" ? "active" : "")">@L["featured"]</a>
+             <a href="@Url.Action("Index", "Pricing", new { type = "vitrin" })" class="btn btn-outline-primary @(selectedType == "vitrin" ? "active" : "")">@L["vitrin"]</a>
+             <a href="@Url.Action("Index", "Pricing", new { type = "popular" })" class="btn btn-outline-primary @(selectedType == "popular" ? "active" : "")">@L["popular"]</a>
              <a href="@Url.Action("Index", "Pricing", new { type = "combo" })" class="btn btn-outline-primary @(selectedType == "combo" ? "active" : "")">@L["combo"]</a>
          </div>
      </div>
@@ -56,64 +57,74 @@
         </div>
     }
 
-    <!-- Paketler -->
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        @foreach (var package in Model)
-        {
-            <div class="col">
-                <div class="card h-100 shadow-sm @(package.Tier == "gold" || package.Tier == "vip" ? "border-warning" : "")">
-                    @if (package.Tier == "gold" || package.Tier == "vip")
-                    {
-                        <div class="card-header bg-warning text-dark text-center">
-                            <strong>@L["mostPopular"]</strong>
-                        </div>
-                    }
-                    <div class="card-body text-center">
-                        <h5 class="card-title">@L.LocalizePackageName(package.PackageType, package.Tier)</h5>
-                        <p class="text-muted small">@L.LocalizePackageDescription(package.PackageType, package.DurationDays)</p>
-                        <div class="my-3">
-                            <span class="display-4 fw-bold">@package.Price.ToString("N0")</span>
-                            <span class="text-muted">@package.Currency</span>
-                        </div>
-                        <ul class="list-unstyled mb-3 text-start mx-auto" style="max-width: 200px;">
-                            <li><i class="bi bi-check-circle text-success"></i> @L.Format("daysValid", package.DurationDays)</li>
-                            <li><i class="bi bi-check-circle text-success"></i> @L.Format("listingsValid", package.ListingsIncluded)</li>
-                            @if (package.PackageType == "featured")
-                            {
-                                <li><i class="bi bi-check-circle text-success"></i> @L["inFeatured"]</li>
-                            }
-                            @if (package.PackageType == "vitrin")
-                            {
-                                <li><i class="bi bi-check-circle text-success"></i> @L["inShowcase"]</li>
-                            }
-                            @if (package.PackageType == "combo")
-                            {
-                                <li><i class="bi bi-check-circle text-success"></i> @L["bothFeaturedAndShowcase"]</li>
-                            }
-                        </ul>
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <a href="@Url.Action("Purchase", "Pricing", new { id = package.Id })" class="btn btn-primary w-100">
-                                @L["purchase"]
-                            </a>
-                        }
-                        else
-                        {
-                            <a href="@Url.Action("Login", "Account")" class="btn btn-outline-primary w-100">
-                                @L["login"]
-                            </a>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
     @if (!Model.Any())
     {
         <div class="alert alert-info text-center">
             @L["noPackages"]
         </div>
+    }
+    else
+    {
+        var vitrinPackages = Model.Where(p => p.PackageType == "vitrin").OrderBy(p => p.DisplayOrder).ToList();
+        var featuredPackages = Model.Where(p => p.PackageType == "featured").OrderBy(p => p.DisplayOrder).ToList();
+        var popularPackages = Model.Where(p => p.PackageType == "popular").OrderBy(p => p.DisplayOrder).ToList();
+        var comboPackages = Model.Where(p => p.PackageType == "combo").OrderBy(p => p.DisplayOrder).ToList();
+        var otherPackages = Model.Where(p => p.PackageType != "vitrin" && p.PackageType != "featured" && p.PackageType != "popular" && p.PackageType != "combo").OrderBy(p => p.DisplayOrder).ToList();
+        
+        @if (vitrinPackages.Any())
+        {
+            <h4 class="mt-5 mb-3 text-primary"><i class="bi bi-shop me-2"></i>@L["vitrin"] Paketleri</h4>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var package in vitrinPackages)
+                {
+                    <partial name="_PackageCard" model="package" />
+                }
+            </div>
+        }
+        
+        @if (featuredPackages.Any())
+        {
+            <h4 class="mt-5 mb-3 text-warning"><i class="bi bi-star-fill me-2"></i>@L["featured"] Paketleri</h4>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var package in featuredPackages)
+                {
+                    <partial name="_PackageCard" model="package" />
+                }
+            </div>
+        }
+        
+        @if (popularPackages.Any())
+        {
+            <h4 class="mt-5 mb-3 text-success"><i class="bi bi-fire me-2"></i>@L["popular"] Paketleri</h4>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var package in popularPackages)
+                {
+                    <partial name="_PackageCard" model="package" />
+                }
+            </div>
+        }
+        
+        @if (comboPackages.Any())
+        {
+            <h4 class="mt-5 mb-3 text-info"><i class="bi bi-lightning-charge me-2"></i>@L["combo"] Paketleri</h4>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var package in comboPackages)
+                {
+                    <partial name="_PackageCard" model="package" />
+                }
+            </div>
+        }
+        
+        @if (otherPackages.Any())
+        {
+            <h4 class="mt-5 mb-3">Diğer Paketler</h4>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var package in otherPackages)
+                {
+                    <partial name="_PackageCard" model="package" />
+                }
+            </div>
+        }
     }
 </div>
 

@@ -12,6 +12,7 @@ namespace SEN_T_PAZAR.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [Authorize]
     public class FavoritesController : ControllerBase
     {
@@ -34,21 +35,35 @@ namespace SEN_T_PAZAR.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("Kullanıcı oturumu bulunamadı.");
+                    return Unauthorized(new { success = false, message = "Kullanıcı oturumu bulunamadı." });
 
                 // İlanın var olup olmadığını kontrol et
                 var listing = await _context.Listings.FindAsync(listingId);
                 if (listing == null)
-                    return NotFound("İlan bulunamadı.");
+                    return NotFound(new { success = false, message = "İlan bulunamadı." });
 
-                // Zaten favoride mi kontrol et
-                var existing = await _context.UserFavorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ListingId == listingId);
+                var existingFavorites = await _context.UserFavorites
+                    .Where(f => f.UserId == userId && f.ListingId == listingId)
+                    .OrderBy(f => f.Id)
+                    .ToListAsync();
 
-                if (existing != null)
-                    return BadRequest("Bu ilan zaten favorilerde.");
+                if (existingFavorites.Count > 0)
+                {
+                    if (existingFavorites.Count > 1)
+                    {
+                        _context.UserFavorites.RemoveRange(existingFavorites.Skip(1));
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "İlan zaten favorilerde.",
+                        isFavorite = true
+                    });
+                }
 
                 // Favoriye ekle
                 var favorite = new UserFavorite
@@ -64,7 +79,17 @@ namespace SEN_T_PAZAR.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = "İlan favorilere eklendi."
+                    message = "İlan favorilere eklendi.",
+                    isFavorite = true
+                });
+            }
+            catch (DbUpdateException)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "İlan zaten favorilerde.",
+                    isFavorite = true
                 });
             }
             catch (Exception ex)
@@ -77,6 +102,17 @@ namespace SEN_T_PAZAR.Controllers
             }
         }
 
+        [HttpPost("Add")]
+        public async Task<IActionResult> AddFavoriteFromBody([FromBody] FavoriteAddRequest request)
+        {
+            if (request == null || request.ListingId <= 0)
+            {
+                return BadRequest(new { success = false, message = "Geçerli bir listingId gönderin." });
+            }
+
+            return await AddFavorite(request.ListingId);
+        }
+
         /// <summary>
         /// İlanı favorilerden çıkar
         /// </summary>
@@ -87,23 +123,33 @@ namespace SEN_T_PAZAR.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("Kullanıcı oturumu bulunamadı.");
+                    return Unauthorized(new { success = false, message = "Kullanıcı oturumu bulunamadı." });
 
-                var favorite = await _context.UserFavorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ListingId == listingId);
+                var favorites = await _context.UserFavorites
+                    .Where(f => f.UserId == userId && f.ListingId == listingId)
+                    .ToListAsync();
 
-                if (favorite == null)
-                    return NotFound("Favori bulunamadı.");
+                if (favorites.Count == 0)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "İlan zaten favorilerde değil.",
+                        isFavorite = false
+                    });
+                }
 
-                _context.UserFavorites.Remove(favorite);
+                _context.UserFavorites.RemoveRange(favorites);
                 await _context.SaveChangesAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "İlan favorilerden çıkarıldı."
+                    message = "İlan favorilerden çıkarıldı.",
+                    isFavorite = false,
+                    removedCount = favorites.Count
                 });
             }
             catch (Exception ex)
@@ -127,7 +173,7 @@ namespace SEN_T_PAZAR.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("Kullanıcı oturumu bulunamadı.");
 
@@ -139,19 +185,23 @@ namespace SEN_T_PAZAR.Controllers
                     .Skip(skipCount)
                     .Take(pageSize)
                     .Include(f => f.Listing)
+                    .Where(f => f.Listing != null)
                     .Select(f => new
                     {
-                        f.Listing.Id,
-                        f.Listing.Title,
+                        Id = f.Listing!.Id,
+                        Title = f.Listing.Title,
                         Price = f.Listing.PriceAmount,
-                        f.Listing.Category,
-                        f.Listing.City,
+                        Category = f.Listing.Category,
+                        City = f.Listing.City,
                         AddedAt = f.CreatedAt
                     })
                     .ToListAsync();
 
                 var totalCount = await _context.UserFavorites
-                    .CountAsync(f => f.UserId == userId);
+                    .Where(f => f.UserId == userId)
+                    .Select(f => f.ListingId)
+                    .Distinct()
+                    .CountAsync();
 
                 return Ok(new
                 {
@@ -186,7 +236,7 @@ namespace SEN_T_PAZAR.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("Kullanıcı oturumu bulunamadı.");
 
@@ -218,12 +268,15 @@ namespace SEN_T_PAZAR.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("Kullanıcı oturumu bulunamadı.");
 
                 var count = await _context.UserFavorites
-                    .CountAsync(f => f.UserId == userId);
+                    .Where(f => f.UserId == userId)
+                    .Select(f => f.ListingId)
+                    .Distinct()
+                    .CountAsync();
 
                 return Ok(new
                 {
@@ -240,5 +293,10 @@ namespace SEN_T_PAZAR.Controllers
                 });
             }
         }
+    }
+
+    public sealed class FavoriteAddRequest
+    {
+        public int ListingId { get; set; }
     }
 }

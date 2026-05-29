@@ -1,0 +1,1 @@
+ALTER TABLE "ListingImages" ALTER COLUMN "Id" SET DEFAULT nextval('public.listingimages_id_seq');

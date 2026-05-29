@@ -1,0 +1,35 @@
+﻿<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900' viewBox='0 0 1600 900' fill='none'>
+  <title>SEN-T hero 32</title>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#1b4332' />
+      <stop offset='100%' stop-color='#52b788' />
+    </linearGradient>
+    <linearGradient id='ground' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='#10261f' stop-opacity='0.08' />
+      <stop offset='100%' stop-color='#10261f' stop-opacity='0.85' />
+    </linearGradient>
+    <radialGradient id='spot' cx='0.75' cy='0.18' r='0.42'>
+      <stop offset='0%' stop-color='#ffd166' stop-opacity='0.44' />
+      <stop offset='100%' stop-color='#ffd166' stop-opacity='0' />
+    </radialGradient>
+  </defs>
+  <rect width='1600' height='900' fill='url(#bg)' />
+  <rect width='1600' height='900' fill='url(#spot)' />
+  <g opacity='0.12' stroke='#def7ea' stroke-width='1'><line x1='94' y1='0' x2='94' y2='900' /><line x1='234' y1='0' x2='234' y2='900' /><line x1='374' y1='0' x2='374' y2='900' /><line x1='514' y1='0' x2='514' y2='900' /><line x1='654' y1='0' x2='654' y2='900' /><line x1='794' y1='0' x2='794' y2='900' /><line x1='934' y1='0' x2='934' y2='900' /><line x1='1074' y1='0' x2='1074' y2='900' /><line x1='1214' y1='0' x2='1214' y2='900' /><line x1='1354' y1='0' x2='1354' y2='900' /><line x1='1494' y1='0' x2='1494' y2='900' /><line x1='0' y1='67' x2='1600' y2='67' /><line x1='0' y1='177' x2='1600' y2='177' /><line x1='0' y1='287' x2='1600' y2='287' /><line x1='0' y1='397' x2='1600' y2='397' /><line x1='0' y1='507' x2='1600' y2='507' /><line x1='0' y1='617' x2='1600' y2='617' /><line x1='0' y1='727' x2='1600' y2='727' /><line x1='0' y1='837' x2='1600' y2='837' /></g>
+  <path d='M0 618 C200 566 420 560 650 600 C908 646 1130 654 1600 560 V900 H0 Z' fill='url(#ground)' opacity='0.88' />
+  <path d='M0 706 C210 666 444 670 662 706 C888 744 1120 750 1600 694 V900 H0 Z' fill='#def7ea' opacity='0.08' />
+  <g opacity='0.18'>
+    <circle cx='1260' cy='150' r='220' fill='#ffd166' />
+    <circle cx='246' cy='170' r='128' fill='#f77f00' />
+  </g>
+  <g opacity='0.95'>
+  <rect x='236' y='430' width='420' height='240' rx='32' fill='#10261f' />
+  <path d='M236 460 H656 L612 360 H280 Z' fill='#f77f00' opacity='0.40' />
+  <rect x='294' y='508' width='128' height='108' rx='24' fill='#def7ea' opacity='0.18' />
+  <rect x='456' y='508' width='128' height='108' rx='24' fill='#def7ea' opacity='0.18' />
+  <path d='M880 430 H1136 C1178 430 1214 466 1214 508 V640 H802 V508 C802 466 838 430 880 430 Z' fill='#10261f' />
+  <path d='M894 430 V388 C894 346 930 310 972 310 H1044 C1086 310 1122 346 1122 388 V430' stroke='#def7ea' stroke-width='18' stroke-linecap='round' opacity='0.52' fill='none' />
+</g>
+  <rect x='92' y='84' width='1416' height='732' rx='42' stroke='#def7ea' stroke-opacity='0.16' stroke-width='2' />
+</svg>

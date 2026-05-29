@@ -6,6 +6,8 @@
 class FavoritesManager {
     constructor() {
         this.apiBase = '/api/favorites';
+        this.isAuthenticated = Boolean(window.sentUserState && window.sentUserState.isAuthenticated);
+        this.pendingListingIds = new Set();
         this.init();
     }
 
@@ -14,7 +16,9 @@ class FavoritesManager {
      */
     init() {
         this.setupEventListeners();
-        this.updateAllFavoriteButtons();
+        if (this.isAuthenticated) {
+            this.updateAllFavoriteButtons();
+        }
     }
 
     /**
@@ -29,6 +33,10 @@ class FavoritesManager {
                 
                 const btn = e.target.closest('.btn-favorite, .heart-btn');
                 const listingId = btn.getAttribute('data-listing-id');
+                if (!listingId || this.pendingListingIds.has(String(listingId))) {
+                    return;
+                }
+
                 const isFavorited = btn.classList.contains('favorited');
                 
                 if (isFavorited) {
@@ -46,7 +54,14 @@ class FavoritesManager {
      * @param {Element} btn - Heart button element'i
      */
     async addFavorite(listingId, btn) {
+        if (!this.isAuthenticated) {
+            this.showNotification('Lütfen önce giriş yapınız', 'warning');
+            window.location.href = '/Account/Login';
+            return;
+        }
+
         try {
+            this.pendingListingIds.add(String(listingId));
             btn.disabled = true;
             btn.classList.add('loading');
 
@@ -55,29 +70,29 @@ class FavoritesManager {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': this.getCSRFToken()
-                }
+                },
+                credentials: 'include'
             });
 
-            const data = await response.json();
+            const data = await this.readJsonResponse(response);
 
-            if (data.success) {
-                btn.classList.add('favorited');
-                btn.setAttribute('title', 'Favorilerinden çıkar');
-                btn.querySelector('.heart-icon')?.classList.add('active');
+            if (data?.success) {
+                this.setFavoriteState(listingId, true);
                 this.showNotification('İlan favorilere eklendi', 'success');
                 this.updateFavoriteCount();
             } else {
-                if (response.status === 401) {
+                if (response.status === 401 || response.redirected) {
                     this.showNotification('Lütfen önce giriş yapınız', 'warning');
                     window.location.href = '/Account/Login';
                 } else {
-                    this.showNotification(data.message || 'Hata oluştu', 'error');
+                    this.showNotification(data?.message || 'Hata oluştu', 'error');
                 }
             }
         } catch (error) {
             console.error('Favoriye ekleme hatası:', error);
             this.showNotification('Hata oluştu: ' + error.message, 'error');
         } finally {
+            this.pendingListingIds.delete(String(listingId));
             btn.disabled = false;
             btn.classList.remove('loading');
         }
@@ -89,7 +104,14 @@ class FavoritesManager {
      * @param {Element} btn - Heart button element'i
      */
     async removeFavorite(listingId, btn) {
+        if (!this.isAuthenticated) {
+            this.showNotification('Lütfen önce giriş yapınız', 'warning');
+            window.location.href = '/Account/Login';
+            return;
+        }
+
         try {
+            this.pendingListingIds.add(String(listingId));
             btn.disabled = true;
             btn.classList.add('loading');
 
@@ -98,24 +120,29 @@ class FavoritesManager {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': this.getCSRFToken()
-                }
+                },
+                credentials: 'include'
             });
 
-            const data = await response.json();
+            const data = await this.readJsonResponse(response);
 
-            if (data.success) {
-                btn.classList.remove('favorited');
-                btn.setAttribute('title', 'Favorilerime ekle');
-                btn.querySelector('.heart-icon')?.classList.remove('active');
+            if (data?.success) {
+                this.setFavoriteState(listingId, false);
                 this.showNotification('İlan favorilerden çıkarıldı', 'success');
                 this.updateFavoriteCount();
             } else {
-                this.showNotification(data.message || 'Hata oluştu', 'error');
+                if (response.status === 401 || response.redirected) {
+                    this.showNotification('Lütfen önce giriş yapınız', 'warning');
+                    window.location.href = '/Account/Login';
+                } else {
+                    this.showNotification(data?.message || 'Hata oluştu', 'error');
+                }
             }
         } catch (error) {
             console.error('Favoriden çıkarma hatası:', error);
             this.showNotification('Hata oluştu: ' + error.message, 'error');
         } finally {
+            this.pendingListingIds.delete(String(listingId));
             btn.disabled = false;
             btn.classList.remove('loading');
         }
@@ -125,12 +152,26 @@ class FavoritesManager {
      * Tüm favori button'ları kontrol et ve güncelle
      */
     async updateAllFavoriteButtons() {
-        const buttons = document.querySelectorAll('[data-listing-id]');
+        const buttons = document.querySelectorAll('.btn-favorite[data-listing-id], .heart-btn[data-listing-id]');
         
         for (const btn of buttons) {
+            if (btn.closest('.favorites-section') && btn.closest('.favorite-card')) {
+                continue;
+            }
+
             const listingId = btn.getAttribute('data-listing-id');
             await this.checkIsFavorite(listingId, btn);
         }
+    }
+
+    setFavoriteState(listingId, isFavorited) {
+        const selector = `.btn-favorite[data-listing-id="${listingId}"], .heart-btn[data-listing-id="${listingId}"]`;
+
+        document.querySelectorAll(selector).forEach((button) => {
+            button.classList.toggle('favorited', isFavorited);
+            button.setAttribute('title', isFavorited ? 'Favorilerinden çıkar' : 'Favorilerime ekle');
+            button.querySelector('.heart-icon')?.classList.toggle('active', isFavorited);
+        });
     }
 
     /**
@@ -140,16 +181,24 @@ class FavoritesManager {
      */
     async checkIsFavorite(listingId, btn) {
         try {
-            const response = await fetch(`${this.apiBase}/${listingId}/is-favorite`, {
+            const cacheBust = `ts=${Date.now()}`;
+            const response = await fetch(`${this.apiBase}/${listingId}/is-favorite?${cacheBust}`, {
                 method: 'GET',
+                cache: 'no-store',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, max-age=0',
+                    'Pragma': 'no-cache'
                 },
                 credentials: 'include'
             });
 
             if (response.ok) {
-                const data = await response.json();
+                const data = await this.readJsonResponse(response);
+                if (!data) {
+                    return;
+                }
+
                 if (data.isFavorite) {
                     btn.classList.add('favorited');
                     btn.setAttribute('title', 'Favorilerinden çıkar');
@@ -169,25 +218,56 @@ class FavoritesManager {
      * Favori sayısını güncelle ve göster
      */
     async updateFavoriteCount() {
+        if (!this.isAuthenticated) {
+            return;
+        }
+
         try {
-            const response = await fetch(`${this.apiBase}/count`, {
+            const response = await fetch(`${this.apiBase}/count?ts=${Date.now()}`, {
                 method: 'GET',
+                cache: 'no-store',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, max-age=0',
+                    'Pragma': 'no-cache'
                 },
                 credentials: 'include'
             });
 
             if (response.ok) {
-                const data = await response.json();
-                const countElement = document.querySelector('.favorite-count');
-                if (countElement) {
+                const data = await this.readJsonResponse(response);
+                if (!data) {
+                    return;
+                }
+
+                const countElements = document.querySelectorAll('.favorite-count');
+                countElements.forEach((countElement) => {
+                    // Detay sayfasındaki halka açık favori sayısı (listing bazlı) üzerine yazma
+                    if (countElement.id && countElement.id.startsWith('listing-favorite')) {
+                        return;
+                    }
+                    if (countElement.closest('.detail-summary-card__header')) {
+                        return;
+                    }
                     countElement.textContent = data.count;
                     countElement.style.display = data.count > 0 ? 'inline' : 'none';
-                }
+                });
             }
         } catch (error) {
             console.warn('Favori sayısı güncelleme hatası:', error);
+        }
+    }
+
+    async readJsonResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            return null;
+        }
+
+        try {
+            return await response.json();
+        } catch {
+            return null;
         }
     }
 

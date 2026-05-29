@@ -1,0 +1,1 @@
+CREATE SEQUENCE IF NOT EXISTS listings_id_seq;

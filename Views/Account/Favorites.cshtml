@@ -1,4 +1,6 @@
+@using System.IO
 @model SEN_T_PAZAR.Controllers.FavoritesPageViewModel
+@inject SEN_T_PAZAR.Services.IUploadStorageService UploadStorage
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
 
 @{
@@ -10,6 +12,62 @@
         "ar" => ar,
         _ => tr
     });
+
+    string Localize(string tr, string? en, string? ru, string? ar, string? fa) => L.CultureCode switch
+    {
+        "en" => string.IsNullOrWhiteSpace(en) ? tr : en,
+        "ru" => string.IsNullOrWhiteSpace(ru) ? tr : ru,
+        "ar" => string.IsNullOrWhiteSpace(ar) ? tr : ar,
+        "fa" => string.IsNullOrWhiteSpace(fa) ? tr : fa,
+        _ => tr
+    };
+
+    string ResolveFavoriteFallbackImageUrl(string? category)
+    {
+        return SEN_T_PAZAR.Models.ListingTaxonomy.NormalizeSearchCategory(category) switch
+        {
+            "electronics" or "phone" or "computer" or "watch" or "jewelry" => "/media/heroes/hero-12.svg",
+            "services" => "/media/heroes/hero-15.svg",
+            "home" => "/media/heroes/hero-25.svg",
+            "vehicle" or "yacht" or "caravan" => "/media/heroes/hero-20.svg",
+            "land" => "/media/heroes/hero-23.svg",
+            "realestate" => "/media/heroes/hero-31.svg",
+            _ => "/media/heroes/hero-01.svg"
+        };
+    }
+
+    string ResolveFavoriteImageUrl(SEN_T_PAZAR.Models.Listing? listing)
+    {
+        var fallbackImage = ResolveFavoriteFallbackImageUrl(listing?.Category);
+
+        if (listing?.Images == null || listing.Images.Count == 0)
+        {
+            return fallbackImage;
+        }
+
+        foreach (var image in listing.Images)
+        {
+            var rawPath = image.FilePath;
+            if (string.IsNullOrWhiteSpace(rawPath))
+            {
+                continue;
+            }
+
+            if (!rawPath.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+            {
+                return rawPath;
+            }
+
+            var relativePath = rawPath.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
+            var physicalPath = UploadStorage.TryGetPhysicalPath(rawPath);
+            if (!string.IsNullOrWhiteSpace(physicalPath) && System.IO.File.Exists(physicalPath))
+            {
+                return rawPath;
+            }
+        }
+
+        return fallbackImage;
+    }
 }
 
 <section class="section favorites-section">
@@ -78,11 +136,16 @@
                     @foreach (var favorite in Model.Favorites)
                     {
                         var listing = favorite.Listing;
+                        var localizedTitle = listing == null ? string.Empty : Localize(listing.Title, listing.TitleEn, listing.TitleRu, listing.TitleAr, listing.TitleFa);
+                        var localizedDescription = listing == null ? string.Empty : Localize(listing.Description, listing.DescriptionEn, listing.DescriptionRu, listing.DescriptionAr, listing.DescriptionFa);
+                        var imageUrl = ResolveFavoriteImageUrl(listing);
                         <div class="favorite-card">
                             <div class="favorite-card__image">
-                                <img src="@(listing?.Images?.FirstOrDefault()?.FilePath ?? "/img/placeholder.png")" 
-                                     alt="@listing?.Title" 
-                                     loading="lazy" />
+                                <img src="@imageUrl" 
+                                     alt="@localizedTitle" 
+                                     loading="lazy"
+                                     referrerpolicy="no-referrer"
+                                     onerror="this.onerror=null;this.src='/img/placeholder.svg';" />
                                 <label class="favorite-card__checkbox">
                                     <input type="checkbox" name="selectedIds" value="@listing?.Id" />
                                     <span class="checkmark"></span>
@@ -93,7 +156,7 @@
                                 <div class="favorite-card__header">
                                     <h3>
                                         <a asp-action="Details" asp-controller="Home" asp-route-id="@listing?.Id">
-                                            @listing?.Title
+                                            @localizedTitle
                                         </a>
                                     </h3>
                                     <button type="button" 
@@ -111,14 +174,14 @@
                                     @listing?.City - @listing?.District
                                 </p>
 
-                                <p class="favorite-card__description">@listing?.Description</p>
+                                <p class="favorite-card__description">@localizedDescription</p>
 
                                 <div class="favorite-card__footer">
                                     <div class="favorite-card__price">
-                                        <strong>@listing?.PriceAmount.ToString("C")</strong>
+                                        <strong>@SEN_T_PAZAR.Services.CurrencyDisplay.Format(listing?.PriceAmount ?? 0, listing?.PriceCurrency)</strong>
                                     </div>
-                                    <a asp-action="Details" asp-controller="Home" asp-route-id="@listing?.Id" class="btn btn-sm btn-primary">
-                                        @T("Incele", "View", "Просмотр", "اعرض")
+                                    <a asp-action="Details" asp-controller="Home" asp-route-id="@listing?.Id" class="btn btn-sm btn-primary" aria-label="@T("Detayları Gör", "View Details", "Посмотреть детали", "عرض التفاصيل")">
+                                        <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
                                     </a>
                                 </div>
 

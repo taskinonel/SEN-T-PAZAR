@@ -79,6 +79,21 @@ public enum TransmissionType
     [Display(Name = "Triptonik")] Tiptronic
 }
 
+public enum SteeringType
+{
+    [Display(Name = "Sağ")] Right,
+    [Display(Name = "Sol")] Left
+}
+
+public enum VehicleConditionState
+{
+    [Display(Name = "Sıfır")] New,
+    [Display(Name = "İkinci El - Çok İyi")] VeryGood,
+    [Display(Name = "İkinci El - İyi")] Good,
+    [Display(Name = "İkinci El - Orta")] Fair,
+    [Display(Name = "Kullanılmış - Bozuk Parçalar")] Poor
+}
+
 public enum BodyType
 {
     [Display(Name = "Sedan")] Sedan,
@@ -115,7 +130,7 @@ public enum AdvertiserType
     [Display(Name = "İnşaat Firmasından")] Developer
 }
 
-public sealed class CreateListingViewModel
+public sealed class CreateListingViewModel : IValidatableObject
 {
     [Display(Name = "Ad Soyad")]
     [Required(ErrorMessage = "Ad soyad zorunludur.")]
@@ -147,12 +162,17 @@ public sealed class CreateListingViewModel
     [Required(ErrorMessage = "Şehir seçimi zorunludur.")]
     public string City { get; set; } = string.Empty;
 
-    [Display(Name = "İlçe")]
-    [Required(ErrorMessage = "İlçe seçimi zorunludur.")]
+    [Display(Name = "İlçe / Semt")]
     public string District { get; set; } = string.Empty;
 
-    [Display(Name = "Mahalle / Semt")]
+    [Display(Name = "Mahalle")]
     public string? Neighborhood { get; set; }
+
+    [Display(Name = "Ev / Bina No")]
+    public string? HouseNumber { get; set; }
+
+    [Display(Name = "Daire No")]
+    public string? ApartmentNumber { get; set; }
 
     [Display(Name = "Açık Adres")]
     [StringLength(500, ErrorMessage = "Adres en fazla 500 karakter olabilir.")]
@@ -170,9 +190,7 @@ public sealed class CreateListingViewModel
     public string Type { get; set; } = string.Empty;
 
     [Display(Name = "Fiyat")]
-    [Range(1, 1000000000, ErrorMessage = "Fiyat 0'dan büyük olmalıdır.")]
-    [Required(ErrorMessage = "Fiyat zorunludur.")]
-    public decimal PriceAmount { get; set; }
+    public decimal? PriceAmount { get; set; }
 
     [Display(Name = "Para Birimi")]
     [Required(ErrorMessage = "Para birimi seçimi zorunludur.")]
@@ -202,6 +220,10 @@ public sealed class CreateListingViewModel
     [Display(Name = "YouTube Video Linki")]
     [Url(ErrorMessage = "Geçerli bir URL girin.")]
     public string? VideoUrl { get; set; }
+
+    [Display(Name = "360° Tur Linki")]
+    [Url(ErrorMessage = "Geçerli bir URL girin.")]
+    public string? Tour360Url { get; set; }
 
     [Display(Name = "Harita Konumu (Lat)")]
     public double? Latitude { get; set; }
@@ -305,6 +327,12 @@ public sealed class CreateListingViewModel
     [Display(Name = "Kaza Kaydı")]
     public string? AccidentRecord { get; set; }
 
+    [Display(Name = "Araç Durumu")]
+    public VehicleConditionState? VehicleCondition { get; set; }
+
+    [Display(Name = "Direksiyon Tipi")]
+    public SteeringType? VehicleSteeringType { get; set; }
+
     [Display(Name = "Ürün Markası")]
     public string? ProductBrand { get; set; }
 
@@ -325,4 +353,141 @@ public sealed class CreateListingViewModel
 
     [Display(Name = "Anahtar Kelimeler")]
     public string? Tags { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Latitude is < -90 or > 90)
+        {
+            yield return new ValidationResult("Enlem degeri gecersiz.", new[] { nameof(Latitude) });
+        }
+
+        if (Longitude is < -180 or > 180)
+        {
+            yield return new ValidationResult("Boylam degeri gecersiz.", new[] { nameof(Longitude) });
+        }
+
+        foreach (var result in ListingSubmissionRules.ValidateCoreFields(Title, Description, Category, SubCategory, Type, City))
+        {
+            yield return result;
+        }
+
+        var normalized = ListingTaxonomy.NormalizeForPersistence(Category, SubCategory);
+        var normalizedCategory = normalized.Category;
+        var normalizedSubCategory = normalized.SubCategory;
+
+        if (!ListingTaxonomy.IsPetAdoption(normalizedCategory, Type))
+        {
+            if (!PriceAmount.HasValue)
+            {
+                yield return new ValidationResult("Fiyat zorunludur.", new[] { nameof(PriceAmount) });
+            }
+            else if (PriceAmount.Value <= 0)
+            {
+                yield return new ValidationResult("Fiyat 0'dan buyuk olmalidir.", new[] { nameof(PriceAmount) });
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedCategory))
+        {
+            yield break;
+        }
+
+        if (PriceAmount.HasValue && PriceAmount.Value != Math.Truncate(PriceAmount.Value))
+        {
+            yield return new ValidationResult("Fiyat tam sayı olmalıdır.", new[] { nameof(PriceAmount) });
+        }
+
+        if (ImageFiles == null || ImageFiles.Count == 0)
+        {
+            yield return new ValidationResult("İlan yayınlamak için en az bir gerçek görsel yüklemelisiniz.", new[] { nameof(ImageFiles) });
+        }
+
+        if (CoverImageIndex.HasValue && ImageFiles != null && (CoverImageIndex < 0 || CoverImageIndex >= ImageFiles.Count))
+        {
+            yield return new ValidationResult("Kapak görseli seçimi yüklenen görsellerle uyuşmuyor.", new[] { nameof(CoverImageIndex) });
+        }
+
+        if (normalizedCategory == "estate")
+        {
+            if (!EstateNetArea.HasValue || EstateNetArea <= 0)
+            {
+                yield return new ValidationResult("Emlak ilanlari icin net metrekare zorunludur.", new[] { nameof(EstateNetArea) });
+            }
+
+            if (EstateGrossArea.HasValue && EstateGrossArea <= 0)
+            {
+                yield return new ValidationResult("Brut metrekare 0'dan buyuk olmalidir.", new[] { nameof(EstateGrossArea) });
+            }
+
+            if (EstateNetArea.HasValue && EstateGrossArea.HasValue && EstateGrossArea < EstateNetArea)
+            {
+                yield return new ValidationResult("Brüt metrekare net metrekareden küçük olamaz.", new[] { nameof(EstateGrossArea), nameof(EstateNetArea) });
+            }
+
+            if (string.Equals(normalizedSubCategory, "konut", StringComparison.OrdinalIgnoreCase) && !EstateRoomCount.HasValue)
+            {
+                yield return new ValidationResult("Konut ilanlari icin oda sayisi zorunludur.", new[] { nameof(EstateRoomCount) });
+            }
+        }
+
+        if (normalizedCategory == "vehicle")
+        {
+            if (string.IsNullOrWhiteSpace(VehicleBrand))
+            {
+                yield return new ValidationResult("Vasita ilanlari icin marka zorunludur.", new[] { nameof(VehicleBrand) });
+            }
+
+            if (string.IsNullOrWhiteSpace(VehicleModel))
+            {
+                yield return new ValidationResult("Vasita ilanlari icin model zorunludur.", new[] { nameof(VehicleModel) });
+            }
+
+            if (!VehicleYear.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin model yili zorunludur.", new[] { nameof(VehicleYear) });
+            }
+
+            if (!VehicleKM.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin kilometre zorunludur.", new[] { nameof(VehicleKM) });
+            }
+
+            if (!VehicleFuelType.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin yakit tipi zorunludur.", new[] { nameof(VehicleFuelType) });
+            }
+
+            if (!VehicleTransmission.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin vites tipi zorunludur.", new[] { nameof(VehicleTransmission) });
+            }
+
+            if (!VehicleBodyType.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin kasa tipi zorunludur.", new[] { nameof(VehicleBodyType) });
+            }
+
+            if (!VehicleCondition.HasValue)
+            {
+                yield return new ValidationResult("Vasita ilanlari icin arac durumu zorunludur.", new[] { nameof(VehicleCondition) });
+            }
+        }
+
+        if (ListingTaxonomy.IsProductPanelCategory(normalizedCategory) && ListingTaxonomy.RequiresProductCondition(normalizedCategory) && !ProductCondition.HasValue)
+        {
+            yield return new ValidationResult("Bu ilan kategorisi icin urun durumu zorunludur.", new[] { nameof(ProductCondition) });
+        }
+
+        if (ListingSubmissionRules.RequiresDetailedProductIdentity(normalizedCategory) &&
+            string.IsNullOrWhiteSpace(ProductBrand) &&
+            string.IsNullOrWhiteSpace(ProductModel))
+        {
+            yield return new ValidationResult("Bu kategori icin marka veya model bilgisinden en az biri zorunludur.", new[] { nameof(ProductBrand), nameof(ProductModel) });
+        }
+
+        if (ImageFiles is { Count: > 20 })
+        {
+            yield return new ValidationResult("En fazla 20 gorsel yukleyebilirsiniz.", new[] { nameof(ImageFiles) });
+        }
+    }
 }

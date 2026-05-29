@@ -26,7 +26,7 @@ public interface IListingCatalogService
 
 public sealed class ListingCatalogService : IListingCatalogService
 {
-    private const int TargetPerCategory = 30;
+    private const int TargetPerCategory = 2;
     private readonly string _cultureCode;
     private readonly CultureInfo _displayCulture;
 
@@ -113,7 +113,7 @@ public sealed class ListingCatalogService : IListingCatalogService
             ["4 Kişilik Aile Karavanı", "Off-Grid Kamp Karavanı", "Panelvan Dönüşüm Karavan", "Lüks İç Tasarımlı Karavan"],
             "kapasite", "yakıt", 3200, "caravan,camper,rv"),
         ["secondhand"] = new CategorySeed(
-            "İkinci El", "Kullanılmış", "Temiz kullanılmış ve uygun fiyatlı ürün.",
+            "Diğer", "Other", "Farklı kategorilerde genel ilan seçenekleri.",
             ["Masif Ahşap Yemek Masası", "Ergonomik Ofis Koltuğu", "Az Kullanılmış Koşu Bandı", "Set Üstü Mutfak Paketi"],
             "durum", "garanti", 260, "second hand,furniture,used"),
         ["phone"] = new CategorySeed(
@@ -156,15 +156,11 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     public IReadOnlyList<PropertyCard> Listings { get; }
 
-    public IReadOnlyList<string> ListingTypes { get; } = ["all", "sale", "rent"];
+    public IReadOnlyList<string> ListingTypes { get; } = ListingTaxonomy.GetSearchListingTypes().ToList();
 
-    public IReadOnlyList<string> Cities { get; } = ["all", "Girne", "İskele", "Lefkoşa", "Gazimağusa", "Karpaz", "Güzelyurt"];
+    public IReadOnlyList<string> Cities { get; } = ["all", "Girne", "İskele", "Lefkoşa", "Gazimağusa", "Güzelyurt", "Lefke", "Karpaz"];
 
-    public IReadOnlyList<string> Categories { get; } =
-    [
-        "all", "realestate", "land", "vehicle", "yacht", "caravan", "secondhand", "phone", "computer", "watch",
-        "jewelry", "electronics", "equipment", "home", "fashion", "services"
-    ];
+    public IReadOnlyList<string> Categories { get; } = ["all", .. ListingTaxonomy.GetSearchCategoryKeys()];
 
     public IReadOnlyList<string> PriceRanges { get; } = ["any", "low", "mid", "high"];
 
@@ -186,19 +182,17 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     public bool TryResolveCategoryFromSlug(string slug, out string categoryCode)
     {
-        return SlugToCategory.TryGetValue(slug, out categoryCode!);
+        return ListingTaxonomy.TryResolveSearchCategoryFromSlug(slug, out categoryCode!);
     }
 
     public string GetDefaultSlug(string categoryCode)
     {
-        return CategoryToDefaultSlug.TryGetValue(categoryCode, out var slug) ? slug : "kategori";
+        return ListingTaxonomy.GetSearchCategorySlug(categoryCode, _cultureCode);
     }
 
     public string GetCategoryHeroImage(string categoryCode)
     {
-        return CategoryHeroImages.TryGetValue(categoryCode, out var image)
-            ? image
-            : "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1800&q=80";
+        return ListingTaxonomy.GetSearchCategoryHeroImage(categoryCode);
     }
 
     private static string NormalizeCultureCode(string? code)
@@ -212,13 +206,14 @@ public sealed class ListingCatalogService : IListingCatalogService
         };
     }
 
-    private string T(string tr, string en, string ru, string ar)
+    private string T(string tr, string en, string ru, string ar, string? fa = null)
     {
         return _cultureCode switch
         {
             "en" => en,
             "ru" => ru,
             "ar" => ar,
+            "fa" => fa ?? en ?? tr,
             _ => tr
         };
     }
@@ -229,24 +224,24 @@ public sealed class ListingCatalogService : IListingCatalogService
         {
             "realestate" =>
             [
-                T("2+1 Deniz Manzaralı Daire", "2+1 Sea View Apartment", "Квартира 2+1 с видом на море", "شقة 2+1 بإطلالة بحرية"),
-                T("3+1 Geniş Aile Dairesi", "3+1 Spacious Family Apartment", "Просторная семейная квартира 3+1", "شقة عائلية واسعة 3+1"),
-                T("Site İçinde Modern Rezidans", "Modern Residence in Complex", "Современная резиденция в комплексе", "سكن حديث داخل مجمع"),
-                T("Merkezi Konumda Şehir Dairesi", "Central City Apartment", "Городская квартира в центре", "شقة مدينة بموقع مركزي")
+                T("Long Beach Yakınında 2+1 Rezidans", "2+1 Residence Near Long Beach", "Резиденция 2+1 рядом с Long Beach", "شقة 2+1 قرب لونغ بيتش"),
+                T("Girne Hattında 3+1 Aile Dairesi", "3+1 Family Apartment on Kyrenia Line", "Семейная квартира 3+1 на линии Кирении", "شقة عائلية 3+1 على خط غيرنه"),
+                T("Deniz Cepheli Site İçi Penthouse", "Seafront Penthouse in Compound", "Пентхаус у моря в жилом комплексе", "بنتهاوس داخل مجمع مواجه للبحر"),
+                T("Üniversite Bölgesine Yakın 1+1 Daire", "1+1 Apartment Close to University District", "Квартира 1+1 рядом с университетским районом", "شقة 1+1 قرب منطقة الجامعة")
             ],
             "land" =>
             [
-                T("İmarlı Yatırımlık Arsa", "Zoned Investment Land", "Инвестиционный участок с разрешением", "أرض استثمارية مرخصة"),
-                T("Yola Cepheli Ticari Parsel", "Commercial Plot on Main Road", "Коммерческий участок у дороги", "قطعة تجارية على الطريق"),
-                T("Villa Projesine Uygun Arsa", "Land Suitable for Villa Project", "Участок под виллу", "أرض مناسبة لمشروع فيلا"),
-                T("Denize Yakın Gelişim Bölgesi Arsası", "Development Land Near the Sea", "Участок в зоне развития у моря", "أرض تطوير قريبة من البحر")
+                T("Yatırım Amaçlı İmarlı Deniz Hattı Arsası", "Zoned Coastal Investment Plot", "Инвестиционный участок на береговой линии", "أرض استثمارية منظمة على الخط الساحلي"),
+                T("Villa Konseptine Uygun Geniş Parsel", "Spacious Plot Suitable for Villa Concept", "Просторный участок под виллу", "قطعة واسعة مناسبة لمشروع فيلا"),
+                T("Ana Yola Yakın Ticari Cepheli Arsa", "Commercial Frontage Land Near Main Road", "Участок с коммерческим фасадом рядом с магистралью", "أرض بواجهة تجارية قرب الطريق الرئيسي"),
+                T("Gelişen Bölgede Proje Değerli Parsel", "Project-Value Plot in Growth Area", "Инвестиционный участок в развивающемся районе", "قطعة ذات قيمة مشروع في منطقة نامية")
             ],
             "vehicle" =>
             [
-                T("Dizel Otomatik SUV", "Diesel Automatic SUV", "Дизельный SUV с автоматом", "سيارة SUV ديزل أوتوماتيك"),
-                T("Düşük KM Aile Sedan", "Low Mileage Family Sedan", "Семейный седан с малым пробегом", "سيدان عائلية بعداد منخفض"),
-                T("Şehir İçi Ekonomik Hatchback", "Urban Economy Hatchback", "Экономичный хэтчбек для города", "هاتشباك اقتصادية للمدينة"),
-                T("Premium Segment Executive", "Executive Premium Sedan", "Премиальный представительский автомобиль", "سيارة تنفيذية فاخرة")
+                T("Otomatik SUV Konfor Paket", "Automatic SUV Comfort Pack", "Автоматический SUV в комфорт-пакете", "سيارة SUV أوتوماتيك بحزمة راحة"),
+                T("Düşük KM Benzinli Şehir Sedanı", "Low-Mileage Petrol City Sedan", "Городской бензиновый седан с малым пробегом", "سيدان مدينة بنزين بعداد منخفض"),
+                T("Ekonomik Hatchback Günlük Kullanım", "Economy Hatchback for Daily Use", "Экономичный хэтчбек для повседневной езды", "هاتشباك اقتصادية للاستخدام اليومي"),
+                T("Premium Sürüş Paketi Executive Seri", "Executive Series with Premium Drive Pack", "Премиальная представительская серия", "فئة تنفيذية بحزمة قيادة مميزة")
             ],
             "yacht" =>
             [
@@ -271,17 +266,17 @@ public sealed class ListingCatalogService : IListingCatalogService
             ],
             "phone" =>
             [
-                T("256 GB Akıllı Telefon", "256 GB Smartphone", "Смартфон 256 ГБ", "هاتف ذكي 256 جيجابايت"),
-                T("Kamera Odaklı Amiral Gemisi", "Camera-Focused Flagship", "Флагман с продвинутой камерой", "هاتف رائد بكاميرا متقدمة"),
-                T("Uzun Batarya Ömürlü Model", "Long Battery Life Model", "Модель с долгой автономностью", "هاتف ببطارية طويلة"),
-                T("Kompakt Premium Telefon", "Compact Premium Phone", "Компактный премиум-смартфон", "هاتف فاخر مدمج")
+                T("256 GB Kamera Güçlü Akıllı Telefon", "256 GB Camera-Focused Smartphone", "Смартфон 256 ГБ с мощной камерой", "هاتف ذكي 256 جيجابايت بكاميرا قوية"),
+                T("Amiral Seri Hızlı Şarjlı Model", "Flagship Series with Fast Charging", "Флагманская серия с быстрой зарядкой", "هاتف رائد مع شحن سريع"),
+                T("Uzun Pil Ömürlü Günlük Seri", "Daily Series with Long Battery Life", "Повседневная модель с долгой автономностью", "سلسلة يومية ببطارية طويلة"),
+                T("Kutulu Premium Kompakt Telefon", "Boxed Premium Compact Phone", "Компактный премиум-смартфон в коробке", "هاتف فاخر مدمج مع العلبة")
             ],
             "computer" =>
             [
-                T("RTX Ekran Kartlı Oyun Laptopu", "Gaming Laptop with RTX GPU", "Игровой ноутбук с RTX", "لابتوب ألعاب مع RTX"),
-                T("İçerik Üretimi için Workstation", "Workstation for Content Creation", "Рабочая станция для создания контента", "محطة عمل لصناعة المحتوى"),
-                T("Ultra Hafif İş Bilgisayarı", "Ultra-Light Business Laptop", "Ультралегкий бизнес-ноутбук", "حاسوب أعمال خفيف جدًا"),
-                T("Masaüstü Performans Sistemi", "Desktop Performance System", "Производительная настольная система", "نظام مكتبي عالي الأداء")
+                T("RTX Destekli Oyun Laptopu", "Gaming Laptop with RTX Support", "Игровой ноутбук с RTX", "لابتوب ألعاب مدعوم بـ RTX"),
+                T("İçerik Üreticisine Uygun Workstation", "Workstation for Content Creators", "Рабочая станция для создателей контента", "محطة عمل لصنّاع المحتوى"),
+                T("İnce Kasalı İş ve Eğitim Laptopu", "Slim Laptop for Work and Study", "Тонкий ноутбук для работы и учебы", "لابتوب نحيف للعمل والدراسة"),
+                T("Yüksek Performanslı Masaüstü Kurulum", "High-Performance Desktop Setup", "Высокопроизводительная настольная сборка", "تجميعة مكتبية عالية الأداء")
             ],
             "watch" =>
             [
@@ -299,10 +294,10 @@ public sealed class ListingCatalogService : IListingCatalogService
             ],
             "electronics" =>
             [
-                T("4K OLED Televizyon", "4K OLED Television", "4K OLED телевизор", "تلفزيون OLED بدقة 4K"),
-                T("Gürültü Engelleyici Kulaklık", "Noise Cancelling Headphones", "Наушники с шумоподавлением", "سماعات عازلة للضوضاء"),
-                T("Akıllı Ev Kamera Seti", "Smart Home Camera Kit", "Комплект камер умного дома", "طقم كاميرات منزل ذكي"),
-                T("Profesyonel Ses Sistemi", "Professional Audio System", "Профессиональная аудиосистема", "نظام صوت احترافي")
+                T("4K Akıllı TV Eğlence Paketi", "4K Smart TV Entertainment Pack", "4K Smart TV для домашнего кинотеатра", "تلفزيون ذكي 4K مع باقة ترفيه"),
+                T("Aktif Gürültü Engelleyici Kulaklık", "Active Noise Cancelling Headphones", "Наушники с активным шумоподавлением", "سماعات بعزل ضوضاء نشط"),
+                T("Akıllı Ev Güvenlik Kamera Seti", "Smart Home Security Camera Set", "Комплект камер для умного дома", "طقم كاميرات أمان للمنزل الذكي"),
+                T("Konsol ve Medya Uyumlu Ses Sistemi", "Audio System for Console and Media", "Аудиосистема для консоли и мультимедиа", "نظام صوت متوافق مع الألعاب والوسائط")
             ],
             "equipment" =>
             [
@@ -313,10 +308,10 @@ public sealed class ListingCatalogService : IListingCatalogService
             ],
             "home" =>
             [
-                T("L Koltuk Takımı", "L-Shaped Sofa Set", "Угловой диван", "طقم كنبة حرف L"),
-                T("6 Kişilik Yemek Odası", "Dining Room for 6", "Столовая группа на 6 персон", "غرفة طعام لستة أشخاص"),
-                T("Yatak Odası Komple Set", "Complete Bedroom Set", "Полный комплект спальни", "طقم غرفة نوم كامل"),
-                T("Dekoratif Aydınlatma Paketi", "Decorative Lighting Package", "Комплект декоративного освещения", "باقة إضاءة ديكورية")
+                T("Modern L Koltuk ve Orta Sehpa Seti", "Modern L Sofa and Coffee Table Set", "Современный угловой диван с журнальным столиком", "طقم كنبة L حديث مع طاولة وسط"),
+                T("6 Kişilik Yemek Alanı Paketi", "Dining Package for 6", "Обеденный комплект на 6 персон", "باقة طعام لستة أشخاص"),
+                T("Komodinli Yatak Odası Komple Set", "Complete Bedroom Set with Nightstands", "Полный спальный комплект с тумбами", "طقم غرفة نوم كامل مع كومودينات"),
+                T("Salon için Dekoratif Aydınlatma Serisi", "Decorative Lighting Series for Living Room", "Серия декоративного освещения для гостиной", "سلسلة إضاءة ديكورية لغرفة المعيشة")
             ],
             "fashion" =>
             [
@@ -340,19 +335,19 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         return category switch
         {
-            "realestate" => T("Kıbrıs'ta oturum ve yatırım için ideal daire.", "An ideal apartment for living or investment in Cyprus.", "Идеальная квартира для жизни и инвестиций на Кипре.", "شقة مثالية للسكن أو الاستثمار في قبرص."),
-            "land" => T("Altyapısı hazır ve yatırım değeri güçlü arsa.", "Infrastructure-ready land with strong investment value.", "Участок с готовой инфраструктурой и высоким инвестиционным потенциалом.", "أرض مجهزة بالبنية التحتية وتملك قيمة استثمارية قوية."),
-            "vehicle" => T("Bakımları tam, ekspertiz raporlu araç.", "Well-maintained vehicle with inspection report.", "Автомобиль после обслуживания с отчетом экспертизы.", "مركبة مخدومة بالكامل مع تقرير فحص."),
+            "realestate" => T("Kuzey Kıbrıs sahil ve şehir hatlarında yaşam ile yatırım dengesini hedefleyen özgün portföy.", "An original portfolio balancing lifestyle and investment across North Cyprus coast and city lines.", "Оригинальный портфель, сочетающий жизнь и инвестиции на побережье и в городах Северного Кипра.", "مجموعة أصلية توازن بين السكن والاستثمار على الخطوط الساحلية والحضرية في شمال قبرص."),
+            "land" => T("Gelişen bölgelerde proje üretimine ve uzun vadeli yatırıma uygun arsa kurgusu.", "Land concepts fit for long-term investment and project development in growth areas.", "Участки для долгосрочных инвестиций и проектов в развивающихся районах.", "تصورات أراضٍ مناسبة للاستثمار طويل الأجل وتطوير المشاريع في المناطق النامية."),
+            "vehicle" => T("Galeri sunum disiplinine yakın, bakımı ve sürüş profili netleştirilmiş araç seçkisi.", "A vehicle selection presented with dealership-style clarity around maintenance and driving profile.", "Подборка автомобилей с понятной подачей в стиле автосалона.", "مجموعة سيارات معروضة بأسلوب قريب من معارض السيارات مع وضوح في الصيانة وطابع القيادة."),
             "yacht" => T("Marina teslim, bakımlı motor yat.", "Well-maintained motor yacht ready at the marina.", "Ухоженная моторная яхта, готовая в марине.", "يخت بمحرك جاهز في المرسى وبحالة ممتازة."),
             "caravan" => T("Uzun yol ve kamp için tam donanım.", "Fully equipped for road trips and camping.", "Полностью оснащен для путешествий и кемпинга.", "مجهز بالكامل للرحلات الطويلة والتخييم."),
             "secondhand" => T("Temiz kullanılmış ve uygun fiyatlı ürün.", "Clean pre-owned product at a fair price.", "Аккуратно использованный товар по разумной цене.", "منتج مستعمل بحالة جيدة وسعر مناسب."),
-            "phone" => T("Kutulu, faturalı ve pil sağlığı yüksek cihaz.", "Boxed device with invoice and strong battery health.", "Устройство в коробке, с чеком и хорошим аккумулятором.", "جهاز مع العلبة والفاتورة وبطارية بحالة ممتازة."),
-            "computer" => T("İş ve oyun için yüksek performans.", "High performance for work and gaming.", "Высокая производительность для работы и игр.", "أداء قوي للعمل والألعاب."),
+            "phone" => T("Garanti, hızlı teslimat ve kutu içeriği vurgusuyla hazırlanmış mağaza tarzı cihaz ilanı.", "A store-style device listing emphasizing warranty, fast delivery and boxed contents.", "Магазинное объявление с акцентом на гарантию, быструю доставку и комплект поставки.", "إعلان بأسلوب المتاجر يركز على الضمان والتسليم السريع ومحتوى العلبة."),
+            "computer" => T("Performans, ekran kartı ve günlük iş akışını öne çıkaran teknoloji mağazası tonu.", "A tech-store tone highlighting performance, graphics power and daily workflow fit.", "Тон технологичного магазина с акцентом на производительность и рабочие сценарии.", "صياغة متجر تقني تبرز الأداء وبطاقة الرسوم وسير العمل اليومي."),
             "watch" => T("Orijinal ve sertifikalı saat koleksiyonu.", "Original and certified watch selection.", "Оригинальные и сертифицированные часы.", "مجموعة ساعات أصلية ومعتمدة."),
             "jewelry" => T("Sertifikalı taş işçiliğiyle premium takı.", "Premium jewelry with certified stones.", "Премиальные украшения с сертифицированными камнями.", "مجوهرات فاخرة بأحجار معتمدة."),
-            "electronics" => T("Testleri yapılmış, yüksek performanslı elektronik.", "Tested high-performance electronics.", "Проверенная электроника с высокой производительностью.", "إلكترونيات مجربة وعالية الأداء."),
+            "electronics" => T("Ev eğlencesi ve akıllı yaşam odağında, garanti vurgulu özgün elektronik seçkisi.", "An original electronics selection focused on smart living and home entertainment with warranty emphasis.", "Оригинальная подборка электроники для умного дома и развлечений с акцентом на гарантию.", "مجموعة إلكترونيات أصلية للمنزل الذكي والترفيه مع تركيز على الضمان."),
             "equipment" => T("Sahaya hazır, bakımlı iş ekipmanı.", "Field-ready heavy equipment in maintained condition.", "Обслуженная техника, готовая к работе на площадке.", "معدات عمل جاهزة ومصانة جيدًا."),
-            "home" => T("Modern ve dayanıklı ev yaşam ürünleri.", "Modern and durable home living products.", "Современные и долговечные товары для дома.", "منتجات منزلية حديثة ومتينة."),
+            "home" => T("Teslimat ve kurulum kolaylığı öne çıkan özgün yaşam alanı ürünleri.", "Original home-living products with emphasis on delivery and setup ease.", "Оригинальные товары для дома с акцентом на доставку и установку.", "منتجات منزلية أصلية تركز على سهولة التوصيل والتركيب."),
             "fashion" => T("Yeni sezon ve orijinal moda ürünleri.", "Original fashion products from the new season.", "Оригинальные товары нового модного сезона.", "منتجات أزياء أصلية من الموسم الجديد."),
             "services" => T("Kurumsal standartta profesyonel hizmet.", "Professional service with enterprise standards.", "Профессиональная услуга корпоративного уровня.", "خدمة احترافية بمعايير مؤسسية."),
             _ => T("Güncel ilan.", "Current listing.", "Актуальное объявление.", "إعلان حديث.")
@@ -363,7 +358,7 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         var cityPool = Cities.Where(x => x != "all").ToArray();
         var result = new List<PropertyCard>();
-        var nextId = 1;
+        var nextId = 100000;
 
         foreach (var category in Categories.Where(x => x != "all"))
         {
@@ -374,7 +369,7 @@ public sealed class ListingCatalogService : IListingCatalogService
 
             for (var i = 1; i <= TargetPerCategory; i++)
             {
-                var type = i % 3 == 0 ? "rent" : "sale";
+                var type = i % 5 == 0 ? "daily" : (i % 3 == 0 ? "rent" : "sale");
                 var city = cityPool[(i - 1) % cityPool.Length];
                 var titleVariants = GetTitleVariants(category);
                 var variant = titleVariants[(i - 1) % titleVariants.Length];
@@ -391,6 +386,10 @@ public sealed class ListingCatalogService : IListingCatalogService
                 result.Add(new PropertyCard
                 {
                     Id = nextId,
+                    IsImported = false,
+                    SourceName = string.Empty,
+                    IsFeatured = i == 1,
+                    IsVitrin = i == 1,
                     Title = $"{variant} #{i:00}",
                     Summary = BuildSummary(variant, summaryLine, city, neighborhood, primarySpec, secondarySpec),
                     Category = category,
@@ -398,12 +397,18 @@ public sealed class ListingCatalogService : IListingCatalogService
                     Neighborhood = neighborhood,
                     Location = location,
                     PriceAmount = priceAmount,
-                    PriceLabel = type == "rent"
-                        ? T($"GBP {priceAmount.ToString("N0", _displayCulture)} / ay",
+                    PriceLabel = type switch
+                    {
+                        "daily" => T($"GBP {priceAmount.ToString("N0", _displayCulture)} / gün",
+                            $"GBP {priceAmount.ToString("N0", _displayCulture)} / day",
+                            $"GBP {priceAmount.ToString("N0", _displayCulture)} / день",
+                            $"GBP {priceAmount.ToString("N0", _displayCulture)} / يوم"),
+                        "rent" => T($"GBP {priceAmount.ToString("N0", _displayCulture)} / ay",
                             $"GBP {priceAmount.ToString("N0", _displayCulture)} / month",
                             $"GBP {priceAmount.ToString("N0", _displayCulture)} / месяц",
-                            $"GBP {priceAmount.ToString("N0", _displayCulture)} / شهر")
-                        : $"GBP {priceAmount.ToString("N0", _displayCulture)}",
+                            $"GBP {priceAmount.ToString("N0", _displayCulture)} / شهر"),
+                        _ => $"GBP {priceAmount.ToString("N0", _displayCulture)}"
+                    },
                     Type = type,
                     PrimarySpec = primarySpec,
                     SecondarySpec = secondarySpec,
@@ -417,10 +422,15 @@ public sealed class ListingCatalogService : IListingCatalogService
                     SellerName = BuildSellerName(category, i),
                     SellerRole = BuildSellerRole(category, type),
                     SellerPhone = BuildSellerPhone(nextId),
+                    AllowWhatsApp = true,
+                    AllowMessages = true,
                     PostedAtLabel = BuildPostedAtLabel(i),
                     ListingCode = BuildListingCode(category, nextId),
                     AvailabilityNote = BuildAvailabilityNote(category, type, i),
-                    DetailBody = BuildDetailBody(variant, summaryLine, city, neighborhood, type, i)
+                    DetailBody = BuildDetailBody(variant, summaryLine, city, neighborhood, type, i),
+                    Has360Tour = (i % 4 == 0),
+                    Tour360Url = (i % 4 == 0) ? "https://kuula.co/share/collection/7PB7v" : null,
+                    VideoUrl = (i % 6 == 0) ? "https://www.youtube.com/watch?v=dQw4w9WgXcQ" : null
                 });
 
                 nextId++;
@@ -432,7 +442,12 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     private static decimal CalculatePrice(decimal basePrice, int index, string type)
     {
-        var typeMultiplier = type == "rent" ? 0.13m : 1m;
+        var typeMultiplier = type switch
+        {
+            "daily" => 0.025m,
+            "rent" => 0.13m,
+            _ => 1m
+        };
         var progression = 1m + (((index - 1) % 10) * 0.05m);
         return Math.Round(basePrice * typeMultiplier * progression, 0, MidpointRounding.AwayFromZero);
     }
@@ -549,9 +564,9 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         var pool = category switch
         {
-            "realestate" => new[] { "Alsancak", "Bellapais", "Çatalköy", "Karaoğlanoğlu", "Yeni Boğaziçi", "Long Beach" },
-            "land" => new[] { "Esentepe", "Tatlısu", "Karpaz", "Lapta", "Yeni Erenköy", "İskele Sahil" },
-            "vehicle" => new[] { "Merkez", "Sanayi Bölgesi", "Showroom Hattı", "Marina Yolu", "Çevre Yolu", "Liman Bölgesi" },
+            "realestate" => new[] { "Alsancak", "Bellapais", "Çatalköy", "Yeni Boğaziçi", "Long Beach", "Hamitköy" },
+            "land" => new[] { "Esentepe", "Tatlısu", "Karpaz", "Lapta", "Türkeli", "İskele Sahil" },
+            "vehicle" => new[] { "Merkez", "Sanayi Bölgesi", "Galeri Hattı", "Marina Yolu", "Çevre Yolu", "Liman Bölgesi" },
             "yacht" => new[] { "Girne Marina", "İskele Sahili", "Gazimağusa Liman", "Lapta Marina", "Karpaz Koyu", "Esentepe Marina" },
             "caravan" => new[] { "Karpaz Kamp", "Tatlısu Sahili", "Lapta Kamp Alanı", "Esentepe", "İskele Kıyı", "Alsancak Doğa Hattı" },
             "services" => new[] { "Merkez", "Bölgesel Servis", "Ofis Bölgesi", "Sanayi Bölgesi", "Sahil Hattı", "Geniş Hizmet Alanı" },
@@ -601,30 +616,13 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     private static List<string> BuildGalleryImages(string category, string baseQuery, int listingId)
     {
-        var galleryQueries = category switch
-        {
-            "realestate" => new[] { "modern apartment exterior mediterranean", "luxury living room apartment", "apartment kitchen interior", "bedroom sea view apartment", "balcony sunset residence", "apartment bathroom design" },
-            "land" => new[] { "coastal land aerial", "field parcel road", "development land mediterranean", "sea view empty plot", "investment land drone", "green open field" },
-            "vehicle" => new[] { "luxury suv exterior", "sedan side profile", "car interior dashboard", "vehicle rear angle", "premium car front", "car leather seats" },
-            "yacht" => new[] { "luxury yacht marina", "yacht deck sea", "yacht interior cabin", "boat helm station", "yacht sunset exterior", "motor yacht side profile" },
-            "caravan" => new[] { "camper van road trip", "rv interior modern", "caravan campsite", "camper kitchen interior", "motorhome exterior", "camping van sunset" },
-            "phone" => new[] { "premium smartphone product", "mobile phone camera closeup", "phone accessories box", "smartphone design back", "mobile device screen", "smartphone in hand" },
-            "computer" => new[] { "gaming laptop setup", "workstation desk setup", "ultrabook desk clean", "desktop pc rgb", "laptop keyboard closeup", "creative computer workspace" },
-            "watch" => new[] { "luxury watch macro", "chronograph watch studio", "watch steel bracelet", "watch leather strap premium", "timepiece dark background", "mechanical watch dial" },
-            "jewelry" => new[] { "diamond necklace luxury", "gold bracelet closeup", "emerald ring macro", "jewelry box premium", "fine earrings gemstone", "luxury jewelry display" },
-            "electronics" => new[] { "oled television living room", "headphones studio product", "smart home camera setup", "audio speaker premium", "gaming console setup", "electronics desk gadget" },
-            "equipment" => new[] { "forklift warehouse equipment", "mini excavator construction", "industrial generator machine", "lift platform site", "heavy machinery detail", "construction machine sunset" },
-            "home" => new[] { "living room sofa modern", "dining room furniture", "bedroom furniture set", "decorative lighting interior", "home decor styling", "console table interior" },
-            "fashion" => new[] { "leather jacket fashion", "sneakers clean lifestyle", "designer dress boutique", "streetwear product style", "fashion accessories premium", "wardrobe styling" },
-            "services" => new[] { "professional cleaning team", "technician repair service", "logistics team moving", "business consulting meeting", "service crew office", "professional maintenance worker" },
-            _ => new[] { baseQuery, $"{baseQuery},detail", $"{baseQuery},premium", $"{baseQuery},interior", $"{baseQuery},showroom", $"{baseQuery},lifestyle" }
-        };
+        var pool = GetCategoryImagePool(category);
+        var gallery = new List<string>(6);
+        var start = Math.Abs(listingId) % pool.Length;
 
-        var gallery = new List<string>(galleryQueries.Length);
-
-        for (var i = 0; i < galleryQueries.Length; i++)
+        for (var i = 0; i < 6; i++)
         {
-            gallery.Add(BuildUniqueImageUrl(galleryQueries[i], (listingId * 10) + i));
+            gallery.Add(pool[(start + i) % pool.Length]);
         }
 
         return gallery;
@@ -641,7 +639,7 @@ public sealed class ListingCatalogService : IListingCatalogService
         {
             "realestate" => new()
             {
-                new() { Label = T("İlan tipi", "Listing type", "Тип объявления", "نوع الإعلان"), Value = type == "rent" ? T("Kiralık", "For Rent", "Аренда", "للإيجار") : T("Satılık", "For Sale", "Продажа", "للبيع") },
+                new() { Label = T("İlan tipi", "Listing type", "Тип объявления", "نوع الإعلان"), Value = type == "daily" ? T("Günlük Kiralık", "Daily Rent", "Посуточно", "إيجار يومي") : (type == "rent" ? T("Kiralık", "For Rent", "Аренда", "للإيجار") : T("Satılık", "For Sale", "Продажа", "للبيع")) },
                 new() { Label = T("Oda planı", "Room plan", "Планировка", "عدد الغرف"), Value = rooms },
                 new() { Label = T("Net alan", "Net area", "Полезная площадь", "المساحة الصافية"), Value = area },
                 new() { Label = T("Bina yaşı", "Building age", "Возраст здания", "عمر المبنى"), Value = secondarySpec },
@@ -751,9 +749,11 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         var badges = new List<string>
         {
-            type == "rent"
-                ? T("Hızlı kiralama", "Quick rental", "Быстрая аренда", "إيجار سريع")
-                : T("Hazır teslim", "Ready to deliver", "Готово к передаче", "جاهز للتسليم"),
+            type == "daily"
+                ? T("Günlük kiralama", "Daily rental", "Посуточная аренда", "إيجار يومي")
+                : (type == "rent"
+                    ? T("Hızlı kiralama", "Quick rental", "Быстрая аренда", "إيجار سريع")
+                    : T("Hazır teslim", "Ready to deliver", "Готово к передаче", "جاهز للتسليم")),
             (index % 2) == 0
                 ? T("Doğrulanmış bilgi", "Verified info", "Проверенная информация", "معلومات موثقة")
                 : T("Güncel ilan", "Fresh listing", "Актуальное объявление", "إعلان حديث")
@@ -785,13 +785,13 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         var pool = category switch
         {
-            "realestate" => new[] { "Blue Coast Estates", "Northline Property", "Harbor Living", "Island Portfolio" },
-            "land" => new[] { "Terra Invest", "North Plot Office", "Nova Parcel", "Horizon Land" },
-            "vehicle" => new[] { "AutoPrime", "North Garage", "Marina Motors", "Cityline Auto" },
+            "realestate" => new[] { "Kıyı Portföy", "Ada Yaşam Emlak", "Mavi Hat Estates", "Kuzey Konut Ofisi" },
+            "land" => new[] { "Terra Kuzey", "Parsel Noktası", "Ada Arsa Ofisi", "Ufuk Yatırım" },
+            "vehicle" => new[] { "Ada Auto Center", "Kuzey Motor Plaza", "Cityline Garage", "Prime Drive KKTC" },
             "yacht" => new[] { "Marina Select", "Blue Sail", "Harbor Yacht", "Coastline Marine" },
             "caravan" => new[] { "Roadcamp", "Nomad Garage", "Vanlife Hub", "Campline" },
             "services" => new[] { "Island Service Group", "Prime Support", "North Works", "Field Team" },
-            _ => new[] { "Premium Store", "Island Select", "Northline Shop", "Urban Select" }
+            _ => new[] { "Ada Tech Store", "Urban Select", "Northline Shop", "Prime Home Market" }
         };
 
         return pool[(index - 1) % pool.Length];
@@ -801,7 +801,7 @@ public sealed class ListingCatalogService : IListingCatalogService
     {
         return category switch
         {
-            "realestate" or "land" => type == "rent"
+            "realestate" or "land" => type == "rent" || type == "daily"
                 ? T("Portföy Danışmanı", "Portfolio Advisor", "Консультант по портфелю", "مستشار محافظ")
                 : T("Satış Danışmanı", "Sales Advisor", "Консультант по продажам", "مستشار مبيعات"),
             "vehicle" => T("Yetkili Satıcı", "Authorized Seller", "Официальный продавец", "بائع معتمد"),
@@ -830,8 +830,27 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     private static string BuildListingCode(string category, int listingId)
     {
-        var prefix = category[..Math.Min(3, category.Length)].ToUpperInvariant();
-        return $"{prefix}-{listingId:00000}";
+        var prefix = category switch
+        {
+            "realestate" => "EML",
+            "land"       => "ARS",
+            "vehicle"    => "VAS",
+            "yacht"      => "YAT",
+            "caravan"    => "KRV",
+            "secondhand" => "IKE",
+            "phone"      => "TEL",
+            "computer"   => "BLG",
+            "watch"      => "SAA",
+            "jewelry"    => "MCH",
+            "electronics"=> "ELK",
+            "equipment"  => "ISM",
+            "home"       => "EVY",
+            "fashion"    => "MOD",
+            "services"   => "HZM",
+            _            => "ILN"
+        };
+        var datePart = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return $"{prefix}-{datePart}-{listingId:000000}";
     }
 
     private string BuildAvailabilityNote(string category, string type, int index)
@@ -844,7 +863,7 @@ public sealed class ListingCatalogService : IListingCatalogService
             "vehicle" => (index % 2) == 0
                 ? T("Test sürüşü planlanabilir.", "A test drive can be arranged.", "Можно организовать тест-драйв.", "يمكن ترتيب تجربة قيادة.")
                 : T("Ekspertiz için önceden haber verilmesi yeterli.", "Advance notice is enough for inspection.", "Для проверки достаточно предупредить заранее.", "يكفي الإبلاغ مسبقًا للفحص."),
-            "realestate" => type == "rent"
+            "realestate" => type == "rent" || type == "daily"
                 ? T("Taşınmaya uygun teslim planı hazır.", "Move-in ready delivery plan available.", "Объект готов к заселению.", "خطة تسليم جاهزة للسكن.")
                 : T("Tapu ve ekspertiz süreci için uygun.", "Suitable for title transfer and valuation process.", "Подходит для оформления и оценки.", "مناسب لإجراءات التقييم ونقل الملكية."),
             _ => (index % 2) == 0
@@ -855,9 +874,11 @@ public sealed class ListingCatalogService : IListingCatalogService
 
     private string BuildDetailBody(string variant, string summaryLine, string city, string neighborhood, string type, int index)
     {
-        var typeText = type == "rent"
-            ? T("kiralama", "rental", "аренды", "الإيجار")
-            : T("satın alma", "purchase", "покупки", "الشراء");
+        var typeText = type == "sale"
+            ? T("satın alma", "purchase", "покупки", "الشراء")
+            : (type == "daily"
+                ? T("günlük kiralama", "daily rental", "посуточной аренды", "الإيجار اليومي")
+                : T("kiralama", "rental", "аренды", "الإيجار"));
         var tone = (index % 2) == 0
             ? T(
                 "Son kullanıcı deneyimi düşünülerek hazırlanmış, güçlü ilk izlenim veren bir kurguyla sunuluyor.",
@@ -871,16 +892,162 @@ public sealed class ListingCatalogService : IListingCatalogService
                 "مدعوم ببنية واضحة تساعد على اتخاذ القرار بسرعة.");
 
         return T(
-            $"{variant}, {city} / {neighborhood} bölgesinde {typeText} odaklı arama yapan kullanıcılar için öne çıkarılmış demo ilandır. {summaryLine} {tone} Görseller, satıcı bilgileri ve temel nitelikler bir arada sunularak detay sayfasının gerçek bir ilan deneyimine daha yakın his vermesi hedeflenmiştir.",
-            $"{variant} is a featured demo listing for users searching for a {typeText} option in {city} / {neighborhood}. {summaryLine} {tone} Images, seller information and core attributes are presented together to make the detail page feel closer to a real marketplace listing.",
-            $"{variant} — это демонстрационное объявление для пользователей, ищущих вариант {typeText} в районе {city} / {neighborhood}. {summaryLine} {tone} Фотографии, данные продавца и ключевые характеристики собраны вместе, чтобы страница максимально напоминала настоящее объявление.",
-            $"{variant} هو إعلان تجريبي مميز للمستخدمين الباحثين عن خيار {typeText} في منطقة {city} / {neighborhood}. {summaryLine} {tone} تم جمع الصور ومعلومات البائع والخصائص الأساسية في صفحة واحدة لتبدو أقرب إلى تجربة إعلان حقيقي.");
+            $"{variant}, {city} / {neighborhood} bölgesinde {typeText} odaklı arama yapan kullanıcılar için hazırlanmış özgün vitrin ilanıdır. {summaryLine} {tone} Metin yapısı, kategori dili ve vitrin kurgusu pazaryeri deneyimlerinden ilham alır; ancak içerik bu uygulama için özgün olarak üretilmiştir.",
+            $"{variant} is an original showcase listing prepared for users looking for a {typeText} option in {city} / {neighborhood}. {summaryLine} {tone} Its structure and category tone are inspired by marketplace experiences, while the content itself is uniquely produced for this application.",
+            $"{variant} — это оригинальное витринное объявление для пользователей, ищущих вариант {typeText} в районе {city} / {neighborhood}. {summaryLine} {tone} Структура и тон вдохновлены маркетплейсами, но сам контент создан специально для этого приложения.",
+            $"{variant} هو إعلان عرض أصلي للمستخدمين الباحثين عن خيار {typeText} في منطقة {city} / {neighborhood}. {summaryLine} {tone} أسلوب العرض ولغة الفئة مستوحاة من تجارب الأسواق الرقمية، لكن المحتوى نفسه أُنتج خصيصًا لهذا التطبيق.");
     }
 
-    private static string BuildUniqueImageUrl(string query, int uniqueId)
+    private static string[] GetCategoryImagePool(string? category)
     {
-        var escapedQuery = Uri.EscapeDataString(query);
-        return $"https://source.unsplash.com/featured/1600x1000/?{escapedQuery}&sig={uniqueId}";
+        var key = category?.ToLowerInvariant() ?? "other";
+        return key switch
+        {
+            "realestate" => new[]
+            {
+                "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1616594039964-3f5d0f2f0d8c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1560185008-b033106af5c3?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1560185007-5f0bb1866cab?auto=format&fit=crop&w=1200&q=80"
+            },
+            "land" => new[]
+            {
+                "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1464822759844-d150baec0494?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80"
+            },
+            "vehicle" => new[]
+            {
+                "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1549921296-3a6b08bb7b57?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80"
+            },
+            "yacht" => new[]
+            {
+                "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1562281302-809108fd533c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1200&q=80"
+            },
+            "caravan" => new[]
+            {
+                "https://images.unsplash.com/photo-1527786356703-4b100091cd2c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1470246973918-29a93221c455?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80"
+            },
+            "phone" => new[]
+            {
+                "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=1200&q=80"
+            },
+            "computer" => new[]
+            {
+                "https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1588702547919-26089e690ecc?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1484417894907-623942c8ee29?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1527443224154-c4f0617f5a5c?auto=format&fit=crop&w=1200&q=80"
+            },
+            "watch" => new[]
+            {
+                "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1547996160-81dfa63595aa?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1434056886845-dac89ffe9b56?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1509048191080-d2e9a3f6a4a6?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1629581672162-420cb0f41da1?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1617043983671-adaadcaa2460?auto=format&fit=crop&w=1200&q=80"
+            },
+            "jewelry" => new[]
+            {
+                "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&w=1200&q=80"
+            },
+            "electronics" => new[]
+            {
+                "https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1546054454-aa26e2b734c7?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1518444028785-8f7d8906599c?auto=format&fit=crop&w=1200&q=80"
+            },
+            "equipment" => new[]
+            {
+                "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1590846083693-f23fdede3a7a?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1467473292607-16a3f9fbcf5f?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1587582423116-ec07293f0395?auto=format&fit=crop&w=1200&q=80"
+            },
+            "home" => new[]
+            {
+                "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1556020685-ae41abfc9365?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1616594039964-3f5d0f2f0d8c?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80"
+            },
+            "fashion" => new[]
+            {
+                "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1467043237213-65f2da53396f?auto=format&fit=crop&w=1200&q=80"
+            },
+            "services" => new[]
+            {
+                "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80"
+            },
+            "secondhand" => new[]
+            {
+                "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1519710884006-5f6bdb8fd0d3?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1577375729152-4c8b5fcda381?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=1200&q=80"
+            },
+            _ => new[]
+            {
+                "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80",
+                "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"
+            }
+        };
     }
 
     private sealed record CategorySeed(

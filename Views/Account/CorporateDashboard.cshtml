@@ -1,0 +1,382 @@
+@model SEN_T_PAZAR.Models.AccountDashboardViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = T("Kurumsal Hesabım", "My Corporate Account", "Мой корпоративный кабинет", "حسابي المؤسسي", "حساب شرکتی من");
+    var companyName = string.IsNullOrWhiteSpace(Model.User.CompanyName) ? Model.User.FullName : Model.User.CompanyName;
+    var storeUrl = Url.Action("Store", "Home", new { id = Model.User.Id }) ?? "#";
+    var recentCorporateListings = Model.MyListings.Take(8).ToList();
+    var availableFeatured = Math.Max(0, Model.User.FeaturedListingsIncluded - Model.User.FeaturedListingsUsed);
+    var availableVitrin = Math.Max(0, Model.User.VitrinListingsIncluded - Model.User.VitrinListingsUsed);
+    var approvalBadgeClass = Model.User.IsCorporateApproved ? "bg-success-subtle text-success border border-success-subtle" : "bg-warning-subtle text-warning-emphasis border border-warning-subtle";
+
+    string CorporateStateLabel(bool isActive) => isActive
+        ? T("Aktif", "Active", "Активно", "نشط", "فعال")
+        : T("Beklemede", "Pending", "Ожидание", "قيد الانتظار", "در انتظار");
+
+    string ListingPublishStateLabel(bool isApproved, bool isClosed) => isApproved
+        ? (isClosed
+            ? T("Kapalı", "Closed", "Закрыто", "مغلق", "بسته")
+            : T("Yayında", "Live", "Опубликовано", "منشور", "منتشر شده"))
+        : T("Bekliyor", "Pending", "Ожидает", "قيد الانتظار", "در انتظار");
+
+    string CorporatePlanLabel(string? planId)
+    {
+        var normalized = (planId ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "free" or "corporate free" or "ücretsiz kurumsal" => T("Ücretsiz Kurumsal", "Corporate Free", "Бесплатный корпоративный", "الخطة المؤسسية المجانية", "شرکتی رایگان"),
+            "basic" or "başlangıç vitrin" => T("Başlangıç Vitrin", "Starter Showcase", "Стартовая витрина", "واجهة البداية", "ویترین پایه"),
+            "pro" or "profesyonel öne çıkan" => T("Profesyonel Öne Çıkan", "Professional Featured", "Профессиональный премиум", "الباقة الاحترافية المميزة", "ویژه حرفه‌ای"),
+            "enterprise" or "mega kombinasyon" => T("Mega Kombinasyon", "Mega Combination", "Мега-комбинация", "الباقة العملاقة", "ترکیب مگا"),
+            _ => string.IsNullOrWhiteSpace(planId) ? "-" : planId
+        };
+    }
+
+    string CorporateNoteLabel(string? note)
+    {
+        var normalized = (note ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "" => "-",
+            "pending" or "başvuru inceleniyor" => T("Başvuru inceleniyor", "Application is under review", "Заявка находится на рассмотрении", "الطلب قيد المراجعة", "درخواست در حال بررسی است"),
+            "approved" or "onaylandı" => T("Onaylandı", "Approved", "Одобрено", "تمت الموافقة", "تأیید شد"),
+            "rejected" or "reddedildi" => T("Reddedildi", "Rejected", "Отклонено", "تم الرفض", "رد شد"),
+            _ => note ?? "-"
+        };
+    }
+}
+
+@section Styles {
+<style>
+    .corp-shell {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .corp-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 2rem;
+        color: #fff;
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,.24), transparent 26%),
+            linear-gradient(135deg, #103d63 0%, #155e75 42%, #0f766e 100%);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, .18);
+    }
+
+    .corp-hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -80px -80px auto;
+        width: 240px;
+        height: 240px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+    }
+
+    .corp-hero__brand {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .corp-hero__logo {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        object-fit: cover;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.22);
+    }
+
+    .corp-hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-top: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .corp-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+
+    .corp-metric,
+    .corp-card {
+        border: 1px solid rgba(148, 163, 184, .18);
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
+    }
+
+    .corp-metric {
+        padding: 1.25rem;
+    }
+
+    .corp-metric__value {
+        font-size: 1.9rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .corp-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        gap: 1.5rem;
+    }
+
+    .corp-card {
+        padding: 1.5rem;
+    }
+
+    .corp-keyfacts {
+        display: grid;
+        gap: .85rem;
+    }
+
+    .corp-keyfact {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border-bottom: 1px solid rgba(148, 163, 184, .18);
+        padding-bottom: .85rem;
+    }
+
+    .corp-keyfact:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .corp-listings {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .corp-listing {
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, .18);
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .corp-listing img,
+    .corp-listing__placeholder {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .corp-listing__placeholder {
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #cbd5e1, #e2e8f0);
+        color: #475569;
+        font-size: 2rem;
+    }
+
+    .corp-listing__body {
+        padding: 1rem;
+    }
+
+    .corp-package-list {
+        display: grid;
+        gap: .75rem;
+    }
+
+    .corp-package-item {
+        border-radius: 16px;
+        padding: .9rem 1rem;
+        background: #f8fafc;
+        border: 1px solid rgba(148, 163, 184, .16);
+    }
+
+    @@media (max-width: 991px) {
+        .corp-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+}
+
+<div class="container py-4 corp-shell">
+    <section class="corp-hero">
+        <div class="corp-hero__brand">
+            <img class="corp-hero__logo"
+                 src="@(string.IsNullOrWhiteSpace(Model.User.CompanyLogoUrl) ? (string.IsNullOrWhiteSpace(Model.User.AvatarUrl) ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(companyName) + "&background=0f766e&color=fff" : Model.User.AvatarUrl) : Model.User.CompanyLogoUrl)"
+                 alt="@companyName" />
+            <div>
+                <div class="small text-uppercase opacity-75 mb-2">@T("Kurumsal Yönetim", "Corporate Management", "Корпоративное управление", "الإدارة المؤسسية", "مدیریت شرکتی")</div>
+                <h1 class="h2 mb-2">@companyName</h1>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge rounded-pill @approvalBadgeClass">
+                        @(Model.User.IsCorporateApproved
+                            ? T("Onaylı kurumsal mağaza", "Approved corporate store", "Одобренный корпоративный магазин", "متجر مؤسسي معتمد", "فروشگاه شرکتی تأییدشده")
+                            : T("Kurumsal başvuru inceleniyor", "Corporate application under review", "Корпоративная заявка рассматривается", "طلب الشركة قيد المراجعة", "درخواست شرکتی در حال بررسی است"))
+                    </span>
+                    <span class="badge rounded-pill bg-light text-dark">@T("Plan", "Plan", "Тариф", "الخطة", "پلن"): @CorporatePlanLabel(Model.User.SubscriptionPlan)</span>
+                </div>
+                <p class="mt-3 mb-0 opacity-75">@T("Mağaza görünürlüğünüzü, ilan kotalarınızı ve kurumsal marka bilgilerinizi tek ekrandan yönetin.", "Manage your store visibility, listing quotas and corporate brand details from one screen.", "Управляйте витриной, квотами объявлений и корпоративным брендом с одного экрана.", "أدر ظهور متجرك وحصص الإعلانات وبيانات علامتك التجارية من شاشة واحدة.", "نمای فروشگاه، سهمیه آگهی و اطلاعات برند شرکتی خود را از یک صفحه مدیریت کنید.")</p>
+            </div>
+        </div>
+
+        <div class="corp-hero__actions">
+            <a class="btn btn-warning btn-lg" asp-controller="Home" asp-action="Publish">
+                <i class="bi bi-plus-circle me-1"></i>@T("Yeni ilan yayınla", "Publish new listing", "Опубликовать новое объявление", "نشر إعلان جديد", "ثبت آگهی جدید")
+            </a>
+            <a class="btn btn-outline-light btn-lg" asp-action="UpdateCorporate">
+                <i class="bi bi-pencil-square me-1"></i>@T("Kurumsal bilgileri güncelle", "Update corporate details", "Обновить корпоративные данные", "تحديث بيانات الشركة", "به‌روزرسانی اطلاعات شرکتی")
+            </a>
+            <a class="btn btn-outline-light btn-lg" href="@storeUrl">
+                <i class="bi bi-shop me-1"></i>@T("Mağazayı görüntüle", "View store", "Открыть магазин", "عرض المتجر", "مشاهده فروشگاه")
+            </a>
+            <a class="btn btn-outline-light btn-lg" asp-action="Dashboard" asp-route-tab="corporate">
+                <i class="bi bi-grid me-1"></i>@T("Standart panele dön", "Back to standard panel", "Назад к стандартной панели", "العودة إلى اللوحة القياسية", "بازگشت به پنل استاندارد")
+            </a>
+        </div>
+    </section>
+
+    <section class="corp-metrics">
+        <article class="corp-metric">
+            <div class="text-muted small">@T("Yayındaki ilan", "Live listings", "Активные объявления", "الإعلانات المنشورة", "آگهی فعال")</div>
+            <div class="corp-metric__value">@Model.Stats.ApprovedListings</div>
+        </article>
+        <article class="corp-metric">
+            <div class="text-muted small">@T("Onay bekleyen", "Pending approval", "Ожидают одобрения", "بانتظار الموافقة", "در انتظار تأیید")</div>
+            <div class="corp-metric__value">@Model.Stats.PendingListings</div>
+        </article>
+        <article class="corp-metric">
+            <div class="text-muted small">@T("Kalan öne çıkarma", "Featured credits left", "Осталось выделений", "المتبقي من الإبراز", "ویژه‌سازی باقی‌مانده")</div>
+            <div class="corp-metric__value">@availableFeatured</div>
+        </article>
+        <article class="corp-metric">
+            <div class="text-muted small">@T("Kalan vitrin", "Showcase credits left", "Осталось витрин", "المتبقي من الواجهة", "ویترین باقی‌مانده")</div>
+            <div class="corp-metric__value">@availableVitrin</div>
+        </article>
+    </section>
+
+    <section class="corp-grid">
+        <article class="corp-card">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">@T("Kurumsal özet", "Corporate summary", "Корпоративная сводка", "ملخص الشركة", "خلاصه شرکتی")</h2>
+                    <p class="text-muted mb-0">@T("Mağaza kimliğiniz ve abonelik detaylarınız.", "Your store identity and subscription details.", "Данные магазина и подписки.", "هوية المتجر وتفاصيل الاشتراك.", "هویت فروشگاه و جزئیات اشتراک شما.")</p>
+                </div>
+                <span class="badge rounded-pill @approvalBadgeClass">@CorporateStateLabel(Model.User.IsSubscriptionActive)</span>
+            </div>
+            <div class="corp-keyfacts">
+                <div class="corp-keyfact"><span class="text-muted">@T("Şirket", "Company", "Компания", "الشركة", "شرکت")</span><strong>@companyName</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Vergi No", "Tax Number", "Налоговый номер", "الرقم الضريبي", "شماره مالیاتی")</span><strong>@(Model.User.CompanyTaxNumber ?? "-")</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Telefon", "Phone", "Телефон", "الهاتف", "تلفن")</span><strong>@(Model.User.CompanyPhone ?? Model.User.PhoneNumber ?? "-")</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Web sitesi", "Website", "Сайт", "الموقع الإلكتروني", "وب‌سایت")</span><strong>@(Model.User.CompanyWebSite ?? "-")</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Başlangıç", "Start", "Начало", "البداية", "شروع")</span><strong>@(Model.User.SubscriptionStartDate?.ToString("dd.MM.yyyy") ?? "-")</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Bitiş", "End", "Окончание", "النهاية", "پایان")</span><strong>@(Model.User.SubscriptionEndDate?.ToString("dd.MM.yyyy") ?? "-")</strong></div>
+                <div class="corp-keyfact"><span class="text-muted">@T("Not", "Note", "Примечание", "ملاحظة", "یادداشت")</span><strong>@CorporateNoteLabel(Model.User.CorporateNote)</strong></div>
+            </div>
+        </article>
+
+        <article class="corp-card">
+            <h2 class="h5 mb-1">@T("Aktif paketler", "Active packages", "Активные пакеты", "الباقات النشطة", "بسته‌های فعال")</h2>
+            <p class="text-muted mb-3">@T("Kurumsal hesabınıza tanımlı yayın hakları burada görünür.", "Publishing rights assigned to your corporate account appear here.", "Здесь отображаются публикационные права корпоративного аккаунта.", "تظهر هنا صلاحيات النشر المخصصة لحسابك المؤسسي.", "امتیازهای انتشار اختصاص‌یافته به حساب شرکتی شما اینجا نمایش داده می‌شود.")</p>
+            @if (Model.ActivePackages.Any())
+            {
+                <div class="corp-package-list">
+                    @foreach (var pkg in Model.ActivePackages)
+                    {
+                        <div class="corp-package-item">
+                            <div class="fw-semibold">@pkg.PackageName</div>
+                            <div class="small text-muted">@T("Kalan kullanım", "Remaining uses", "Осталось использований", "الاستخدامات المتبقية", "استفاده باقی‌مانده"): @pkg.RemainingUses</div>
+                            @if (pkg.ExpiryDate.HasValue)
+                            {
+                                <div class="small text-muted">@T("Bitiş", "Expires", "Истекает", "ينتهي", "پایان"): @pkg.ExpiryDate.Value.ToString("dd.MM.yyyy")</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-light border mb-0">@T("Henüz aktif paket bulunmuyor.", "There are no active packages yet.", "Пока нет активных пакетов.", "لا توجد باقات نشطة بعد.", "هنوز بسته فعالی وجود ندارد.")</div>
+            }
+            <div class="mt-3 d-flex gap-2 flex-wrap">
+                <a class="btn btn-primary" asp-controller="Pricing" asp-action="Index">@T("Paketleri incele", "Review packages", "Посмотреть пакеты", "مراجعة الباقات", "بررسی بسته‌ها")</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="corp-card">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+            <div>
+                <h2 class="h5 mb-1">@T("Kurumsal ilanlar", "Corporate listings", "Корпоративные объявления", "إعلانات الشركة", "آگهی‌های شرکتی")</h2>
+                <p class="text-muted mb-0">@T("Son eklenen ve yönetilebilir ilanlarınız.", "Your most recent and manageable listings.", "Ваши последние объявления, которыми можно управлять.", "أحدث إعلاناتك القابلة للإدارة.", "آخرین آگهی‌های قابل مدیریت شما.")</p>
+            </div>
+            <a class="btn btn-outline-primary btn-sm" asp-action="Dashboard" asp-route-tab="listings">@T("Tüm ilanları yönet", "Manage all listings", "Управлять всеми объявлениями", "إدارة كل الإعلانات", "مدیریت همه آگهی‌ها")</a>
+        </div>
+
+        @if (!recentCorporateListings.Any())
+        {
+            <div class="alert alert-light border mb-0">@T("Henüz kurumsal ilan bulunmuyor.", "No corporate listings yet.", "Пока нет корпоративных объявлений.", "لا توجد إعلانات مؤسسية بعد.", "هنوز آگهی شرکتی وجود ندارد.")</div>
+        }
+        else
+        {
+            <div class="corp-listings">
+                @foreach (var item in recentCorporateListings)
+                {
+                    <article class="corp-listing">
+                        @if (!string.IsNullOrWhiteSpace(item.CoverImageUrl))
+                        {
+                            <img src="@item.CoverImageUrl" alt="@item.Title" />
+                        }
+                        else
+                        {
+                            <div class="corp-listing__placeholder"><i class="bi bi-image"></i></div>
+                        }
+                        <div class="corp-listing__body">
+                            <div class="d-flex justify-content-between gap-2 mb-2">
+                                <span class="badge rounded-pill bg-light text-dark border">@ListingPublishStateLabel(item.IsApproved, item.IsClosed)</span>
+                                <span class="small text-muted">@item.CreatedAt.ToString("dd.MM.yyyy")</span>
+                            </div>
+                            <h3 class="h6 mb-1">@item.Title</h3>
+                            <div class="small text-muted mb-2">@item.City</div>
+                            <div class="fw-semibold mb-3">@SEN_T_PAZAR.Services.CurrencyDisplay.Format(item.PriceAmount, item.PriceCurrency)</div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Details", "Home", new { id = item.Id })">@T("Görüntüle", "View", "Открыть", "عرض", "مشاهده")</a>
+                                <a class="btn btn-sm btn-outline-primary" href="@Url.Action("EditListing", "Account", new { id = item.Id })">@T("Düzenle", "Edit", "Редактировать", "تعديل", "ویرایش")</a>
+                                <a class="btn btn-sm btn-outline-success" href="@Url.Action("PromoteListing", "Pricing", new { listingId = item.Id })">@T("Güçlendir", "Promote", "Продвинуть", "تعزيز", "ارتقا")</a>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="corp-card">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h2 class="h5 mb-1">@T("Mesaj ve erişim özeti", "Messages and access summary", "Сводка сообщений и доступа", "ملخص الرسائل والوصول", "خلاصه پیام و دسترسی")</h2>
+                <p class="text-muted mb-0">@T("Gelen mesajlarınızı ve entegrasyon erişiminizi kontrol edin.", "Check your incoming messages and integration access.", "Проверьте входящие сообщения и доступ к интеграции.", "تحقق من الرسائل الواردة وإمكانية الوصول للتكامل.", "پیام‌های دریافتی و دسترسی یکپارچه‌سازی خود را بررسی کنید.")</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" asp-action="Dashboard" asp-route-tab="messages">@T("Mesajlara git", "Open messages", "Открыть сообщения", "فتح الرسائل", "رفتن به پیام‌ها") (@Model.VisitorMessages.Count)</a>
+                <a class="btn btn-outline-secondary" asp-action="Dashboard" asp-route-tab="security">@T("Güvenlik ayarları", "Security settings", "Настройки безопасности", "إعدادات الأمان", "تنظیمات امنیت")</a>
+            </div>
+        </div>
+    </section>
+</div>

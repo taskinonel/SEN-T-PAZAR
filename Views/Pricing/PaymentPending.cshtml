@@ -1,0 +1,71 @@
+@model SEN_T_PAZAR.Models.Payment
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = T("Ödeme Beklemede", "Payment Pending", "Платеж ожидает подтверждения", "الدفع قيد الانتظار");
+
+    var bankAccountName = ViewData["BankAccountName"]?.ToString() ?? "SEN-T SOFTWARE";
+    var bankName = ViewData["BankName"]?.ToString() ?? "-";
+    var iban = ViewData["Iban"]?.ToString() ?? "TR__ ____ ____ ____ ____ ____ __";
+    var swiftCode = ViewData["SwiftCode"]?.ToString() ?? "-";
+
+    var isEft = string.Equals(Model.PaymentMethod, "eft", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow border-0">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="display-5 text-warning"><i class="bi bi-hourglass-split"></i></div>
+                        <h2 class="fw-bold mt-2">@T("Ödemeniz Beklemede", "Your Payment Is Pending", "Ваш платеж ожидает подтверждения", "دفعتك قيد الانتظار")</h2>
+                        <p class="text-muted mb-0">
+                            @T("Ödeme kaydı oluşturuldu. Dekont gönderimi ve yönetici onayı sonrası paketiniz aktif edilecektir.", "Payment record has been created. Your package will be activated after receipt verification and admin approval.", "Платежная запись создана. Пакет будет активирован после проверки квитанции и подтверждения администратором.", "تم إنشاء سجل الدفع. سيتم تفعيل الباقة بعد التحقق من الإيصال وموافقة المسؤول.")
+                        </p>
+                    </div>
+
+                    <div class="alert alert-light border mb-4">
+                        <div class="row g-2 small">
+                            <div class="col-md-6"><strong>@T("Ödeme No", "Payment No", "Номер платежа", "رقم الدفع"):</strong> #@Model.Id</div>
+                            <div class="col-md-6"><strong>@T("Yöntem", "Method", "Метод", "الطريقة"):</strong> @(isEft ? "EFT" : T("Havale", "Bank Transfer", "Банковский перевод", "حوالة بنكية"))</div>
+                            <div class="col-md-6"><strong>@T("Tutar", "Amount", "Сумма", "المبلغ"):</strong> @SEN_T_PAZAR.Services.CurrencyDisplay.Format(Model.Amount, Model.Currency)</div>
+                            <div class="col-md-6"><strong>@T("Referans", "Reference", "Референс", "المرجع"):</strong> @Model.TransactionId</div>
+                        </div>
+                    </div>
+
+                    <div class="card border-success mb-4">
+                        <div class="card-header bg-success text-white fw-semibold">
+                            <i class="bi bi-bank2 me-2"></i>@T("Banka Bilgileri", "Bank Details", "Банковские реквизиты", "البيانات البنكية")
+                        </div>
+                        <div class="card-body small">
+                            <div><strong>@T("Hesap Adı", "Account Name", "Название счета", "اسم الحساب"):</strong> @bankAccountName</div>
+                            <div><strong>@T("Banka", "Bank", "Банк", "البنك"):</strong> @bankName</div>
+                            <div><strong>IBAN:</strong> @iban</div>
+                            <div><strong>SWIFT:</strong> @swiftCode</div>
+                            <hr />
+                            <div class="text-danger fw-semibold">@T("Dekont açıklamasına referans kodunu mutlaka yazın:", "Please include the reference code in your transfer note:", "Обязательно укажите референс-код в назначении перевода:", "يرجى كتابة رمز المرجع في وصف التحويل:") @Model.TransactionId</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                        <a asp-action="Index" asp-controller="Pricing" class="btn btn-primary">
+                            <i class="bi bi-box-seam me-1"></i>@T("Paketlere Dön", "Back to Packages", "К пакетам", "العودة إلى الباقات")
+                        </a>
+                        <a asp-action="Dashboard" asp-controller="Account" asp-route-tab="listings" class="btn btn-outline-secondary">
+                            <i class="bi bi-speedometer2 me-1"></i>@T("Panelime Git", "Go to Dashboard", "Перейти в панель", "الذهاب إلى لوحة التحكم")
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

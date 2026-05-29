@@ -1,0 +1,273 @@
+@model SEN_T_PAZAR.Models.AdminDashboardViewModel
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    string LocalizeCityName(string? cityName) => cityName switch
+    {
+        "Lefkoşa" => T("Lefkoşa", "Nicosia", "Никосия", "نيقوسيا", "لفکوشا"),
+        "Girne" => T("Girne", "Kyrenia", "Кирения", "كيرينيا", "گیرنه"),
+        "Gazimağusa" => T("Gazimağusa", "Famagusta", "Фамагуста", "فاماغوستا", "قازی‌ماغوسا"),
+        "Güzelyurt" => T("Güzelyurt", "Morphou", "Морфу", "مورفو", "گوزل‌یورت"),
+        "İskele" => T("İskele", "Trikomo", "Трикомо", "تريكومو", "ایسکله"),
+        "Lefke" => T("Lefke", "Lefka", "Лефке", "لفكة", "لفکه"),
+        "Karpaz" => T("Karpaz", "Karpasia", "Карпасия", "كارباسيا", "کارپاز"),
+        "Belirtilmemiş" => T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده"),
+        _ => cityName ?? T("Belirtilmemiş", "Unspecified", "Не указано", "غير محدد", "مشخص نشده")
+    };
+
+    ViewData["Title"] = T("Yönetici Paneli", "Admin Control Panel", "Панель администратора", "لوحة تحكم المسؤول", "پنل مدیریت");
+
+    string CategoryLabel(string? category) => (category ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "realestate" or "estate" => T("Emlak", "Real Estate", "Недвижимость", "عقارات", "املاک"),
+        "land" => T("Arsa", "Land", "Земля", "أرض", "زمین"),
+        "vehicle" => T("Vasıta", "Vehicle", "Транспорт", "مركبات", "وسیله نقلیه"),
+        "yacht" => T("Yat/Tekne", "Yacht/Boat", "Яхта/лодка", "يخت/قارب", "قایق / یات"),
+        "caravan" => T("Karavan", "Caravan", "Караван", "كارافان", "کاروان"),
+        "secondhand" => T("İkinci El", "Second Hand", "Б/у", "مستعمل", "دست دوم"),
+        "phone" => T("Telefon", "Phone", "Телефон", "هاتف", "تلفن"),
+        "computer" => T("Bilgisayar", "Computer", "Компьютер", "كمبيوتر", "رایانه"),
+        "watch" => T("Saat", "Watch", "Часы", "ساعة", "ساعت"),
+        "jewelry" => T("Mücevher", "Jewelry", "Украшения", "مجوهرات", "جواهرات"),
+        "electronics" => T("Elektronik", "Electronics", "Электроника", "إلكترونيات", "الکترونیک"),
+        "equipment" => T("İş Makinesi", "Machinery", "Техника", "معدات", "ماشین‌آلات"),
+        "home" => T("Ev Yaşam", "Home Living", "Дом и быт", "المنزل والمعيشة", "خانه و زندگی"),
+        "fashion" => T("Moda", "Fashion", "Мода", "موضة", "مد"),
+        "services" => T("Hizmet", "Services", "Услуги", "خدمات", "خدمات"),
+        "" => T("Belirtilmedi", "Not specified", "Не указано", "غير محدد", "مشخص نشده"),
+        _ => category ?? T("Belirtilmedi", "Not specified", "Не указано", "غير محدد", "مشخص نشده")
+    };
+
+    string DealLabel(string? dealStatus, bool isClosed) => (dealStatus ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "sold" => T("Satıldı", "Sold", "Продано", "تم البيع", "فروخته شد"),
+        "rented" => T("Kiralandı", "Rented", "Сдано", "تم التأجير", "اجاره شد"),
+        "closed" => T("Kapalı", "Closed", "Закрыто", "مغلق", "بسته"),
+        _ => isClosed ? T("Kapalı", "Closed", "Закрыто", "مغلق", "بسته") : T("Yayında", "Live", "Опубликовано", "منشور", "منتشر شده")
+    };
+}
+
+@section Styles {
+<style>
+    .admin-stat-card {
+        border: none;
+        border-radius: 16px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        overflow: hidden;
+    }
+    .admin-stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+    .admin-stat-card .card-body { padding: 1.5rem; }
+    .stat-icon {
+        width: 52px; height: 52px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; margin-bottom: 0.75rem;
+    }
+    .admin-panel-title {
+        font-size: 1.75rem; font-weight: 700;
+        background: linear-gradient(135deg, #1e3a66, #0d6efd);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: 0.25rem;
+    }
+    .listing-row:hover { background: #f8f9fc; }
+    .badge-pending { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .badge-approved { background: #d1e7dd; color: #0a3622; border: 1px solid #198754; }
+</style>
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="admin-panel-title">@T("Yönetici Paneli", "Admin Control Panel", "Панель администратора", "لوحة تحكم المسؤول", "پنل مدیریت")</div>
+            <p class="text-muted mb-0">@T("SEN-T PAZAR sistem yönetimi", "SEN-T PAZAR system management", "Управление системой SEN-T PAZAR", "إدارة نظام SEN-T PAZAR", "مدیریت سامانه SEN-T PAZAR")</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Listings" asp-route-status="pending" class="btn btn-warning btn-sm">
+                <i class="bi bi-clock me-1"></i>@T("Onay Bekleyenler", "Pending Approvals", "Ожидают одобрения", "بانتظار الموافقة", "در انتظار تأیید") (@Model.PendingListings)
+            </a>
+            <a asp-action="Messages" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-chat-dots me-1"></i>@T("Mesajlar", "Messages", "Сообщения", "الرسائل", "پیام‌ها")
+            </a>
+            <a asp-action="Listings" asp-route-status="all" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-list-ul me-1"></i>@T("Tüm İlanlar", "All Listings", "Все объявления", "كل الإعلانات", "همه آگهی‌ها")
+            </a>
+            <a asp-action="Payments" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-credit-card me-1"></i>@T("Ödemeler", "Payments", "Платежи", "المدفوعات", "پرداخت‌ها")
+            </a>
+            <a asp-action="CorporateApprovals" class="btn btn-outline-info btn-sm">
+                <i class="bi bi-building me-1"></i>@T("Kurumsal Başvurular", "Corporate Applications", "Корпоративные заявки", "طلبات الشركات", "درخواست‌های شرکتی")
+            </a>
+            <a asp-action="TaxonomyAudit" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-diagram-3 me-1"></i>@T("Taksonomi Drift", "Taxonomy Drift", "Дрейф таксономии", "انجراف التصنيف", "ناهماهنگی تاکسونومی")
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#e8f0fe;"><i class="bi bi-file-earmark-text text-primary"></i></div>
+                    <div class="text-muted small">@T("Toplam İlan", "Total Listings", "Всего объявлений", "إجمالي الإعلانات", "کل آگهی‌ها")</div>
+                    <div class="fs-3 fw-bold text-dark">@Model.TotalListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" asp-route-status="pending" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fff3cd;"><i class="bi bi-hourglass-split text-warning"></i></div>
+                    <div class="text-muted small">@T("Onay Bekleyen", "Pending", "Ожидает", "قيد الانتظار", "در انتظار")</div>
+                    <div class="fs-3 fw-bold text-warning">@Model.PendingListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" asp-route-status="approved" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#d1e7dd;"><i class="bi bi-check-circle-fill text-success"></i></div>
+                    <div class="text-muted small">@T("Yayında", "Live", "Опубликовано", "منشور", "منتشر شده")</div>
+                    <div class="fs-3 fw-bold text-success">@Model.ApprovedListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" asp-route-status="all" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fde8ff;"><i class="bi bi-star-fill" style="color:#c026d3;"></i></div>
+                    <div class="text-muted small">@T("Öne Çıkan", "Featured", "Рекомендуемые", "مميز", "ویژه")</div>
+                    <div class="fs-3 fw-bold" style="color:#c026d3;">@Model.FeaturedListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" asp-route-status="all" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#e0f2fe;"><i class="bi bi-eye-fill text-info"></i></div>
+                    <div class="text-muted small">@T("Vitrin", "Showcase", "Витрина", "واجهة العرض", "ویترین")</div>
+                    <div class="fs-3 fw-bold text-info">@Model.VitrinListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Listings" asp-route-status="popular" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#ffe4e6;"><i class="bi bi-fire" style="color:#dc2626;"></i></div>
+                    <div class="text-muted small">@T("Popüler", "Popular", "Популярные", "الشائعة", "محبوب")</div>
+                    <div class="fs-3 fw-bold" style="color:#dc2626;">@Model.PopularListings</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="ReviewModeration" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fef3c7;"><i class="bi bi-chat-square-text-fill" style="color:#d97706;"></i></div>
+                    <div class="text-muted small">@T("Onay Bekleyen Yorumlar", "Pending Reviews", "Ожидающие отзывы", "التعليقات المعلقة", "بررسی‌های در انتظار")</div>
+                    <div class="fs-3 fw-bold" style="color:#d97706;">@Model.PendingReviews</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="Users" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#eff6ff;"><i class="bi bi-building text-primary"></i></div>
+                    <div class="text-muted small">@T("Kurumsal Üye", "Corporate Members", "Корпоративные участники", "الأعضاء الشركات", "اعضای شرکتی")</div>
+                    <div class="fs-3 fw-bold text-primary">@Model.CorporateUsers</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-6">
+            <a asp-action="CorporateApprovals" class="card admin-stat-card shadow-sm text-decoration-none h-100">
+                <div class="card-body">
+                    <div class="stat-icon" style="background:#fef9c3;"><i class="bi bi-clock-fill text-warning"></i></div>
+                    <div class="text-muted small">@T("Kurumsal Onay Bekleyen", "Pending Corporate Approvals", "Ожидают корпоративного одобрения", "بانتظار اعتماد الشركات", "در انتظار تأیید شرکتی")</div>
+                    <div class="fs-3 fw-bold text-warning">@Model.PendingCorporate</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>@T("Son Yüklenen İlanlar", "Latest Listings", "Последние объявления", "أحدث الإعلانات", "آخرین آگهی‌ها")</h6>
+            <a asp-action="Listings" class="btn btn-outline-primary btn-sm">@T("Tümünü Gör", "View All", "Показать все", "عرض الكل", "مشاهده همه")</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">@T("Başlık", "Title", "Заголовок", "العنوان", "عنوان")</th>
+                            <th>@T("Kişi", "Person", "Контакт", "الشخص", "شخص")</th>
+                            <th>@T("Şehir", "City", "Город", "المدينة", "شهر")</th>
+                            <th>@T("Kategori", "Category", "Категория", "الفئة", "دسته")</th>
+                            <th>@T("Fiyat", "Price", "Цена", "السعر", "قیمت")</th>
+                            <th>@T("Durum (İstatistik)", "Status (Stats)", "Статус (статистика)", "الحالة (الإحصاءات)", "وضعیت (آمار)")</th>
+                            <th class="pe-4">@T("İşlem (Kapanış)", "Action (Closeout)", "Действие (закрытие)", "الإجراء (الإغلاق)", "اقدام (بستن)")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.RecentListings.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">@T("Henüz ilan bulunmuyor.", "No listings yet.", "Пока нет объявлений.", "لا توجد إعلانات بعد.", "هنوز آگهی‌ای وجود ندارد.")</td>
+                            </tr>
+                        }
+                        @foreach (var item in Model.RecentListings)
+                        {
+                            <tr class="listing-row">
+                                <td class="ps-4">
+                                    <a href="@Url.Action("Details", "Home", new { id = item.Id })" class="text-decoration-none fw-semibold">
+                                        @(item.Title.Length > 45 ? item.Title.Substring(0, 45) + "…" : item.Title)
+                                    </a>
+                                    <div class="small text-muted">@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+                                </td>
+                                <td>@item.FullName</td>
+                                <td>@LocalizeCityName(item.City)</td>
+                                <td><span class="badge bg-light text-dark border">@CategoryLabel(item.Category)</span></td>
+                                <td class="fw-semibold">@SEN_T_PAZAR.Services.CurrencyDisplay.Format(item.PriceAmount, item.PriceCurrency)</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">@Math.Max(0, item.ViewCount) @T("görüntülenme", "views", "просмотров", "مشاهدة", "بازدید")</span>
+                                    <div class="small mt-1">
+                                        @if (item.IsApproved)
+                                        {
+                                            <span class="badge badge-approved px-2 py-1">@T("Yayında", "Live", "Опубликовано", "منشور", "منتشر شده")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-pending px-2 py-1">@T("Bekliyor", "Pending", "Ожидает", "قيد الانتظار", "در انتظار")</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="pe-4">
+                                    <span class="badge bg-secondary">@DealLabel(item.DealStatus, item.IsClosed)</span>
+                                    @if (!item.IsApproved)
+                                    {
+                                        <form asp-action="Approve" asp-controller="Admin" method="post" class="mt-1">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bi bi-check-lg"></i> @T("Onayla", "Approve", "Одобрить", "اعتماد", "تأیید")
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

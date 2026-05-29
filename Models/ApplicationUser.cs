@@ -13,6 +13,10 @@ public class ApplicationUser : IdentityUser
     
     // Profil bilgileri
     public string? AvatarUrl { get; set; }
+
+    // Mobil bildirim bilgileri
+    public string? FcmToken { get; set; }
+    public DateTime? FcmTokenUpdatedAtUtc { get; set; }
     
     // Bildirim ayarları
     public bool EmailNotifications { get; set; } = true;
@@ -51,6 +55,12 @@ public class ApplicationUser : IdentityUser
     public bool IsCorporateApproved { get; set; } = false;
     public DateTime? CorporateApprovalDate { get; set; }
     public string? CorporateNote { get; set; }
+
+    // Satıcı Doğrulama Bilgileri
+    public bool IsVerifiedSeller { get; set; } = false;
+    public DateTime? VerifiedAt { get; set; }
+    public string? VerifiedByAdminId { get; set; }
+    public string? VerificationNotes { get; set; }
     
     // Belgeler
     public List<Document> Documents { get; set; } = new();

@@ -49,8 +49,10 @@ namespace SEN_T_PAZAR.Controllers
                         .Where(f => f.UserId == userId)
                         .OrderByDescending(f => f.CreatedAt) // recent (varsayılan)
                 };
-                
-                query = query.Include(f => f.Listing);
+
+                query = query
+                    .Include(f => f.Listing!)
+                    .ThenInclude(l => l.Images);
 
                 // Pagination
                 var totalCount = await query.CountAsync();
@@ -74,7 +76,7 @@ namespace SEN_T_PAZAR.Controllers
                     SortBy = sort
                 };
 
-                return View(viewModel);
+                return View("~/Views/Account/Favorites.cshtml", viewModel);
             }
             catch (Exception ex)
             {
@@ -110,7 +112,7 @@ namespace SEN_T_PAZAR.Controllers
                 TempData["Success"] = $"{favoritesToDelete.Count} iklem favorilerden çıkarıldı.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 TempData["Error"] = "Silme işlemi başarısız oldu.";
                 return RedirectToAction(nameof(Index));
@@ -141,7 +143,7 @@ namespace SEN_T_PAZAR.Controllers
                 TempData["Success"] = $"Tüm {count} favori temizlendi.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 TempData["Error"] = "Temizleme işlemi başarısız oldu.";
                 return RedirectToAction(nameof(Index));

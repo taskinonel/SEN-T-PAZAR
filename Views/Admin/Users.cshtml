@@ -1,0 +1,243 @@
+@model IEnumerable<SEN_T_PAZAR.Models.ApplicationUser>
+@inject SEN_T_PAZAR.Services.SiteLocalizer L
+@{
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+
+    ViewData["Title"] = T("Kullanıcı Yönetimi", "User Management", "Управление пользователями", "إدارة المستخدمين", "مدیریت کاربران");
+    var externalLoginUserIds = ViewBag.ExternalLoginUserIds as HashSet<string> ?? new HashSet<string>();
+}
+
+@section Styles {
+<style>
+    .page-title {
+        font-size: 1.6rem; font-weight: 700;
+        background: linear-gradient(135deg, #1e3a66, #0d6efd);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .user-row:hover { background: #f8f9fc; }
+    .user-message-trigger {
+        color: #1e3a66;
+        text-decoration: none;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        font-weight: 700;
+    }
+    .user-message-trigger:hover,
+    .user-message-trigger:focus {
+        text-decoration: underline;
+    }
+</style>
+}
+
+<div class="container py-4">
+    @if (TempData["AdminSuccess"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-3">@successMessage</div>
+    }
+
+    @if (TempData["AdminError"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger border-0 shadow-sm mb-3">@errorMessage</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="page-title">@T("Kullanıcı Yönetimi", "User Management", "Управление пользователями", "إدارة المستخدمين", "مدیریت کاربران")</div>
+            <p class="text-muted mb-0">@T($"Toplam {Model.Count()} kullanıcı", $"{Model.Count()} users total", $"Всего пользователей: {Model.Count()}", $"إجمالي المستخدمين: {Model.Count()}", $"مجموع {Model.Count()} کاربر")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> @T("Panele Dön", "Back to panel", "Назад к панели", "العودة إلى اللوحة", "بازگشت به پنل")
+        </a>
+    </div>
+
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">@T("Ad Soyad", "Full Name", "ФИО", "الاسم الكامل", "نام و نام خانوادگی")</th>
+                            <th>@T("E-posta", "Email", "Эл. почта", "البريد الإلكتروني", "ایمیل")</th>
+                            <th>@T("Kayıt", "Signup", "Регистрация", "التسجيل", "ثبت‌نام")</th>
+                            <th>@T("Telefon", "Phone", "Телефон", "الهاتف", "تلفن")</th>
+                            <th>@T("Kurumsal", "Corporate", "Корпоративный", "مؤسسي", "شرکتی")</th>
+                            <th>@T("Durum", "Status", "Статус", "الحالة", "وضعیت")</th>
+                            <th class="pe-4 text-end">@T("İşlemler", "Actions", "Действия", "الإجراءات", "اقدامات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            var displayName = string.IsNullOrWhiteSpace(user.FullName)
+                                ? (string.IsNullOrWhiteSpace(user.UserName) ? user.Email : user.UserName)
+                                : user.FullName;
+                            var isExternal = externalLoginUserIds.Contains(user.Id);
+                            <tr class="user-row">
+                                <td class="ps-4 fw-semibold">
+                                    <button type="button"
+                                            class="user-message-trigger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#userMessageModal"
+                                            data-user-id="@user.Id"
+                                            data-user-name="@displayName"
+                                            data-user-email="@user.Email"
+                                            title="@T("Bu kullanıcıya mesaj gönder", "Send message to this user", "Отправить сообщение этому пользователю", "إرسال رسالة لهذا المستخدم", "ارسال پیام به این کاربر")">
+                                        @displayName
+                                    </button>
+                                    <div class="small text-muted">@T("Mesaj göndermek için tıkla", "Click to message", "Нажмите, чтобы написать", "انقر لإرسال رسالة", "برای ارسال پیام کلیک کنید")</div>
+                                </td>
+                                <td>@user.Email</td>
+                                <td>
+                                    @if (isExternal)
+                                    {
+                                        <span class="badge bg-info text-dark">@T("İnternet (Google)", "Internet (Google)", "Интернет (Google)", "الإنترنت (Google)", "اینترنت (Google)")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border">@T("Site Kaydı", "Site signup", "Регистрация на сайте", "تسجيل الموقع", "ثبت‌نام سایت")</span>
+                                    }
+                                    <div class="small mt-1">
+                                        @if (user.EmailConfirmed)
+                                        {
+                                            <span class="text-success">@T("E-posta doğrulandı", "Email verified", "Эл. почта подтверждена", "تم التحقق من البريد الإلكتروني", "ایمیل تأیید شد")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning">@T("E-posta beklemede", "Email pending", "Ожидает подтверждения", "البريد الإلكتروني قيد الانتظار", "در انتظار ایمیل")</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>@user.PhoneNumber</td>
+                                <td>
+                                    @if (user.IsCorporateMember)
+                                    {
+                                        <span class="badge bg-primary">@T("Kurumsal", "Corporate", "Корпоративный", "مؤسسي", "شرکتی")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border">@T("Bireysel", "Personal", "Личный", "فردي", "شخصی")</span>
+                                    }
+                                </td>
+                                <td class="pe-4">
+                                    @if (user.IsCorporateMember && user.IsCorporateApproved)
+                                    {
+                                        <span class="badge bg-success">@T("Onaylı", "Approved", "Одобрено", "موافق عليه", "تأیید شده")</span>
+                                    }
+                                    else if (user.IsCorporateMember && !user.IsCorporateApproved)
+                                    {
+                                        <span class="badge bg-warning text-dark">@T("Onay Bekliyor", "Pending approval", "Ожидает одобрения", "بانتظار الموافقة", "در انتظار تأیید")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border">@T("—", "—", "—", "—", "—")</span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <div class="d-flex justify-content-end gap-1 flex-wrap">
+                                        @if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+                                        {
+                                            <form asp-action="ResumeUser" asp-controller="Admin" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="btn btn-outline-success btn-sm">@T("Aktifleştir", "Resume", "Возобновить", "استئناف", "فعال‌سازی")</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="SuspendUser" asp-controller="Admin" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm">@T("Askıya Al", "Suspend", "Приостановить", "تعليق", "تعلیق")</button>
+                                            </form>
+                                        }
+                                        <form asp-action="DeleteUser" asp-controller="Admin" method="post" onsubmit="return confirm('@T("Bu kullanıcıyı silmek istediğinize emin misiniz?", "Delete this user?", "Удалить этого пользователя?", "هل تريد حذف هذا المستخدم؟", "این کاربر حذف شود؟")')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">@T("Sil", "Delete", "Удалить", "حذف", "حذف")</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">@T("Kullanıcıya mesaj gönder", "Send message to user", "Отправить сообщение пользователю", "إرسال رسالة للمستخدم", "ارسال پیام به کاربر")</h5>
+                    <div class="text-muted small" id="userMessageModalUser"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="SendUserMessage" asp-controller="Admin" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="userId" id="userMessageUserId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">@T("Konu", "Subject", "Тема", "الموضوع", "موضوع")</label>
+                        <input type="text" name="subject" id="userMessageSubject" class="form-control" maxlength="180" required placeholder="@T("Önemli duyuru", "Important notice", "Важное объявление", "إعلان مهم", "اطلاعیه مهم")" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">@T("Mesaj", "Message", "Сообщение", "الرسالة", "پیام")</label>
+                        <textarea name="message" id="userMessageBody" class="form-control" rows="6" maxlength="4000" required placeholder="@T("Mesajınızı yazın...", "Write your message...", "Напишите сообщение...", "اكتب رسالتك...", "پیام خود را بنویسید...")"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@T("İptal", "Cancel", "Отмена", "إلغاء", "لغو")</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>@T("Gönder", "Send", "Отправить", "إرسال", "ارسال")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    (function () {
+        var modal = document.getElementById('userMessageModal');
+        if (!modal) {
+            return;
+        }
+
+        var ensureModalPlacement = function () {
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        };
+
+        ensureModalPlacement();
+        modal.addEventListener('show.bs.modal', function (event) {
+            ensureModalPlacement();
+
+            var trigger = event.relatedTarget;
+            if (!trigger) {
+                return;
+            }
+
+            var userId = trigger.getAttribute('data-user-id') || '';
+            var userName = trigger.getAttribute('data-user-name') || '';
+            var userEmail = trigger.getAttribute('data-user-email') || '';
+
+            document.getElementById('userMessageUserId').value = userId;
+            document.getElementById('userMessageModalUser').textContent = userName + (userEmail ? ' · ' + userEmail : '');
+            document.getElementById('userMessageSubject').value = '';
+            document.getElementById('userMessageBody').value = '';
+        });
+    })();
+</script>
+}

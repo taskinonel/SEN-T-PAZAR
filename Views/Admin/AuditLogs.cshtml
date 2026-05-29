@@ -1,0 +1,48 @@
+@model IEnumerable<SEN_T_PAZAR.Models.AdminAuditLog>
+@{
+    ViewData["Title"] = "Audit Loglari";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">Audit Loglari</h3>
+            <p class="text-muted mb-0">Yonetici islemlerinin son kayitlari.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Panele Don</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Zaman (UTC)</th>
+                        <th>Yonetici</th>
+                        <th>Aksiyon</th>
+                        <th>Hedef</th>
+                        <th>Detay</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">Kayit bulunamadi.</td></tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@item.ActorEmail</td>
+                            <td><code>@item.Action</code></td>
+                            <td>@item.TargetType @item.TargetId</td>
+                            <td class="small">@item.Details</td>
+                            <td class="small">@item.IpAddress</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

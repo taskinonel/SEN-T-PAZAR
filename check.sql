@@ -1,0 +1,1 @@
+SELECT MAX("Id") FROM "ListingImages";
