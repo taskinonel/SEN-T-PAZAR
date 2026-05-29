@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using SEN_T_PAZAR.Models;
 using SEN_T_PAZAR.Services;
 using System.Security.Claims;
+using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -558,6 +559,28 @@ namespace SEN_T_PAZAR.Controllers
 
         [Authorize]
         [HttpGet]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Json(new { count = 0 });
+            }
+
+            var count = await _db.VisitorMessages
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsRead &&
+                    (x.RecipientUserId == user.Id ||
+                     x.RecipientPhone == user.PhoneNumber ||
+                     (x.RecipientEmail != null && x.RecipientEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase))))
+                .CountAsync();
+
+            return Json(new { count });
+        }
+
+        [Authorize]
+        [HttpGet]
         public async Task<IActionResult> Dashboard(string tab = "overview", int? threadId = null, string filter = "all")
         {
             var user = await _userManager.GetUserAsync(User);
@@ -865,165 +888,178 @@ var model = new ListingEditViewModel
         [SEN_T_PAZAR.Filters.ValidateListingOwner]
         public async Task<IActionResult> EditListing(ListingEditViewModel model)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            try
             {
-                return RedirectToAction(nameof(Login));
-            }
-
-            ViewData["Cities"] = _catalog.Cities
-                .Where(x => !string.Equals(x, "all", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (!ModelState.IsValid)
-            {
-                var listingForValidation = await _db.Listings
-                    .Include(x => x.Images)
-                    .FirstOrDefaultAsync(x => x.Id == model.Id);
-                if (listingForValidation != null)
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
                 {
-                    model.ExistingImages = listingForValidation.Images
-                        .OrderBy(x => x.Id)
-                        .Select((x, index) => new ListingEditImageItemViewModel
-                        {
-                            Id = x.Id,
-                            FilePath = x.FilePath,
-                            IsCover = index == listingForValidation.CoverImageIndex
-                        })
-                        .ToList();
+                    return RedirectToAction(nameof(Login));
                 }
-                return View(model);
-            }
 
-            if (decimal.Truncate(model.PriceAmount) != model.PriceAmount)
-            {
-                ModelState.AddModelError(nameof(model.PriceAmount), T(
-                    "Fiyat tam sayi olmalidir.",
-                    "Price must be a whole number.",
-                    "Цена должна быть целым числом.",
-                    "يجب أن يكون السعر رقمًا صحيحًا.",
-                    "قیمت باید عدد صحیح باشد."));
-                var listingForValidation = await _db.Listings
-                    .Include(x => x.Images)
-                    .FirstOrDefaultAsync(x => x.Id == model.Id);
-                if (listingForValidation != null)
-                {
-                    model.ExistingImages = listingForValidation.Images
-                        .OrderBy(x => x.Id)
-                        .Select((x, index) => new ListingEditImageItemViewModel
-                        {
-                            Id = x.Id,
-                            FilePath = x.FilePath,
-                            IsCover = index == listingForValidation.CoverImageIndex
-                        })
-                        .ToList();
-                }
-                return View(model);
-            }
-
-            var listing = await _db.Listings
-                .Include(x => x.Images)
-                .FirstOrDefaultAsync(x => x.Id == model.Id);
-            if (listing == null || (listing.UserId != user.Id && listing.Phone != user.PhoneNumber && listing.FullName != user.FullName))
-            {
-                return NotFound();
-            }
-
-            listing.Title = model.Title.Trim();
-            listing.Description = model.Description.Trim();
-            listing.Category = model.Category.Trim();
-            listing.Type = model.Type.Trim();
-            listing.City = model.City.Trim();
-            listing.District = model.District?.Trim() ?? string.Empty;
-            listing.Neighborhood = string.IsNullOrWhiteSpace(model.Neighborhood) ? null : model.Neighborhood.Trim();
-            listing.HouseNumber = string.IsNullOrWhiteSpace(model.HouseNumber) ? null : model.HouseNumber.Trim();
-            listing.ApartmentNumber = string.IsNullOrWhiteSpace(model.ApartmentNumber) ? null : model.ApartmentNumber.Trim();
-            listing.Address = string.IsNullOrWhiteSpace(model.Address) ? null : model.Address.Trim();
-            listing.PriceAmount = model.PriceAmount;
-            // Para birimi boş veya null ise TL olarak ayarla
-            listing.PriceCurrency = string.IsNullOrWhiteSpace(model.PriceCurrency) ? "TL" : model.PriceCurrency.Trim();
-            
-            listing.FullName = model.FullName.Trim();
-            listing.Phone = model.Phone.Trim();
-            
-            if (user.FullName != model.FullName.Trim())
-            {
-                user.FullName = model.FullName.Trim();
-            }
-            if (user.PhoneNumber != model.Phone.Trim())
-            {
-                user.PhoneNumber = model.Phone.Trim();
-            }
-
-            var deleteIds = (model.DeleteImageIds ?? new List<int>())
-                .Distinct()
-                .ToHashSet();
-
-            if (deleteIds.Count > 0)
-            {
-                var imagesToDelete = listing.Images
-                    .Where(x => deleteIds.Contains(x.Id))
+                ViewData["Cities"] = _catalog.Cities
+                    .Where(x => !string.Equals(x, "all", StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                foreach (var image in imagesToDelete)
+
+                if (!ModelState.IsValid)
                 {
-                    if (!string.IsNullOrWhiteSpace(image.FilePath))
+                    var listingForValidation = await _db.Listings
+                        .Include(x => x.Images)
+                        .FirstOrDefaultAsync(x => x.Id == model.Id);
+                    if (listingForValidation != null)
                     {
-                        var physicalPath = _uploadStorage.TryGetPhysicalPath(image.FilePath);
-                        if (!string.IsNullOrWhiteSpace(physicalPath) && System.IO.File.Exists(physicalPath))
+                        model.ExistingImages = listingForValidation.Images
+                            .OrderBy(x => x.Id)
+                            .Select((x, index) => new ListingEditImageItemViewModel
+                            {
+                                Id = x.Id,
+                                FilePath = x.FilePath,
+                                IsCover = index == listingForValidation.CoverImageIndex
+                            })
+                            .ToList();
+                    }
+                    return View(model);
+                }
+
+                if (decimal.Truncate(model.PriceAmount) != model.PriceAmount)
+                {
+                    ModelState.AddModelError(nameof(model.PriceAmount), T(
+                        "Fiyat tam sayi olmalidir.",
+                        "Price must be a whole number.",
+                        "Цена должна быть целым числом.",
+                        "يجب أن يكون السعر رقمًا صحيحًا.",
+                        "قیمت باید عدد صحیح باشد."));
+                    var listingForValidation = await _db.Listings
+                        .Include(x => x.Images)
+                        .FirstOrDefaultAsync(x => x.Id == model.Id);
+                    if (listingForValidation != null)
+                    {
+                        model.ExistingImages = listingForValidation.Images
+                            .OrderBy(x => x.Id)
+                            .Select((x, index) => new ListingEditImageItemViewModel
+                            {
+                                Id = x.Id,
+                                FilePath = x.FilePath,
+                                IsCover = index == listingForValidation.CoverImageIndex
+                            })
+                            .ToList();
+                    }
+                    return View(model);
+                }
+
+                var listing = await _db.Listings
+                    .Include(x => x.Images)
+                    .FirstOrDefaultAsync(x => x.Id == model.Id);
+                if (listing == null || (listing.UserId != user.Id && listing.Phone != user.PhoneNumber && listing.FullName != user.FullName))
+                {
+                    return NotFound();
+                }
+
+                listing.Title = model.Title.Trim();
+                listing.Description = model.Description.Trim();
+                listing.Category = model.Category.Trim();
+                listing.Type = model.Type.Trim();
+                listing.City = model.City.Trim();
+                listing.District = model.District?.Trim() ?? string.Empty;
+                listing.Neighborhood = string.IsNullOrWhiteSpace(model.Neighborhood) ? null : model.Neighborhood.Trim();
+                listing.HouseNumber = string.IsNullOrWhiteSpace(model.HouseNumber) ? null : model.HouseNumber.Trim();
+                listing.ApartmentNumber = string.IsNullOrWhiteSpace(model.ApartmentNumber) ? null : model.ApartmentNumber.Trim();
+                listing.Address = string.IsNullOrWhiteSpace(model.Address) ? null : model.Address.Trim();
+                listing.PriceAmount = model.PriceAmount;
+                listing.PriceCurrency = string.IsNullOrWhiteSpace(model.PriceCurrency) ? "TL" : model.PriceCurrency.Trim();
+
+                listing.FullName = model.FullName.Trim();
+                listing.Phone = model.Phone.Trim();
+
+                if (user.FullName != model.FullName.Trim())
+                {
+                    user.FullName = model.FullName.Trim();
+                }
+                if (user.PhoneNumber != model.Phone.Trim())
+                {
+                    user.PhoneNumber = model.Phone.Trim();
+                }
+
+                var deleteIds = (model.DeleteImageIds ?? new List<int>())
+                    .Distinct()
+                    .ToHashSet();
+
+                if (deleteIds.Count > 0)
+                {
+                    var imagesToDelete = listing.Images
+                        .Where(x => deleteIds.Contains(x.Id))
+                        .ToList();
+                    foreach (var image in imagesToDelete)
+                    {
+                        if (!string.IsNullOrWhiteSpace(image.FilePath))
                         {
-                            try
+                            var physicalPath = _uploadStorage.TryGetPhysicalPath(image.FilePath);
+                            if (!string.IsNullOrWhiteSpace(physicalPath) && System.IO.File.Exists(physicalPath))
                             {
-                                System.IO.File.Delete(physicalPath);
+                                try
+                                {
+                                    System.IO.File.Delete(physicalPath);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "Failed to delete image file: {Path}", physicalPath);
+                                }
                             }
-                            catch
-                            {
-                                // Ignore file deletion errors and continue DB update.
-                            }
+                        }
+                    }
+
+                    _db.ListingImages.RemoveRange(imagesToDelete);
+                }
+
+                if (model.NewImageFiles != null && model.NewImageFiles.Count > 0)
+                {
+                    var uploadsFolder = _uploadStorage.EnsureDirectory();
+
+                    foreach (var file in model.NewImageFiles)
+                    {
+                        if (file.Length <= 0)
+                        {
+                            continue;
+                        }
+
+                        var savedPath = await SaveOptimizedImageAsync(file, uploadsFolder, _uploadStorage.GetPublicDirectory());
+                        if (!string.IsNullOrWhiteSpace(savedPath))
+                        {
+                            listing.Images.Add(new ListingImage { FilePath = savedPath, UserId = user.Id });
                         }
                     }
                 }
 
-                _db.ListingImages.RemoveRange(imagesToDelete);
-            }
-
-            if (model.NewImageFiles != null && model.NewImageFiles.Count > 0)
-            {
-                var uploadsFolder = _uploadStorage.EnsureDirectory();
-
-                foreach (var file in model.NewImageFiles)
+                var orderedImages = listing.Images.OrderBy(x => x.Id).ToList();
+                if (model.CoverImageId.HasValue)
                 {
-                    if (file.Length <= 0)
-                    {
-                        continue;
-                    }
-
-                    var savedPath = await SaveOptimizedImageAsync(file, uploadsFolder, _uploadStorage.GetPublicDirectory());
-                    if (!string.IsNullOrWhiteSpace(savedPath))
-                    {
-                        listing.Images.Add(new ListingImage { FilePath = savedPath, UserId = user.Id });
-                    }
+                    var coverIndex = orderedImages.FindIndex(x => x.Id == model.CoverImageId.Value);
+                    listing.CoverImageIndex = coverIndex >= 0 ? coverIndex : 0;
                 }
-            }
+                else if (orderedImages.Count == 0)
+                {
+                    listing.CoverImageIndex = 0;
+                }
+                else if (listing.CoverImageIndex >= orderedImages.Count)
+                {
+                    listing.CoverImageIndex = 0;
+                }
 
-            var orderedImages = listing.Images.OrderBy(x => x.Id).ToList();
-            if (model.CoverImageId.HasValue)
-            {
-                var coverIndex = orderedImages.FindIndex(x => x.Id == model.CoverImageId.Value);
-                listing.CoverImageIndex = coverIndex >= 0 ? coverIndex : 0;
+                await _db.SaveChangesAsync();
+                await _userManager.UpdateAsync(user);
+                TempData["DashboardSuccess"] = T("İlan başarıyla güncellendi.", "Listing updated successfully.", "Объявление успешно обновлено.", "تم تحديث الإعلان بنجاح.", "آگهی با موفقیت به‌روزرسانی شد.");
+                return RedirectToAction(nameof(Dashboard), new { tab = "listings" });
             }
-            else if (orderedImages.Count == 0)
+            catch (Exception ex)
             {
-                listing.CoverImageIndex = 0;
+                _logger.LogError(ex, "EditListing failed for model id {ModelId}", model?.Id);
+                var errorMessage = $"Hata: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $" | Inner: {ex.InnerException.Message}";
+                }
+                TempData["DashboardError"] = errorMessage;
+                return RedirectToAction(nameof(Dashboard), new { tab = "listings" });
             }
-            else if (listing.CoverImageIndex >= orderedImages.Count)
-            {
-                listing.CoverImageIndex = 0;
-            }
-
-await _db.SaveChangesAsync();
-             await _userManager.UpdateAsync(user);
-             TempData["DashboardSuccess"] = T("İlan başarıyla güncellendi.", "Listing updated successfully.", "Объявление успешно обновлено.", "تم تحديث الإعلان بنجاح.", "آگهی با موفقیت به‌روزرسانی شد.");
-             return RedirectToAction(nameof(Dashboard), new { tab = "listings" });
         }
 
         private static async Task<string?> SaveOptimizedImageAsync(IFormFile file, string uploadsFolder, string webRelativeDirectory = "/uploads")
@@ -1040,11 +1076,31 @@ await _db.SaveChangesAsync();
                 return null;
             }
 
+            if (!await IsValidImageFileAsync(file))
+            {
+                return null;
+            }
+
             var outputName = $"{Guid.NewGuid():N}.jpg";
             var outputPath = Path.Combine(uploadsFolder, outputName);
 
-            await using var input = file.OpenReadStream();
-            using var image = await Image.LoadAsync(input);
+            // Copy to memory stream because form file streams are forward-only and non-seekable
+            await using var inputStream = file.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await inputStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            using var image = await Image.LoadAsync(memoryStream);
+
+            // Strip EXIF/metadata to avoid leaking sensitive data
+            try
+            {
+                image.Metadata.ExifProfile = null;
+            }
+            catch
+            {
+                // ignore
+            }
 
             if (image.Width > MaxUploadImageDimension || image.Height > MaxUploadImageDimension)
             {
@@ -1066,6 +1122,39 @@ await _db.SaveChangesAsync();
                 ? "/uploads"
                 : webRelativeDirectory.TrimEnd('/');
             return normalizedDirectory + "/" + outputName;
+        }
+
+        private static async Task<bool> IsValidImageFileAsync(IFormFile file)
+        {
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                var buffer = new byte[12];
+                var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
+                if (read >= 3 && buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF)
+                {
+                    // JPEG
+                    return true;
+                }
+
+                if (read >= 8 && buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47 && buffer[4] == 0x0D && buffer[5] == 0x0A && buffer[6] == 0x1A && buffer[7] == 0x0A)
+                {
+                    // PNG
+                    return true;
+                }
+
+                if (read >= 12 && buffer[0] == (byte)'R' && buffer[1] == (byte)'I' && buffer[2] == (byte)'F' && buffer[3] == (byte)'F' && buffer[8] == (byte)'W' && buffer[9] == (byte)'E' && buffer[10] == (byte)'B' && buffer[11] == (byte)'P')
+                {
+                    // WEBP
+                    return true;
+                }
+            }
+            catch
+            {
+                // swallow and treat as invalid
+            }
+
+            return false;
         }
 
         [Authorize]
@@ -1617,10 +1706,27 @@ await _db.SaveChangesAsync();
         #region Kurumsal Üyelik
 
         [HttpGet]
-        public IActionResult CorporateMembership()
+        public async Task<IActionResult> CorporateMembership()
         {
             PopulateCorporatePlans();
-            return View(new CorporateMembershipViewModel());
+            var user = await _userManager.GetUserAsync(User);
+            var model = new CorporateMembershipViewModel();
+            if (user != null)
+            {
+                model.IsCorporateMember = user.IsCorporateMember;
+                model.CompanyName = user.CompanyName;
+                model.CompanyTaxNumber = user.CompanyTaxNumber;
+                model.CompanyTaxOffice = user.CompanyTaxOffice;
+                model.CompanyMersisNumber = user.CompanyMersisNumber;
+                model.CompanyPhone = user.CompanyPhone;
+                model.CompanyWebSite = user.CompanyWebSite;
+                model.CompanyAddress = user.CompanyAddress;
+                model.CompanyLogoUrl = user.CompanyLogoUrl;
+                model.SubscriptionPlan = user.SubscriptionPlan;
+                model.CompanyApprovalDate = user.CorporateApprovalDate;
+                model.CorporateNote = user.CorporateNote;
+            }
+            return View(model);
         }
 
         [Authorize]

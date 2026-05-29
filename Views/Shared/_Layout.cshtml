@@ -1,165 +1,359 @@
 @using System.Globalization
+@using System.Text.Json
 @inject SEN_T_PAZAR.Services.SiteLocalizer L
+@inject IConfiguration Configuration
+
+@{
+    var requestPath = Context.Request.Path.Value ?? "/";
+    var isHomePageRequest = string.Equals(requestPath, "/", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(requestPath, "/Home/Index", StringComparison.OrdinalIgnoreCase);
+}
 
 <!DOCTYPE html>
 <html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName" dir="@(L.IsRtl ? "rtl" : "ltr")">
 <head>
+    @{
+        var pageTitle = (ViewData["Title"] as string) ?? L["brand"];
+        var metaDescription = (ViewData["MetaDescription"] as string) ?? "SEN-T Pazar'da emlak, vasita ve ikinci el ilanlarini kesfedin.";
+        var metaKeywords = (ViewData["MetaKeywords"] as string) ?? "KKTC emlak ilanlari, Girne satilik daire, Lefkosa kiralik ev, Gazimagusa arsa, guvenli ilan platformu";
+        var useRawTitle = (ViewData["UseRawTitle"] as bool?) ?? false;
+        var canonicalUrl = (ViewData["CanonicalUrl"] as string) ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}{Context.Request.QueryString}";
+        var siteUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+        var fullPageTitle = useRawTitle ? pageTitle : $"{pageTitle} - {L["brand"]}";
+        var robotsContent = (ViewData["Robots"] as string) ?? "index,follow,max-image-preview:large";
+        var openGraphType = (ViewData["OpenGraphType"] as string) ?? "website";
+        var metaImageAlt = (ViewData["MetaImageAlt"] as string) ?? pageTitle;
+        var pageSchemaJsonLd = ViewData["PageSchemaJsonLd"] as string;
+        var openGraphLocale = CultureInfo.CurrentUICulture.Name.Replace('-', '_');
+        string ToAbsoluteUrl(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return $"{siteUrl}/img/logo.png";
+            }
+
+            if (Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
+            {
+                return absoluteUri.ToString();
+            }
+
+            var normalizedValue = value.Trim().TrimStart('~');
+            if (!normalizedValue.StartsWith("/", StringComparison.Ordinal))
+            {
+                normalizedValue = "/" + normalizedValue;
+            }
+
+            return $"{siteUrl}{normalizedValue}";
+        }
+
+        var metaImage = ToAbsoluteUrl(ViewData["MetaImage"] as string);
+        var googleSiteVerification = Configuration["Seo:GoogleSiteVerification"];
+        if (string.IsNullOrWhiteSpace(googleSiteVerification) || string.Equals(googleSiteVerification, "BURAYA_KOD_GELECEK", StringComparison.OrdinalIgnoreCase))
+        {
+            googleSiteVerification = null;
+        }
+        var websiteLdJson = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebSite",
+            ["name"] = "SEN-T PAZAR-DİJİTAL ÇARŞI",
+            ["url"] = siteUrl,
+            ["potentialAction"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "SearchAction",
+                ["target"] = $"{siteUrl}/?showResults=true&keyword={{search_term_string}}",
+                ["query-input"] = "required name=search_term_string"
+            }
+        });
+    }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - @L["brand"]</title>
+    <title>@fullPageTitle</title>
+    <meta name="description" content="@metaDescription" />
+    <meta name="keywords" content="@metaKeywords" />
+    <meta name="robots" content="@robotsContent" />
+    <meta name="googlebot" content="@robotsContent" />
+    @if (!string.IsNullOrWhiteSpace(googleSiteVerification))
+    {
+        <meta name="google-site-verification" content="@googleSiteVerification" />
+    }
+    <meta name="msvalidate.01" content="AB010937C9200D680AAC3E34B61E8D0B" />
+    <link rel="canonical" href="@canonicalUrl" />
+    <meta property="og:type" content="@openGraphType" />
+    <meta property="og:locale" content="@openGraphLocale" />
+    <meta property="og:site_name" content="@L["brand"]" />
+    <meta property="og:title" content="@fullPageTitle" />
+    <meta property="og:description" content="@metaDescription" />
+    <meta property="og:url" content="@canonicalUrl" />
+    <meta property="og:image" content="@metaImage" />
+    <meta property="og:image:alt" content="@metaImageAlt" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@fullPageTitle" />
+    <meta name="twitter:description" content="@metaDescription" />
+    <meta name="twitter:image" content="@metaImage" />
+    <meta name="twitter:image:alt" content="@metaImageAlt" />
+    <script type="application/ld+json">@Html.Raw(websiteLdJson)</script>
+    @if (!string.IsNullOrWhiteSpace(pageSchemaJsonLd))
+    {
+        <script type="application/ld+json">@Html.Raw(pageSchemaJsonLd)</script>
+    }
     <link rel="icon" type="image/png" href="~/img/logo.png" />
     <link rel="apple-touch-icon" href="~/img/logo.png" />
-    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
-    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=2400&q=90" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <environment include="Development">
+        <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    </environment>
+    <environment exclude="Development">
+        <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    </environment>
+    <link rel="manifest" href="~/manifest.json" />
+    <meta name="theme-color" content="#007ACC" />
+        <environment include="Development">
+                <script>
+                    if ("serviceWorker" in navigator) {
+                        window.addEventListener("load", async () => {
+                            const regs = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all(regs.map(r => r.unregister()));
+                            if (window.caches) {
+                                const keys = await caches.keys();
+                                await Promise.all(keys.map(k => caches.delete(k)));
+                            }
+                        });
+                    }
+                </script>
+        </environment>
+        <environment exclude="Development">
+                <script>
+                    if ("serviceWorker" in navigator) {
+                        window.addEventListener("load", async () => {
+                            try {
+                                const reg = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+                                await reg.update();
+                                if (reg.waiting) {
+                                    reg.waiting.postMessage({ type: "SKIP_WAITING" });
+                                }
+                            } catch (err) {
+                                console.log("SW Error", err);
+                            }
+                        });
+                    }
+                </script>
+        </environment>
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
+<body class="@(isHomePageRequest ? "is-homepage" : string.Empty)">
+    <script>
+        window.sentUserState = {
+            isAuthenticated: @User.Identity?.IsAuthenticated.ToString().ToLowerInvariant()
+        };
+    </script>
     @{
         var currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        string T(string tr, string en, string ru, string ar, string? fa = null) => currentCulture switch
+        {
+            "en" => en,
+            "ru" => ru,
+            "ar" => ar,
+            "fa" => fa ?? en ?? tr,
+            _ => tr
+        };
     }
     <header>
         <div class="utility-bar">
-            <div class="container utility-bar__inner">
+            <div class="container utility-bar__inner d-flex justify-content-between align-items-center">
                 <div class="utility-logo-slogan d-flex align-items-center">
                     <a asp-area="" asp-controller="Home" asp-action="Index" class="utility-logo-link" aria-label="@L["home"]">
-                        <img src="~/img/logo.png" alt="SEN-T PAZAR Logo">
-                        <span>SEN-T PAZAR</span>
+                        <img src="~/img/logo.png" asp-append-version="true" class="utility-logo-image" alt="@L["siteBrand"] Logo" loading="eager" decoding="async">
+                        <span class="utility-logo-title">@L["siteBrand"]</span>
                     </a>
                 </div>
-                <div class="utility-langs d-flex align-items-center" aria-label="@L["languageSelector"]">
-                    <a href="@L.BuildCultureUrl("tr")" class="lang-chip @(currentCulture == "tr" ? "is-active" : string.Empty)">
-                        <span class="lang-flag lang-flag--tr" aria-hidden="true"></span>
-                        <span>TR</span>
-                    </a>
-                    <a href="@L.BuildCultureUrl("en")" class="lang-chip @(currentCulture == "en" ? "is-active" : string.Empty)">
-                        <span class="lang-flag lang-flag--en" aria-hidden="true"></span>
-                        <span>EN</span>
-                    </a>
-                    <a href="@L.BuildCultureUrl("ru")" class="lang-chip @(currentCulture == "ru" ? "is-active" : string.Empty)">
-                        <span class="lang-flag lang-flag--ru" aria-hidden="true"></span>
-                        <span>RU</span>
-                    </a>
-                    <a href="@L.BuildCultureUrl("ar")" class="lang-chip @(currentCulture == "ar" ? "is-active" : string.Empty)">
-                        <span class="lang-flag lang-flag--ar" aria-hidden="true"></span>
-                        <span>AR</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <nav class="navbar navbar-expand-lg site-nav">
-            <div class="container">
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="@L["toggleNavigation"]">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse justify-content-between">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">@L["home"]</a>
-                        </li>
-
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Listings">@L["adminApproval"]</a>
-                            </li>
-                        }
-                    </ul>
-                    <div class="d-flex align-items-center gap-sm" style="position:relative; z-index:2;">
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            var fullName = User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value ?? User.Identity.Name;
-                            <div class="dropdown">
-                                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> @fullName
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">@L["myAccount"]</a></li>
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item">@L["logout"]</button>
-                                        </form>
-                                    </li>
-                                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    @if (!(User.Identity?.IsAuthenticated ?? false))
+                    {
+                        <div class="d-flex align-items-center gap-2 me-3 utility-auth-actions">
+                            <div class="utility-auth-action">
+                                <a asp-controller="Account" asp-action="Login" class="utility-login-btn">
+                                    <i class="bi bi-box-arrow-in-right"></i>
+                                    <span>@T("Giriş Yap", "Sign in", "Войти", "تسجيل الدخول", "ورود")</span>
+                                </a>
                             </div>
-                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">@L["freePostAd"]</a>
-                        }
-                        else
-                        {
-                            <a asp-controller="Account" asp-action="Login" class="nav-btn nav-btn--outline btn-small-40">@L["login"]</a>
-                            <a asp-controller="Account" asp-action="Register" class="nav-btn nav-btn--filled btn-small-40">@L["register"]</a>
-                            <a class="nav-btn nav-btn--cta btn-small-40" asp-area="" asp-controller="Home" asp-action="Publish">@L["freePostAd"]</a>
-                        }
+                            <div class="utility-auth-action">
+                                <a asp-controller="Account" asp-action="Register" class="utility-signup-btn">
+                                    <i class="bi bi-person-plus"></i>
+                                    <span>@T("Üye Ol", "Sign up", "Регистрация", "إنشاء حساب", "ثبت نام")</span>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        var displayName = User.Identity?.Name ?? T("Kullanıcı", "User", "Пользователь", "مستخدم");
+<div class="utility-user-menu me-3">
+                             <button type="button" class="utility-login-btn utility-user-menu__trigger" aria-haspopup="true" aria-expanded="false">
+                                 <i class="bi bi-person-circle"></i>
+                                 <span>@displayName</span>
+                             </button>
+                             <div class="utility-user-menu__dropdown" role="menu">
+                                 <a asp-controller="Account" asp-action="Dashboard" asp-route-tab="messages" class="utility-user-menu__item d-flex align-items-center" role="menuitem">
+                                     <i class="bi bi-chat-square-text me-2"></i>
+                                     <span>@T("Mesajlar", "Messages", "Сообщения", "الرسائل", "پیام‌ها")</span>
+                                     <span id="unreadMsgBadge" class="badge bg-danger rounded-pill ms-auto" style="display:none;">0</span>
+                                 </a>
+                                 <a asp-controller="Account" asp-action="Profile" class="utility-user-menu__item" role="menuitem">
+                                     <i class="bi bi-person"></i>
+                                     <span>@T("Hesabım", "My Account", "Мой аккаунт", "حسابي", "حساب من")</span>
+                                 </a>
+                                 <a asp-controller="Account" asp-action="CorporateMembership" class="utility-user-menu__item" role="menuitem">
+                                     <i class="bi bi-building"></i>
+                                     <span>@T("Kurumsal Hesap", "Corporate Account", "Корпоративный аккаунт", "الحساب المؤسسي", "حساب شرکتی")</span>
+                                 </a>
+                                 @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-controller="Admin" asp-action="Index" class="utility-user-menu__item" role="menuitem">
+                                        <i class="bi bi-speedometer2"></i>
+                                        <span>@T("Kontrol Paneli", "Control Panel", "Панель управления", "لوحة التحكم", "پنل کنترل")</span>
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="ReviewModeration" class="utility-user-menu__item" role="menuitem">
+                                        <i class="bi bi-chat-square-text"></i>
+                                        <span>@T("Yorum Moderasyon", "Review Moderation", "Модерация отзывов", "إدارة التعليقات", "مدیریت بررسی‌ها")</span>
+                                    </a>
+                                }
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="utility-user-menu__logout" role="none">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="utility-user-menu__item utility-user-menu__item--logout" role="menuitem">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>@L["logout"]</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    <div class="utility-langs utility-langs--compact d-flex flex-wrap align-items-center gap-2 ms-3" aria-label="@L["languageSelector"]">
+                        <form id="langForm" method="get" class="utility-langs__form">
+                            <input type="hidden" name="culture" id="cultureInput" value="@currentCulture" />
+                            <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "tr" ? "is-active" : string.Empty)" onclick="setLang('tr');return false;">
+                                <span class="lang-flag lang-flag--tr" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span>TR</span>
+                            </a>
+                            <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "en" ? "is-active" : string.Empty)" onclick="setLang('en');return false;">
+                                <span class="lang-flag lang-flag--en" aria-hidden="true"></span>
+                                <span>EN</span>
+                            </a>
+                            <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "ru" ? "is-active" : string.Empty)" onclick="setLang('ru');return false;">
+                                <span class="lang-flag lang-flag--ru" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Russia.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span>RU</span>
+                            </a>
+                            <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "ar" ? "is-active" : string.Empty)" onclick="setLang('ar');return false;">
+                                <span class="lang-flag lang-flag--ar" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span>AR</span>
+                            </a>
+                            <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "fa" ? "is-active" : string.Empty)" onclick="setLang('fa');return false;">
+                                <span class="lang-flag lang-flag--fa" aria-hidden="true"></span>
+                                <span>FA</span>
+                            </a>
+                        </form>
                     </div>
                 </div>
             </div>
-        </nav>
+        </div>
     </header>
     <main role="main" class="site-main">
+        @if (!isHomePageRequest)
+        {
+            <div class="page-back-bar">
+                <div class="container">
+                    <a href="@(Url.Action("Index", "Home") ?? "/")"
+                       class="page-back-link"
+                       data-back-link
+                       data-fallback-url="@(Url.Action("Index", "Home") ?? "/")"
+                       aria-label="@T("Bir önceki sayfaya dön", "Go back to the previous page", "Вернуться на предыдущую страницу", "العودة إلى الصفحة السابقة", "بازگشت به صفحه قبلی")"
+                       title="@T("Bir önceki sayfaya dön", "Go back to the previous page", "Вернуться на предыдущую страницу", "العودة إلى الصفحة السابقة", "بازگشت به صفحه قبلی")">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>@T("Önceki sayfaya dön", "Go back", "Назад", "العودة", "بازگشت")</span>
+                    </a>
+                </div>
+            </div>
+        }
         @RenderBody()
     </main>
-    <section class="section site-sponsor-band">
-        <div class="container wide-panel">
-            <div class="section__head section__head--light">
-                <h2>@L["sponsorBandTitle"]</h2>
-                <p>@L["sponsorBandSubtitle"]</p>
-            </div>
-            <div class="site-sponsor-grid">
-                <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
-                    <span class="site-ad__label">@L["sponsorLabel1"]</span>
-                    <strong>@L["sponsorTitle1"]</strong>
-                    <p>@L["sponsorText1"]</p>
-                    <span class="site-ad__pill">@L["sponsorCta1"]</span>
-                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80');"></span>
-                </a>
-                <a asp-controller="Home" asp-action="Publish" class="site-ad site-ad--accent">
-                    <span class="site-ad__label">@L["homeSponsorLabel1"]</span>
-                    <strong>@L["homeSponsorTitle1"]</strong>
-                    <p>@L["homeSponsorText1"]</p>
-                    <span class="site-ad__pill">@L["homeSponsorCta1"]</span>
-                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80');"></span>
-                </a>
-                <a asp-controller="Account" asp-action="Register" class="site-ad site-ad--warm">
-                    <span class="site-ad__label">@L["homeSponsorLabel2"]</span>
-                    <strong>@L["homeSponsorTitle2"]</strong>
-                    <p>@L["homeSponsorText2"]</p>
-                    <span class="site-ad__pill">@L["homeSponsorCta2"]</span>
-                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=900&q=80');"></span>
-                </a>
-                <a asp-controller="Home" asp-action="Index" class="site-ad">
-                    <span class="site-ad__label">@L["sponsorLabel3"]</span>
-                    <strong>@L["sponsorTitle3"]</strong>
-                    <p>@L["sponsorText3"]</p>
-                    <span class="site-ad__pill">@L["sponsorCta3"]</span>
-                    <span class="site-ad__media" style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80');"></span>
-                </a>
-            </div>
-        </div>
-    </section>
 
     <footer class="footer text-muted">
-        <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-md">
-            <div class="footer-info w-100 text-center">
-                <img src="~/img/logo.png" alt="SEN-T PAZAR Logo">
-                <span class="footer-copyright">&copy; 2026 <span class="footer-brand">@L["brand"]</span> &ndash; @L["copyright"]</span>
-                <span class="footer-slogan">bir SEN-T SOFTWARE markasıdır</span>
+        <div class="container footer-balance">
+            <div class="footer-links footer-links--left d-flex gap-3 justify-content-center flex-wrap">
+                <a href="@Url.Action("Privacy", "Home")" class="text-muted small text-nowrap">@L["footerPrivacy"]</a>
+                <a href="@Url.Action("Terms", "Home")" class="text-muted small text-nowrap">@L["footerTerms"]</a>
+                <a href="@Url.Action("Kvkk", "Home")" class="text-muted small text-nowrap">@T("KVKK Aydınlatma", "KVKK Notice", "Уведомление KVKK", "إشعار KVKK", "اطلاع KVKK")</a>
+                <a href="@Url.Action("CorporateAgreement", "Home")" class="text-muted small text-nowrap">@T("Kurumsal Sözleşme", "Corporate Agreement", "Корпоративное соглашение", "العقد المؤسسي", "قرارداد شرکتی")</a>
             </div>
-            <div class="footer-links d-flex gap-3 justify-content-center">
-                <a href="@Url.Action("Privacy", "Home")" class="text-muted small">@L["footerPrivacy"]</a>
-                <a href="@Url.Action("Terms", "Home")" class="text-muted small">@L["footerTerms"]</a>
-                <a href="@Url.Action("Contact", "Home")" class="text-muted small">@L["footerContact"]</a>
-                <a href="@Url.Action("Faq", "Home")" class="text-muted small">@L["footerFaq"]</a>
+            <div class="footer-info w-100 text-center">
+                <img src="~/img/logo.png" alt="DİJİTAL ÇARŞI Logo">
+                <span class="footer-copyright">&copy; 2026 <span class="footer-brand">@L["siteBrand"]</span> &ndash; @L["copyright"]</span>
+                <span class="footer-slogan">@T("bir SEN-T SOFTWARE markasıdır", "a SEN-T SOFTWARE brand", "бренд SEN-T SOFTWARE", "علامة تجارية تابعة لـ SEN-T SOFTWARE", "یک برند SEN-T SOFTWARE")</span>
+            </div>
+            <div class="footer-links footer-links--right d-flex gap-3 justify-content-center flex-wrap">
+                <a href="@Url.Action("VitrinAd", "Home")" class="text-muted small text-nowrap">@T("Vitrin Reklamı", "Showcase Ads", "Витринная реклама", "إعلانات الواجهة", "تبلیغات ویترین")</a>
+                <a href="@Url.Action("SecurePayment", "Home")" class="text-muted small text-nowrap"><i class="bi bi-shield-check me-1"></i>@T("Güvenli Ödeme", "Secure Payment", "Безопасная оплата", "دفع آمن", "پرداخت امن")</a>
+                <a href="@Url.Action("SecurityPolicy", "Home")" class="text-muted small text-nowrap"><i class="bi bi-lock me-1"></i>@T("Güvenlik", "Security", "Безопасность", "الأمان", "امنیت")</a>
+                <a href="@Url.Action("Contact", "Home")" class="text-muted small text-nowrap">@L["footerContact"]</a>
+                <a href="@Url.Action("Faq", "Home")" class="text-muted small text-nowrap">@L["footerFaq"]</a>
             </div>
         </div>
     </footer>
+
+    <button type="button" class="back-to-top" id="backToTop" title="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")" aria-label="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")">
+        <i class="bi bi-arrow-up"></i>
+        <span>@T("Başa dön", "Top", "Наверх", "للأعلى", "بالا")</span>
+    </button>
+
+    <div id="cookieConsentBanner" class="cookie-consent" hidden>
+        <div class="cookie-consent__dialog">
+            <div class="cookie-consent__content">
+                <i class="bi bi-cookie cookie-consent__dialog-icon"></i>
+                <strong>@T("Çerez Tercihleri", "Cookie Preferences", "Настройки cookie", "تفضيلات ملفات تعريف الارتباط", "تنظیمات کوکی")</strong>
+                <p>@T("Zorunlu çerezleri güvenlik ve oturum için kullanıyoruz. Analitik ve kişiselleştirme çerezlerini yalnızca onay verirseniz etkinleştiriyoruz.", "We use required cookies for security and session. Analytics and personalization cookies are enabled only with your consent.", "Обязательные cookie используются для безопасности и сессии. Аналитика и персонализация включаются только по вашему согласию.", "نستخدم ملفات الارتباط الضرورية للأمان والجلسة. يتم تفعيل التحليلات والتخصيص فقط بموافقتك.", "ما از کوکی‌های ضروری برای امنیت و جلسه استفاده می‌کنیم.")</p>
+            </div>
+            <div class="cookie-consent__actions">
+                <button type="button" class="btn btn-sm btn-outline-light" id="cookieRejectBtn">@T("Sadece Zorunlu", "Required Only", "Только обязательные", "الضرورية فقط", "فقط ضروری")</button>
+                <button type="button" class="btn btn-sm btn-warning fw-bold" id="cookieAcceptBtn">@T("Tümünü Kabul Et", "Accept All", "Принять все", "قبول الكل", "همه را بپذیر")</button>
+            </div>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <environment include="Development">
+        <script src="~/js/site.js" asp-append-version="true"></script>
+    </environment>
+    <environment exclude="Development">
+        <script src="~/js/site.js" asp-append-version="true"></script>
+    </environment>
     <script src="~/js/favorites.js" asp-append-version="true"></script>
+    <script src="~/js/compare.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+    <script>
+        async function refreshUnreadMessages() {
+            try {
+                const response = await fetch('@Url.Action("GetUnreadCount", "Account")');
+                if (response.ok) {
+                    const data = await response.json();
+                    const badge = document.getElementById('unreadMsgBadge');
+                    if (badge) {
+                        if (data.count > 0) {
+                            badge.textContent = data.count;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (e) { console.error('Failed to fetch unread messages', e); }
+        }
+        refreshUnreadMessages();
+        setInterval(refreshUnreadMessages, 60000);
+    </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

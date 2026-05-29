@@ -3,26 +3,57 @@
 @{
     ViewData["Title"] = L["corporateMembership"];
     var plans = ViewBag.Plans as List<SEN_T_PAZAR.Models.CorporatePlanViewModel> ?? new();
+    string T(string tr, string en, string ru, string ar, string? fa = null) => L.CultureCode switch
+    {
+        "en" => en,
+        "ru" => ru,
+        "ar" => ar,
+        "fa" => fa ?? en ?? tr,
+        _ => tr
+    };
+    string PlanTitle(string planId) => planId switch
+    {
+        "free" => T("Ücretsiz Kurumsal", "Free Corporate", "Бесплатный корпоративный", "عضوية مؤسسية مجانية", "شرکتی رایگان"),
+        "basic" => T("Başlangıç Vitrin", "Starter Showcase", "Стартовая витрина", "واجهة البداية", "ویترین پایه"),
+        "pro" => T("Profesyonel Öne Çıkan", "Professional Featured", "Профессиональный приоритет", "المميز الاحترافي", "ویژه حرفه‌ای"),
+        "enterprise" => T("Mega Kombinasyon", "Mega Combination", "Мега-комбинация", "الباقة الضخمة", "ترکیب مگا"),
+        _ => planId
+    };
 }
 
 @section Styles {
     <style>
         .corporate-hero {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(128deg, #0f1f3b 0%, #183a68 48%, #0b4f85 100%);
             color: white;
             padding: 3rem 0;
             margin-bottom: 2rem;
+            border-top: 1px solid rgba(255, 158, 36, 0.36);
+            border-bottom: 1px solid rgba(255, 158, 36, 0.24);
         }
         .corporate-hero h1 {
             font-weight: 700;
             font-size: 2.5rem;
+            color: #fff7eb;
+            text-shadow: 0 3px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(255, 138, 0, 0.34);
         }
         .corporate-hero .badge-verified {
-            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            background: linear-gradient(135deg, #ffcf5a, #ff8f1f);
             color: #1a1a2e;
             padding: 0.5rem 1rem;
             border-radius: 50px;
             font-weight: 600;
+            box-shadow: 0 8px 24px rgba(255, 143, 31, 0.38);
+        }
+        .corporate-hero .lead {
+            color: #e7f0ff !important;
+            text-shadow: 0 2px 10px rgba(1, 14, 28, 0.45);
+            max-width: 820px;
+        }
+        .corporate-hero .d-flex.align-items-center span {
+            color: #f4f8ff;
+            font-weight: 600;
+            text-shadow: 0 1px 6px rgba(1, 14, 28, 0.35);
         }
         .plan-card {
             border: 2px solid #e9ecef;
@@ -39,7 +70,7 @@
             border-color: #0d6efd;
         }
         .plan-card.popular::before {
-            content: "En Popüler";
+            content: attr(data-popular-label);
             position: absolute;
             top: 15px;
             right: -30px;
@@ -60,6 +91,11 @@
             font-size: 2.5rem;
             font-weight: 700;
             color: #0d6efd;
+        }
+        .plan-card .plan-price__amount {
+            direction: ltr;
+            unicode-bidi: isolate;
+            display: inline-block;
         }
         .plan-card .plan-price small {
             font-size: 1rem;
@@ -117,7 +153,6 @@
         }
         .benefit-card i {
             font-size: 2.5rem;
-            color: #0d6efd;
             margin-bottom: 1rem;
         }
         .step-indicator {
@@ -155,6 +190,17 @@
             color: #1976d2;
             margin-right: 0.5rem;
         }
+        .corporate-brand-preview {
+            font-size: clamp(1.65rem, 2.2vw, 2.2rem);
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #f8fbff 0%, #b9d6ff 46%, #f8fbff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 6px 18px rgba(15, 52, 96, 0.32);
+        }
         .agreement-box {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -165,11 +211,126 @@
             font-size: 0.875rem;
             margin-bottom: 1rem;
         }
+
+        .corporate-side-showcase {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .promo-block {
+            position: relative;
+            overflow: hidden;
+            border-radius: 14px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 160, 58, 0.34);
+            background:
+                radial-gradient(circle at 90% 15%, rgba(255, 163, 64, 0.36), rgba(255, 163, 64, 0.04) 42%, transparent 62%),
+                linear-gradient(135deg, #143a67 0%, #0f5e96 52%, #1c78b2 100%);
+            color: #f6fbff;
+            box-shadow: 0 14px 28px rgba(10, 25, 41, 0.2);
+        }
+
+        .promo-block h6 {
+            color: #fff4de;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .promo-block p {
+            margin-bottom: 0.75rem;
+            color: #e8f3ff;
+            font-size: 0.92rem;
+        }
+
+        .promo-chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .promo-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.26rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 199, 133, 0.42);
+            color: #fff6e6;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        .promo-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            text-decoration: none;
+            padding: 0.5rem 0.8rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ffb649, #ff7f1f);
+            color: #14223a;
+            font-weight: 800;
+            border: 1px solid rgba(255, 210, 153, 0.82);
+        }
+
+        .promo-cta:hover {
+            color: #101b30;
+            background: linear-gradient(135deg, #ffc66c, #ff8f32);
+        }
+
+        .mini-listing {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 0.6rem;
+            align-items: center;
+            border-radius: 10px;
+            padding: 0.45rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            margin-bottom: 0.5rem;
+        }
+
+        .mini-listing:last-child {
+            margin-bottom: 0;
+        }
+
+        .mini-listing img {
+            width: 60px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 208, 149, 0.7);
+        }
+
+        .mini-listing strong {
+            color: #fff6e9;
+            font-size: 0.84rem;
+            line-height: 1.2;
+        }
+
+        .mini-listing small {
+            color: #dcecff;
+        }
     </style>
 }
 
 <div class="corporate-hero">
     <div class="container">
+        @if (Model.IsCorporateMember)
+        {
+            <div class="alert alert-success mb-3">
+                <i class="bi bi-patch-check-fill me-2"></i>
+                <strong>@T("Kurumsal Üyelik Aktif", "Corporate Membership Active", "Корпоративное членство активно", "العضوية المؤسسية نشطة", "عضویت شرکتی فعال است")</strong>
+                <span class="ms-2">(@PlanTitle(Model.SubscriptionPlan ?? "free"))</span>
+                @if (Model.CompanyApprovalDate.HasValue)
+                {
+                    <span class="ms-3 text-muted"><small>@T("Onay Tarihi", "Approval Date", "Дата одобрения", "تاريخ الموافقة", "تاریخ تأیید"): @Model.CompanyApprovalDate.Value.ToString("dd.MM.yyyy")</small></span>
+                }
+            </div>
+        }
         <div class="row align-items-center">
             <div class="col-lg-7">
                 <span class="badge-verified mb-3 d-inline-block">
@@ -195,8 +356,8 @@
             <div class="col-lg-5 text-center d-none d-lg-block">
                 <div class="benefit-card d-inline-block p-4" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);">
                     <i class="bi bi-building" style="font-size: 4rem; color: #ffd700;"></i>
-                    <h4 class="mt-3 mb-0">@L["corporateStore"]</h4>
-                    <p class="opacity-75 mb-0">@L["corporateStoreDesc"]</p>
+                    <h4 class="mt-3 mb-0" style="color:#fff6e8; text-shadow:0 2px 10px rgba(0,0,0,.35);">@L["corporateStore"]</h4>
+                    <p class="mb-0" style="color:#ffe4bd; text-shadow:0 1px 7px rgba(0,0,0,.28);">@L["corporateStoreDesc"]</p>
                 </div>
             </div>
         </div>
@@ -250,19 +411,42 @@
         {
             var isPopular = plan.PlanId == "pro";
             <div class="col-md-4 mb-4">
-                <div class="plan-card @(isPopular ? "popular" : "") plan-selector" data-plan="@plan.PlanId" onclick="selectPlan('@plan.PlanId')">
+                <div class="plan-card @(isPopular ? "popular" : "") plan-selector" data-plan="@plan.PlanId" data-popular-label="@L["mostPopular"]" onclick="selectPlan('@plan.PlanId')">
                     <div class="plan-header">
-                        <h5 class="mb-2">@plan.PlanName</h5>
+                        <h5 class="mb-2">@PlanTitle(plan.PlanId)</h5>
                         <div class="plan-price">
-                            @plan.MonthlyPrice<span class="small">₺/@L["month"]</span>
+                            <span class="plan-price__amount">@($"{plan.MonthlyPrice}₺")</span><span class="small">/@L["month"]</span>
                         </div>
-                        <small class="text-muted">@(plan.YearlyPrice)₺/@L["year"] (%20 @L["discount"])</small>
+                        <small class="text-muted"><span dir="ltr">@($"{plan.YearlyPrice}₺")</span>/@L["year"] (%20 @L["discount"])</small>
                     </div>
                     <div class="feature-list">
                         <ul class="list-unstyled mb-0">
-                            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>@plan.ListingsPerMonth</strong> @L["listingsPerMonth"]</li>
-                            <li><i class="bi bi-star-fill text-warning"></i> <strong>@plan.FeaturedListings</strong> @L["featuredListings"]</li>
-                            <li><i class="bi bi-eye-fill text-info"></i> <strong>@plan.VitrinListings</strong> @L["vitrinListings"]</li>
+                            @if (plan.ListingsPerMonth == -1)
+                            {
+                                <li><i class="bi bi-check-circle-fill text-success"></i> <strong>@T("Sınırsız", "Unlimited", "Безлимит", "غير محدود", "نامحدود")</strong> @T("Ücretsiz İlan Verme", "Free Listing Posting", "Бесплатное размещение", "نشر إعلانات مجاني", "ثبت آگهی رایگان")</li>
+                            }
+                            else
+                            {
+                                <li><i class="bi bi-check-circle-fill text-success"></i> <strong>@plan.ListingsPerMonth</strong> @L["listingsPerMonth"]</li>
+                            }
+                            
+                            @if (plan.FeaturedListings == -1)
+                            {
+                                <li><i class="bi bi-star-fill text-warning"></i> <strong>@T("Sınırsız", "Unlimited", "Безлимит", "غير محدود", "نامحدود")</strong> @L["featuredListings"]</li>
+                            }
+                            else
+                            {
+                                <li><i class="bi bi-star-fill text-warning"></i> <strong>@plan.FeaturedListings</strong> @L["featuredListings"]</li>
+                            }
+                            
+                            @if (plan.VitrinListings == -1)
+                            {
+                                <li><i class="bi bi-eye-fill text-info"></i> <strong>@T("Sınırsız", "Unlimited", "Безлимит", "غير محدود", "نامحدود")</strong> @L["vitrinListings"]</li>
+                            }
+                            else
+                            {
+                                <li><i class="bi bi-eye-fill text-info"></i> <strong>@plan.VitrinListings</strong> @L["vitrinListings"]</li>
+                            }
                             @if (plan.HasAnalytics)
                             {
                                 <li><i class="bi bi-check text-success"></i> @L["advancedAnalytics"]</li>
@@ -279,22 +463,157 @@
                             {
                                 <li><i class="bi bi-patch-check-fill text-primary"></i> @L["verifiedBadge"]</li>
                             }
-                            @if (plan.HasApiAccess)
-                            {
-                                <li><i class="bi bi-code-slash text-success"></i> @L["apiAccess"]</li>
-                            }
                         </ul>
                     </div>
                     <div class="check-icon position-absolute top-0 end-0 m-2 d-none">
                         <i class="bi bi-check-circle-fill text-success" style="font-size: 1.5rem;"></i>
-                    </div>
-                </div>
-            </div>
-        }
+</div>
+                         </div>
+                     </div>
+
+                     @if (Model.IsCorporateMember)
+                     {
+                         <div class="col-lg-4">
+                             <div class="card">
+                                 <div class="card-header bg-success text-white">
+                                     <h5 class="mb-0"><i class="bi bi-patch-check-fill me-2"></i>@T("Kurumsal Hesap Bilgileri", "Corporate Account Info", "Информация о корпоративном аккаунте", "معلومات الحساب المؤسسي", "اطلاعات حساب شرکتی")</h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <div class="row g-2">
+                                         @if (!string.IsNullOrWhiteSpace(Model.CompanyLogoUrl))
+                                         {
+                                             <div class="col-12 text-center mb-2">
+                                                 <img src="@Model.CompanyLogoUrl" alt="Logo" style="max-height:80px;" class="img-thumbnail" />
+                                             </div>
+                                         }
+                                         <div class="col-12"><strong>@T("Şirket Adı", "Company Name", "Название компании", "اسم الشركة", "نام شرکت"):</strong> @Model.CompanyName</div>
+                                         <div class="col-12"><strong>@T("Vergi No", "Tax Number", "Налоговый номер", "الرقم الضريبي", "شماره مالیات"):</strong> @Model.CompanyTaxNumber</div>
+                                         <div class="col-12"><strong>@T("Vergi Dairesi", "Tax Office", "Налоговая инспекция", "دائرة الضرائب", "اداره مالیات"):</strong> @Model.CompanyTaxOffice</div>
+                                         <div class="col-12"><strong>@T("Sicil No", "Registry No", "Регистрационный номер", "رقم السجل", "شماره ثبت"):</strong> @Model.CompanyMersisNumber</div>
+                                         <div class="col-12"><strong>@T("Telefon", "Phone", "Телефон", "هاتف", "تلفن"):</strong> @Model.CompanyPhone</div>
+                                         <div class="col-12"><strong>Website:</strong> <a href="@Model.CompanyWebSite" target="_blank">@Model.CompanyWebSite</a></div>
+                                         <div class="col-12"><strong>@T("Adres", "Address", "Адрес", "عنوان", "نشانی"):</strong> @Model.CompanyAddress</div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                     }
+                     else
+                     {
+                         <div class="col-lg-4">
+                             <div class="card">
+                                 <div class="card-header bg-primary text-white">
+                                     <h6 class="mb-0"><i class="bi bi-eye me-2"></i>@L["storePreview"]</h6>
+                                 </div>
+                                 <div class="card-body text-center">
+                                     <div id="logoPreview" class="mb-3">
+                                         <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                             <i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i>
+                                         </div>
+                                     </div>
+                                     <h5 id="companyNamePreview" class="corporate-brand-preview">@(string.IsNullOrWhiteSpace(Model.CompanyName) ? L["siteBrand"] : Model.CompanyName)</h5>
+                                     <div class="verified-badge-preview mb-3">
+                                         <i class="bi bi-patch-check-fill"></i>
+                                         @L["verifiedStore"]
+                                     </div>
+                                     <p class="text-muted small mb-0">
+                                         @T("Bu önizleme yalnızca mağaza adı, logo ve rozet görünümünü gösterir. Puan, yanıt oranı ve ilan sayısı mağaza açıldıktan sonra oluşur.", "This preview only shows the store name, logo and badge. Rating, response rate and listing count appear after the store is activated.", "Этот предварительный просмотр показывает только название магазина, логотип и значок. Рейтинг, скорость ответа и количество объявлений появляются после активации магазина.", "تعرض هذه المعاينة اسم المتجر والشعار والشارة فقط. يظهر التقييم ومعدل الرد وعدد الإعلانات بعد تفعيل المتجر.", "این پیش‌نمایش فقط نام فروشگاه، لوگو و نشان را نمایش می‌دهد. امتیاز، نرخ پاسخ و تعداد آگهی‌ها پس از فعال‌شدن فروشگاه ایجاد می‌شود.")
+                                     </p>
+                                 </div>
+                                 <div class="card-footer bg-light">
+                                     <div class="d-grid">
+                                         <button type="submit" class="btn btn-primary btn-lg">
+                                             <i class="bi bi-send me-2"></i>@L["submitApplication"]
+                                         </button>
+                                     </div>
+                                     <small class="text-muted d-block text-center mt-2">
+                                         <i class="bi bi-clock me-1"></i>@L["reviewTime"]
+                                     </small>
+                                 </div>
+                             </div>
+
+                             <div class="corporate-side-showcase">
+                                 <div class="promo-block">
+                                     <h6><i class="bi bi-building-check me-2"></i>@T("Başvuru Sonrası Görünecek Alanlar", "What Appears After Approval", "Что появится после одобрения", "ما الذي يظهر بعد الموافقة", "مواردی که پس از تأیید نمایش داده می‌شوند")</h6>
+                                     <p>@T("Kurumsal başvuru onaylandığında mağaza sayfanızda firma adı, logo, doğrulanmış mağaza rozeti ve aktif ilanlarınız görünür.", "Once the corporate application is approved, your store page shows the company name, logo, verified store badge and active listings.", "После одобрения корпоративной заявки на странице магазина будут показаны название компании, логотип, значок подтвержденного магазина и активные объявления.", "بعد الموافقة على الطلب المؤسسي ستظهر في صفحة المتجر اسم الشركة والشعار وشارة المتجر الموثق والإعلانات النشطة.", "پس از تأیید درخواست شرکتی، نام شرکت، لوگو، نشان فروشگاه تأییدشده و آگهی‌های فعال شما در صفحه فروشگاه نمایش داده می‌شود.")</p>
+                                     <div class="promo-chip-list">
+                                         <span class="promo-chip"><i class="bi bi-patch-check-fill"></i>@T("Doğrulanmış mağaza rozeti", "Verified store badge", "Значок подтвержденного магазина", "شارة متجر موثق", "نشان فروشگاه تأییدشده")</span>
+                                         <span class="promo-chip"><i class="bi bi-shop-window"></i>@T("Mağaza sayfası", "Store page", "Страница магазина", "صفحة المتجر", "صفحه فروشگاه")</span>
+                                         <span class="promo-chip"><i class="bi bi-card-list"></i>@T("Aktif ilan listesi", "Active listings", "Активные объявления", "الإعلانات النشطة", "فهرست آگهی‌های فعال")</span>
+                                     </div>
+                                     <a class="promo-cta" asp-controller="Home" asp-action="CorporateAgreement">
+                                         <i class="bi bi-file-earmark-text"></i>@T("Kurumsal üyelik koşullarını incele", "Review corporate membership terms", "Посмотреть условия корпоративного членства", "راجع شروط العضوية المؤسسية", "شرایط عضویت شرکتی را ببین")
+                                     </a>
+                                 </div>
+                             </div>
+                         </div>
+                     }
+                 </div>
+             </form>
+         </div>
+
+         @section Scripts {
+             <partial name="_ValidationScriptsPartial" />
+             @if (!Model.IsCorporateMember)
+             {
+             <script>
+                 function selectPlan(planId) {
+                     document.querySelectorAll('.plan-selector').forEach(el => el.classList.remove('selected'));
+                     document.querySelector(`.plan-selector[data-plan="${planId}"]`).classList.add('selected');
+                     document.getElementById('selectedPlanInput').value = planId;
+                 }
+
+                 document.getElementById('CompanyName').addEventListener('input', function() {
+                     document.getElementById('companyNamePreview').textContent = this.value || '@L["siteBrand"]';
+                 });
+
+                 const defaultLogoMarkup = `<div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;"><i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i></div>`;
+
+                 function renderLogoPreview(src) {
+                     const preview = document.getElementById('logoPreview');
+                     if (!src) {
+                         preview.innerHTML = defaultLogoMarkup;
+                         return;
+                     }
+
+                     preview.innerHTML = '';
+                     const image = document.createElement('img');
+                     image.src = src;
+                     image.alt = 'Logo';
+                     image.className = 'rounded-circle';
+                     image.style.width = '80px';
+                     image.style.height = '80px';
+                     image.style.objectFit = 'cover';
+                     image.onerror = () => { preview.innerHTML = defaultLogoMarkup; };
+                     preview.appendChild(image);
+                 }
+
+                 const logoFileInput = document.getElementById('CompanyLogoFile');
+                 const existingLogoInput = document.getElementById('CompanyLogoUrl');
+
+                 if (existingLogoInput && existingLogoInput.value) { renderLogoPreview(existingLogoInput.value); }
+
+                 if (logoFileInput) {
+                     logoFileInput.addEventListener('change', function() {
+                         const file = this.files && this.files[0];
+                         if (!file) {
+                             renderLogoPreview(existingLogoInput ? existingLogoInput.value : '');
+                             return;
+                         }
+                         const fileReader = new FileReader();
+                         fileReader.onload = event => renderLogoPreview(event.target?.result);
+                         fileReader.readAsDataURL(file);
+                     });
+                 }
+
+                 selectPlan('@Model.SelectedPlan');
+             </script>
+             }
+         }
     </div>
 
     <!-- Başvuru Formu -->
-    <form asp-action="ApplyCorporate" method="post" id="corporateForm">
+    <form asp-action="ApplyCorporate" method="post" enctype="multipart/form-data" id="corporateForm">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="SelectedPlan" id="selectedPlanInput" />
 
@@ -303,46 +622,57 @@
                 <!-- Şirket Bilgileri -->
                 <div class="corporate-form-section">
                     <h5><i class="bi bi-building me-2"></i>@L["companyInfo"]</h5>
+                    <div class="alert alert-primary border-0 mb-4">
+                        <strong>@T("KKTC kurumsal doğrulama notu", "TRNC corporate verification note", "Примечание о корпоративной проверке ТРСК", "ملاحظة التحقق المؤسسي في جمهورية شمال قبرص التركية", "یادداشت تأیید شرکتی قبرس شمالی"):</strong>
+                        @T(" Ticaret unvanını resmi kayıtla aynı şekilde, vergi numarasını rakam olarak, vergi dairesini, şirket sicil veya mukayyitlik numarasını ve tebligat adresini eksiksiz girin.", " Enter the registered trade name exactly as in the official registration, the tax number in digits, the tax office, the company registry number, and the full service address.", " Укажите зарегистрированное торговое наименование, налоговый номер цифрами, налоговую инспекцию, регистрационный номер компании и полный адрес для уведомлений.", " أدخل الاسم التجاري المسجل كما هو في السجل الرسمي، والرقم الضريبي بالأرقام، ودائرة الضرائب، ورقم سجل الشركة، وعنوان التبليغ الكامل.", " نام تجاری را دقیقاً مطابق ثبت رسمی، شماره مالیاتی را به‌صورت عددی، اداره مالیات، شماره ثبت شرکت و نشانی ابلاغ را کامل وارد کنید.")
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label asp-for="CompanyName" class="form-label"></label>
-                            <input asp-for="CompanyName" class="form-control" placeholder="@L["companyNamePlaceholder"]" />
+                            <label asp-for="CompanyName" class="form-label">@T("Ticaret Unvanı", "Registered Trade Name", "Зарегистрированное наименование", "الاسم التجاري المسجل", "نام تجاری ثبت‌شده")</label>
+                            <input asp-for="CompanyName" class="form-control" placeholder="@T("SEN-T SOFTWARE LTD.", "SEN-T SOFTWARE LTD.", "SEN-T SOFTWARE LTD.", "SEN-T SOFTWARE LTD.", "SEN-T SOFTWARE LTD.")" data-val-required="@T("Şirket adı zorunludur.", "Company name is required.", "Название компании обязательно.", "اسم الشركة مطلوب.", "نام شرکت الزامی است.")" />
+                            <small class="text-muted">@T("Unvanı ticaret sicil kaydındaki haliyle yazın.", "Use the exact legal name from the trade registry.", "Укажите название точно как в торговом реестре.", "اكتب الاسم كما هو في السجل التجاري.", "نام را دقیقاً مطابق ثبت تجاری وارد کنید.")</small>
                             <span asp-validation-for="CompanyName" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="CompanyTaxNumber" class="form-label"></label>
-                            <input asp-for="CompanyTaxNumber" class="form-control" placeholder="1234567890" />
+                            <label asp-for="CompanyTaxNumber" class="form-label">@T("Vergi Numarası", "Tax Number", "Налоговый номер", "الرقم الضريبي", "شماره مالیاتی")</label>
+                            <input asp-for="CompanyTaxNumber" class="form-control" inputmode="numeric" placeholder="12345678" data-val-required="@T("Vergi numarası zorunludur.", "Tax number is required.", "Налоговый номер обязателен.", "الرقم الضريبي مطلوب.", "شماره مالیاتی الزامی است.")" />
+                            <small class="text-muted">@T("Sadece rakam girin. KKTC vergi numarası 6-10 hane olabilir.", "Use digits only. TRNC tax numbers are typically 6-10 digits.", "Только цифры. Налоговый номер ТРСК обычно содержит 6-10 цифр.", "أدخل أرقاماً فقط. الرقم الضريبي في شمال قبرص يكون عادة من 6 إلى 10 أرقام.", "فقط عدد وارد کنید. شماره مالیاتی قبرس شمالی معمولاً ۶ تا ۱۰ رقم است.")</small>
                             <span asp-validation-for="CompanyTaxNumber" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="CompanyTaxOffice" class="form-label"></label>
-                            <input asp-for="CompanyTaxOffice" class="form-control" placeholder="@L["taxOfficePlaceholder"]" />
+                            <label asp-for="CompanyTaxOffice" class="form-label">@T("Vergi Dairesi", "Tax Office", "Налоговая инспекция", "دائرة الضرائب", "اداره مالیات")</label>
+                            <input asp-for="CompanyTaxOffice" class="form-control" placeholder="@T("Lefkosa Vergi Dairesi", "Nicosia Tax Office", "Никосийская налоговая инспекция", "دائرة ضرائب نيقوسيا", "اداره مالیات نیکوزیا")" data-val-required="@T("Vergi dairesi zorunludur.", "Tax office is required.", "Налоговая инспекция обязательна.", "دائرة الضرائب مطلوبة.", "اداره مالیات الزامی است.")" />
                             <span asp-validation-for="CompanyTaxOffice" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="CompanyMersisNumber" class="form-label"></label>
-                            <input asp-for="CompanyMersisNumber" class="form-control" placeholder="0000000000000000" />
+                            <label asp-for="CompanyMersisNumber" class="form-label">@T("Şirket Sicil / Mukayyitlik No", "Company Registry Number", "Регистрационный номер компании", "رقم سجل الشركة", "شماره ثبت شرکت")</label>
+                            <input asp-for="CompanyMersisNumber" class="form-control" placeholder="@T("Mukayyitlik No / Sicil No", "Registry Number", "Регистрационный номер", "رقم السجل", "شماره ثبت")" />
+                            <small class="text-muted">@T("MERSİS yerine KKTC Şirketler Mukayyitliği kaydındaki sicil numarasını girin.", "Use the TRNC company registry number instead of a Turkish MERSIS number.", "Укажите регистрационный номер компании ТРСК вместо турецкого MERSIS.", "استخدم رقم سجل الشركة في شمال قبرص بدلاً من رقم مرسيس التركي.", "به‌جای MERSIS، شماره ثبت شرکت در اداره ثبت شرکت‌های قبرس شمالی را وارد کنید.")</small>
                             <span asp-validation-for="CompanyMersisNumber" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="CompanyPhone" class="form-label"></label>
-                            <input asp-for="CompanyPhone" class="form-control" placeholder="0212 XXX XX XX" />
+                            <label asp-for="CompanyPhone" class="form-label">@T("Şirket Telefonu", "Company Phone", "Телефон компании", "هاتف الشركة", "تلفن شرکت")</label>
+                            <input asp-for="CompanyPhone" class="form-control" placeholder="0533 123 45 67" data-val-required="@T("Şirket telefonu zorunludur.", "Company phone is required.", "Телефон компании обязателен.", "هاتف الشركة مطلوب.", "تلفن شرکت الزامی است.")" />
+                            <small class="text-muted">@T("KKTC GSM veya 0392 alan kodlu sabit hat kullanın.", "Use a TRNC mobile number or a 0392 landline.", "Используйте мобильный номер ТРСК или стационарный номер с кодом 0392.", "استخدم رقم جوال في شمال قبرص أو خطاً أرضياً بمقدمة 0392.", "از شماره موبایل قبرس شمالی یا خط ثابت با پیش‌شماره 0392 استفاده کنید.")</small>
                             <span asp-validation-for="CompanyPhone" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="CompanyWebSite" class="form-label"></label>
-                            <input asp-for="CompanyWebSite" class="form-control" placeholder="https://www.example.com" />
+                            <label asp-for="CompanyWebSite" class="form-label">@T("Web Sitesi", "Website", "Веб-сайт", "الموقع الإلكتروني", "وب‌سایت")</label>
+                            <input asp-for="CompanyWebSite" class="form-control" placeholder="https://www.sirketiniz.com" />
                             <span asp-validation-for="CompanyWebSite" class="text-danger"></span>
                         </div>
                         <div class="col-12">
-                            <label asp-for="CompanyAddress" class="form-label"></label>
-                            <textarea asp-for="CompanyAddress" class="form-control" rows="3" placeholder="@L["companyAddressPlaceholder"]"></textarea>
+                            <label asp-for="CompanyAddress" class="form-label">@T("Şirket Adresi", "Company Address", "Адрес компании", "عنوان الشركة", "نشانی شرکت")</label>
+                            <textarea asp-for="CompanyAddress" class="form-control" rows="3" placeholder="@T("Örnek: Salamis Yolu, No:12, Gazimağusa / KKTC", "Example: Salamis Road, No:12, Famagusta / TRNC", "Пример: дорога Саламис, 12, Фамагуста / ТРСК", "مثال: طريق سلاميس، رقم 12، فاماغوستا / شمال قبرص", "مثال: جاده سالامیس، شماره 12، فاماگوستا / قبرس شمالی")" data-val-required="@T("Şirket adresi zorunludur.", "Company address is required.", "Адрес компании обязателен.", "عنوان الشركة مطلوب.", "نشانی شرکت الزامی است.")"></textarea>
+                            <small class="text-muted">@T("Tebligat alınabilecek tam faaliyet adresini ilçe ve ülke bilgisiyle yazın.", "Enter the full operational address where official notices can be served.", "Укажите полный рабочий адрес для официальных уведомлений.", "أدخل العنوان التشغيلي الكامل الذي يمكن إرسال الإشعارات الرسمية إليه.", "نشانی کامل محل فعالیت را همراه با شهرستان و کشور وارد کنید تا امکان ابلاغ رسمی وجود داشته باشد.")</small>
                             <span asp-validation-for="CompanyAddress" class="text-danger"></span>
                         </div>
+                        <input asp-for="CompanyLogoUrl" type="hidden" />
                         <div class="col-md-6">
-                            <label asp-for="CompanyLogoUrl" class="form-label"></label>
-                            <input asp-for="CompanyLogoUrl" class="form-control" placeholder="@L["logoUrlPlaceholder"]" />
-                            <small class="text-muted">@L["logoUrlHelp"]</small>
+                            <label asp-for="CompanyLogoFile" class="form-label">@T("Şirket Logosu", "Company Logo", "Логотип компании", "شعار الشركة", "لوگوی شرکت")</label>
+                            <input asp-for="CompanyLogoFile" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                            <small class="text-muted">@T("Logo dosyasını bilgisayarınızdan yükleyin. JPG, PNG veya WEBP; maksimum 5 MB.", "Upload the logo from your device. JPG, PNG, or WEBP; max 5 MB.", "Загрузите логотип с устройства. JPG, PNG или WEBP; до 5 МБ.", "حمّل الشعار من جهازك. JPG أو PNG أو WEBP بحد أقصى 5 ميغابايت.", "لوگو را از دستگاه خود بارگذاری کنید. JPG، PNG یا WEBP؛ حداکثر ۵ مگابایت.")</small>
+                            <span asp-validation-for="CompanyLogoFile" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
@@ -352,17 +682,17 @@
                     <h5><i class="bi bi-person-badge me-2"></i>@L["contactPersonInfo"]</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label asp-for="ContactPersonName" class="form-label"></label>
-                            <input asp-for="ContactPersonName" class="form-control" placeholder="@L["fullNamePlaceholder"]" />
+                            <label asp-for="ContactPersonName" class="form-label">@T("Yetkili Adı Soyadı", "Authorized Full Name", "ФИО ответственного", "الاسم الكامل للمسؤول", "نام و نام خانوادگی مسئول")</label>
+                            <input asp-for="ContactPersonName" class="form-control" placeholder="@L["fullNamePlaceholder"]" data-val-required="@T("Yetkili adı zorunludur.", "Authorized name is required.", "Имя ответственного обязательно.", "اسم المسؤول مطلوب.", "نام مسئول الزامی است.")" />
                             <span asp-validation-for="ContactPersonName" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="ContactPersonPhone" class="form-label"></label>
-                            <input asp-for="ContactPersonPhone" class="form-control" placeholder="05XX XXX XX XX" />
+                            <label asp-for="ContactPersonPhone" class="form-label">@T("Yetkili Telefonu", "Authorized Phone", "Телефон ответственного", "هاتف المسؤول", "تلفن مسئول")</label>
+                            <input asp-for="ContactPersonPhone" class="form-control" placeholder="0533 123 45 67" data-val-required="@T("Yetkili telefonu zorunludur.", "Authorized phone is required.", "Телефон ответственного обязателен.", "هاتف المسؤول مطلوب.", "تلفن مسئول الزامی است.")" />
                             <span asp-validation-for="ContactPersonPhone" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="ContactPersonEmail" class="form-label"></label>
+                            <label asp-for="ContactPersonEmail" class="form-label">@T("Yetkili E-postası", "Authorized Email", "Email ответственного", "البريد الإلكتروني للمسؤول", "ایمیل مسئول")</label>
                             <input asp-for="ContactPersonEmail" class="form-control" placeholder="email@example.com" />
                             <span asp-validation-for="ContactPersonEmail" class="text-danger"></span>
                         </div>
@@ -375,7 +705,7 @@
                     
                     <div class="mb-3">
                         <div class="agreement-box">
-                            <p><strong>@L["corporateAgreementTitle"]</strong></p>
+                            <p><strong><a href="@Url.Action("CorporateAgreement", "Home")" style="color: #0d6efd; text-decoration: none;">@L["corporateAgreementTitle"]</a></strong></p>
                             <p>@L["corporateAgreementText"]</p>
                         </div>
                         <div class="form-check">
@@ -387,7 +717,7 @@
 
                     <div class="mb-3">
                         <div class="agreement-box">
-                            <p><strong>@L["kvkkTitle"]</strong></p>
+                            <p><strong><a href="@Url.Action("Kvkk", "Home")" style="color: #0d6efd; text-decoration: none;">@L["kvkkTitle"]</a></strong></p>
                             <p>@L["kvkkText"]</p>
                         </div>
                         <div class="form-check">
@@ -397,83 +727,100 @@
                         </div>
                     </div>
 
-                    <div class="form-check">
-                        <input asp-for="AcceptNewsletter" class="form-check-input" />
-                        <label asp-for="AcceptNewsletter" class="form-check-label"></label>
+<div class="form-check">
+                            <input asp-for="AcceptNewsletter" class="form-check-input" />
+                            <label asp-for="AcceptNewsletter" class="form-check-label"></label>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sağ Sidebar - Önizleme -->
-            <div class="col-lg-4">
-                <div class="card sticky-top" style="top: 20px;">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="bi bi-eye me-2"></i>@L["storePreview"]</h6>
-                    </div>
-                    <div class="card-body text-center">
-                        <div id="logoPreview" class="mb-3">
-                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                <i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i>
+                @if (Model.IsCorporateMember)
+                {
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="bi bi-patch-check-fill me-2"></i>@T("Kurumsal Hesap Bilgileri", "Corporate Account Info", "Информация о корпоративном аккаунте", "معلومات الحساب المؤسسي", "اطلاعات حساب شرکتی")</h5>
                             </div>
-                        </div>
-                        <h5 id="companyNamePreview">@L["yourCompanyName"]</h5>
-                        <div class="verified-badge-preview mb-3">
-                            <i class="bi bi-patch-check-fill"></i>
-                            @L["verifiedStore"]
-                        </div>
-                        <div class="d-flex justify-content-around text-center mt-3">
-                            <div>
-                                <strong id="listingsCount">0</strong>
-                                <small class="d-block text-muted">@L["listings"]</small>
-                            </div>
-                            <div>
-                                <strong id="rating">4.8</strong>
-                                <small class="d-block text-muted">@L["rating"]</small>
-                            </div>
-                            <div>
-                                <strong id="responseRate">%95</strong>
-                                <small class="d-block text-muted">@L["responseRate"]</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-light">
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-send me-2"></i>@L["submitApplication"]
-                            </button>
-                        </div>
-                        <small class="text-muted d-block text-center mt-2">
-                            <i class="bi bi-clock me-1"></i>@L["reviewTime"]
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    @if (!string.IsNullOrWhiteSpace(Model.CompanyLogoUrl))
+                                    {
+                                        <div class="col-12 text-center mb-2">
+                                            <img src="@Model.CompanyLogoUrl" alt="Logo" style="max-height:80px;" class="img-thumbnail" />
+                                        </div>
+                                    }
+                                    <div class="col-12"><strong>@T("Şirket Adı", "Company Name", "Название компании", "اسم الشركة", "نام شرکت"):</strong> @Model.CompanyName</div>
+                                    <div class="col-12"><strong>@T("Vergi No", "Tax Number", "Налоговый номер", "الرقم الضريبي", "شماره مالیات"):</strong> @Model.CompanyTaxNumber</div>
+                                    <div class="col-12"><strong>@T("Vergi Dairesi", "Tax Office", "Налоговая инспекция", "دائرة الضرائب", "اداره مالیات"):</strong> @Model.CompanyTaxOffice</div>
+                                    <div class="col-12"><strong>@T("Sicil No", "Registry No", "Регистрационный номер", "رقم السجل", "شماره ثبت"):</strong> @Model.CompanyMersisNumber</div>
+                                    <div class="col-12"><strong>@T("Telefon", "Phone", "Телефон", "هاتف", "تلفن"):</strong> @Model.CompanyPhone</div>
+                                    <div class="col-12"><strong>Website:</strong> <a href="@Model.CompanyWebSite" target="_blank">@Model.CompanyWebSite</a></div>
+                                    <div class="col-12"><strong>@T("Adres", "Address", "Адрес", "عنوان", "نشانی"):</strong> @Model.CompanyAddress</div>
+                                </div>
 </div>
+                }
+            </div>
+        }
+        </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        function selectPlan(planId) {
-            document.querySelectorAll('.plan-selector').forEach(el => el.classList.remove('selected'));
-            document.querySelector(`.plan-selector[data-plan="${planId}"]`).classList.add('selected');
-            document.getElementById('selectedPlanInput').value = planId;
+        @section Scripts {
+            <partial name="_ValidationScriptsPartial" />
+            @if (!Model.IsCorporateMember)
+            {
+            <script>
+                function selectPlan(planId) {
+                    document.querySelectorAll('.plan-selector').forEach(el => el.classList.remove('selected'));
+                    document.querySelector(`.plan-selector[data-plan="${planId}"]`).classList.add('selected');
+                    document.getElementById('selectedPlanInput').value = planId;
+                }
+
+                document.getElementById('CompanyName').addEventListener('input', function() {
+                    document.getElementById('companyNamePreview').textContent = this.value || '@L["siteBrand"]';
+                });
+
+                const defaultLogoMarkup = `<div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;"><i class="bi bi-building" style="font-size: 2rem; color: #6c757d;"></i></div>`;
+
+        function renderLogoPreview(src) {
+            const preview = document.getElementById('logoPreview');
+            if (!src) {
+                preview.innerHTML = defaultLogoMarkup;
+                return;
+            }
+
+            preview.innerHTML = '';
+            const image = document.createElement('img');
+            image.src = src;
+            image.alt = 'Logo';
+            image.className = 'rounded-circle';
+            image.style.width = '80px';
+            image.style.height = '80px';
+            image.style.objectFit = 'cover';
+            image.onerror = () => {
+                preview.innerHTML = defaultLogoMarkup;
+            };
+            preview.appendChild(image);
         }
 
-        // Önizleme güncelleme
-        document.getElementById('CompanyName').addEventListener('input', function() {
-            document.getElementById('companyNamePreview').textContent = this.value || '@L["yourCompanyName"]';
-        });
+        const logoFileInput = document.getElementById('CompanyLogoFile');
+        const existingLogoInput = document.getElementById('CompanyLogoUrl');
 
-        document.getElementById('CompanyLogoUrl').addEventListener('input', function() {
-            const preview = document.getElementById('logoPreview');
-            if (this.value) {
-                preview.innerHTML = `<img src="${this.value}" alt="Logo" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" onerror="this.parentElement.innerHTML='<div class=\\'bg-light rounded-circle d-inline-flex align-items-center justify-content-center\\' style=\\'width: 80px; height: 80px;\\'><i class=\\'bi bi-building\\' style=\\'font-size: 2rem; color: #6c757d;\\'></i></div>'">`;
+        if (existingLogoInput.value) {
+            renderLogoPreview(existingLogoInput.value);
+        }
+
+        logoFileInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) {
+                renderLogoPreview(existingLogoInput.value);
+                return;
             }
+
+            const fileReader = new FileReader();
+            fileReader.onload = event => renderLogoPreview(event.target?.result);
+            fileReader.readAsDataURL(file);
         });
 
         // Varsayılan plan seç
-        selectPlan('basic');
+        selectPlan('@Model.SelectedPlan');
     </script>
 }
