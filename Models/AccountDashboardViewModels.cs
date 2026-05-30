@@ -97,8 +97,10 @@ public class MyListingCardViewModel
     public int ViewCount { get; set; }
     public int FavoritesCount { get; set; }
     public bool IsClosed { get; set; }
+    public bool IsDeleted { get; set; }
     public string DealStatus { get; set; } = "open";
     public DateTime CreatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
     public string? RawFilePath { get; set; }
     
     // Vitrin & Öne Çıkan

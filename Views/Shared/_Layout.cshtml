@@ -7,6 +7,8 @@
     var requestPath = Context.Request.Path.Value ?? "/";
     var isHomePageRequest = string.Equals(requestPath, "/", StringComparison.OrdinalIgnoreCase)
         || string.Equals(requestPath, "/Home/Index", StringComparison.OrdinalIgnoreCase);
+    var query = Context.Request.QueryString.Value ?? "";
+    var isSearchResultsPage = query.Contains("showResults=true") || query.Contains("showResults=True");
 }
 
 <!DOCTYPE html>
@@ -233,7 +235,7 @@
                         <form id="langForm" method="get" class="utility-langs__form">
                             <input type="hidden" name="culture" id="cultureInput" value="@currentCulture" />
                             <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "tr" ? "is-active" : string.Empty)" onclick="setLang('tr');return false;">
-                                <span class="lang-flag lang-flag--tr" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/b/b4/Flag_of_Turkey.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span class="lang-flag lang-flag--tr" aria-hidden="true"></span>
                                 <span>TR</span>
                             </a>
                             <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "en" ? "is-active" : string.Empty)" onclick="setLang('en');return false;">
@@ -241,11 +243,11 @@
                                 <span>EN</span>
                             </a>
                             <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "ru" ? "is-active" : string.Empty)" onclick="setLang('ru');return false;">
-                                <span class="lang-flag lang-flag--ru" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Russia.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span class="lang-flag lang-flag--ru" aria-hidden="true"></span>
                                 <span>RU</span>
                             </a>
                             <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "ar" ? "is-active" : string.Empty)" onclick="setLang('ar');return false;">
-                                <span class="lang-flag lang-flag--ar" aria-hidden="true" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/0/0d/Flag_of_Saudi_Arabia.svg');width:22px;height:16px;display:inline-block;background-size:cover;border-radius:2px;"></span>
+                                <span class="lang-flag lang-flag--ar" aria-hidden="true"></span>
                                 <span>AR</span>
                             </a>
                             <a href="#" class="lang-chip lang-chip--compact @(currentCulture == "fa" ? "is-active" : string.Empty)" onclick="setLang('fa');return false;">
@@ -298,15 +300,18 @@
                 <a href="@Url.Action("Contact", "Home")" class="text-muted small text-nowrap">@L["footerContact"]</a>
                 <a href="@Url.Action("Faq", "Home")" class="text-muted small text-nowrap">@L["footerFaq"]</a>
             </div>
-        </div>
-    </footer>
+</div>
+     </footer>
 
-    <button type="button" class="back-to-top" id="backToTop" title="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")" aria-label="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")">
-        <i class="bi bi-arrow-up"></i>
-        <span>@T("Başa dön", "Top", "Наверх", "للأعلى", "بالا")</span>
-    </button>
+     @if (!isSearchResultsPage)
+     {
+         <button type="button" class="back-to-top" id="backToTop" title="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")" aria-label="@T("Başa dön", "Back to top", "Наверх", "العودة للأعلى", "بازگشت به بالا")">
+             <i class="bi bi-arrow-up"></i>
+             <span>@T("Başa dön", "Top", "Наверх", "للأعلى", "بالا")</span>
+         </button>
+     }
 
-    <div id="cookieConsentBanner" class="cookie-consent" hidden>
+     <div id="cookieConsentBanner" class="cookie-consent" hidden>
         <div class="cookie-consent__dialog">
             <div class="cookie-consent__content">
                 <i class="bi bi-cookie cookie-consent__dialog-icon"></i>

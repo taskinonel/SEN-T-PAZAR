@@ -14,11 +14,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const advancedFieldsEl = document.getElementById('advanced-search-fields');
     const advancedFields = [
         document.getElementById('priceRange'),
-        document.getElementById('sortBy'),
         document.getElementById('keyword')
     ];
     const backLink = document.querySelector('[data-back-link]');
-    const backToTopBtn = document.getElementById('backToTop');
     const cookieBanner = document.getElementById('cookieConsentBanner');
     const cookieAcceptBtn = document.getElementById('cookieAcceptBtn');
     const cookieRejectBtn = document.getElementById('cookieRejectBtn');
@@ -29,6 +27,34 @@ document.addEventListener('DOMContentLoaded', function () {
             advancedButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             if (isOpen) {
                 advancedFields[0]?.focus();
+            }
+        });
+    }
+
+    const listingTabs = document.querySelectorAll('.search-panel__listing-tab');
+    const listingTypeSelect = document.getElementById('listingType');
+    const subCategorySelect = document.getElementById('subCategory');
+
+    // Listing type tab handlers are in Index.cshtml inline script - this provides fallback state sync
+    listingTabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            const listingType = tab.dataset.listingType;
+            if (listingTypeSelect && listingType) {
+                listingTypeSelect.value = listingType;
+            }
+            listingTabs.forEach(function (t) {
+                t.classList.remove('is-active');
+                t.setAttribute('aria-pressed', 'false');
+            });
+            tab.classList.add('is-active');
+            tab.setAttribute('aria-pressed', 'true');
+        });
+    });
+
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function () {
+            if (subCategorySelect) {
+                subCategorySelect.value = 'all';
             }
         });
     }
@@ -388,23 +414,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
-    }
-
-    if (backToTopBtn) {
-        const toggleBackToTop = function () {
-            if (window.scrollY > 260) {
-                backToTopBtn.classList.add('is-visible');
-            } else {
-                backToTopBtn.classList.remove('is-visible');
-            }
-        };
-
-        backToTopBtn.addEventListener('click', function () {
-            window.scrollTo({ top: 0, behavior: 'auto' });
-        });
-
-        window.addEventListener('scroll', toggleBackToTop, { passive: true });
-        toggleBackToTop();
     }
 
     if (cookieBanner) {

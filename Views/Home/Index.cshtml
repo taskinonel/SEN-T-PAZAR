@@ -327,7 +327,8 @@
             <!-- hero subtitle removed per request -->
             <div class="hero__cta-band">
                 <a class="btn btn-warning btn-lg hero__primary-cta" asp-action="Publish" asp-controller="Home">@T("Hemen İlan Ver", "Post Listing Now", "Разместить объявление", "انشر إعلانك الآن", "همین حالا آگهی ثبت کن")</a>
-                <a class="btn btn-outline-light btn-lg hero__secondary-cta" asp-action="CorporateMembership" asp-controller="Account">@T("Mağaza Aç", "Open Store", "Открыть магазин", "افتح متجرك", "فروشگاه باز کن")</a>
+                <!-- "Tüm İlanları Listele" button removed as requested -->
+                <a class="btn btn-outline-light btn-lg hero__tertiary-cta" asp-action="CorporateMembership" asp-controller="Account">@T("Mağaza Aç", "Open Store", "Открыть магазин", "افتح متجرك", "فروشگاه باز کن")</a>
                 <!-- secure payment support link removed per request -->
             </div>
             <div class="hero-value-grid" aria-label="@T("Platform özet metrikleri", "Platform summary metrics", "Сводные метрики платформы", "مقاييس المنصة")">
@@ -370,6 +371,12 @@
             <div class="search-panel__listing-tabs" role="tablist" aria-label="@L["listingType"]">
                 @foreach (var tab in Model.SearchTabs)
                 {
+                    // Skip these listing types on the homepage per request
+                    if (tab.ListingType == "sale" || tab.ListingType == "rent" || tab.ListingType == "service" || tab.ListingType == "lesson" || tab.ListingType == "job" || tab.ListingType == "adoption")
+                    {
+                        continue;
+                    }
+
                     <button type="button"
                             class="search-panel__listing-tab @(tab.IsActive ? "is-active" : string.Empty)"
                             data-listing-type="@tab.ListingType"
@@ -450,23 +457,15 @@
                                 }
                             </select>
                         </div>
-                         <div class="search-panel__main-field" style="display: flex; gap: 6px; align-items: center;">
-                             <input type="number" id="minPrice" name="minPrice" placeholder="Min ₺" 
-                                    value="@(Model.MinPrice?.ToString() ?? "")" 
-                                    class="form-control form-control-sm" style="width: 110px;" />
-                             <input type="number" id="maxPrice" name="maxPrice" placeholder="Max ₺" 
-                                    value="@(Model.MaxPrice?.ToString() ?? "")" 
-                                    class="form-control form-control-sm" style="width: 110px;" />
-                         </div>
-                        <div class="search-panel__main-field">
-                            <select id="sortBy" name="sortBy" aria-label="@L["sortBy"]">
-                                @foreach (var sort in Model.SortOptions)
-                                {
-                                    <option value="@sort" selected="@(sort == Model.SortBy)">@L.SortLabel(sort)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="search-panel__search-button-wrap">
+<div class="search-panel__main-field" style="display: flex; gap: 6px; align-items: center;">
+                              <input type="number" id="minPrice" name="minPrice" placeholder="Min ₺" 
+                                     value="@(Model.MinPrice?.ToString() ?? "")" 
+                                     class="form-control form-control-sm" style="width: 110px;" />
+                              <input type="number" id="maxPrice" name="maxPrice" placeholder="Max ₺" 
+                                     value="@(Model.MaxPrice?.ToString() ?? "")" 
+                                     class="form-control form-control-sm" style="width: 110px;" />
+                          </div>
+                         <div class="search-panel__search-button-wrap">
                             <button type="submit" class="search-panel__search-button">
                                 <span>@L["search"]</span>
                                 <i class="bi bi-search"></i>
@@ -484,6 +483,7 @@
             });
         </script>
         <div id="savedSearchFeedback" class="small text-success mt-2" style="display:none;"></div>
+        </div>
     </div>
 </section>
 
@@ -630,40 +630,6 @@
                     <h2>@listingBoardTitle</h2>
                     <p id="listing-search-count">@(searchResults.Count == 0 ? 0 : 1) - @Math.Min(12, searchResults.Count) / @searchResults.Count ilan görüntüleniyor</p>
                 </div>
-                <form method="get" asp-action="@formAction" asp-controller="Home" class="listing-sort-toolbar">
-                    @if (Model.IsCategoryPage)
-                    {
-                        <input type="hidden" name="slug" value="@Model.CurrentCategorySlug" />
-                    }
-                    <input type="hidden" name="showResults" value="@Model.ShowResults.ToString().ToLowerInvariant()" />
-                    <input type="hidden" name="listingType" value="@Model.ListingType" />
-                    <input type="hidden" name="city" value="@Model.City" />
-                    <input type="hidden" name="category" value="@Model.Category" />
-                    <input type="hidden" name="subCategory" value="@Model.SubCategory" />
-                    <input type="hidden" name="priceRange" value="@Model.PriceRange" />
-                    <input type="hidden" name="keyword" value="@Model.Keyword" />
-                    <label for="listingSortSelect">@L["sortBy"]</label>
-                    <select id="listingSortSelect" name="sortBy" onchange="this.form.submit()">
-                        @foreach (var sortOption in Model.SortOptions)
-                        {
-                            <option value="@sortOption" selected="@(sortOption == Model.SortBy)">@L.SortLabel(sortOption)</option>
-                        }
-                    </select>
-                </form>
-                <div class="mobile-search-dock" data-mobile-search-dock>
-                    <button type="button" class="mobile-search-dock__btn" data-dock-action="filter">
-                        <i class="bi bi-funnel"></i>
-                        <span>@T("Filtrele", "Filter", "Фильтр", "تصفية", "فیلتر")</span>
-                    </button>
-                    <button type="button" class="mobile-search-dock__btn" data-dock-action="sort">
-                        <i class="bi bi-sort-down"></i>
-                        <span>@T("Sırala", "Sort", "Сортировка", "ترتيب", "مرتب‌سازی")</span>
-                    </button>
-                    <button type="button" class="mobile-search-dock__btn" data-dock-action="top">
-                        <i class="bi bi-arrow-up"></i>
-                        <span>@T("Yukarı", "Top", "Наверх", "للأعلى", "بالا")</span>
-                    </button>
-                </div>
                 <div class="market-board__grid market-board__grid--compact reveal-stagger" data-load-more-grid="true" data-total-count="@searchResults.Count" data-page-size="12" data-counter-id="listing-search-count" data-button-id="listing-load-more-btn">
                     @foreach (var listing in searchResults)
                     {
@@ -755,12 +721,6 @@
                 <h2>@L["noResultsTitle"]</h2>
                 <p>@L["noResultsText"]</p>
             </div>
-            <div class="no-results-chips" aria-label="@T("Önerilen hızlı filtreler", "Suggested quick filters", "Рекомендуемые быстрые фильтры", "فلاتر سريعة مقترحة")">
-                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, category = "realestate" })">@T("Emlak ilanları", "Real estate listings", "Недвижимость", "إعلانات العقارات", "آگهی‌های املاک")</a>
-                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, category = "vehicle" })">@T("Vasıta ilanları", "Vehicle listings", "Транспорт", "إعلانات المركبات", "آگهی‌های خودرو")</a>
-                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true, sortBy = "priceLowToHigh" })">@T("Fiyata göre artan", "Price low to high", "Цена по возрастанию", "السعر تصاعديًا", "قیمت صعودی")</a>
-                <a class="no-results-chip" href="@Url.Action("Index", "Home", new { showResults = true })">@T("Filtreleri temizle", "Clear filters", "Сбросить фильтры", "مسح الفلاتر", "پاک‌کردن فیلترها")</a>
-            </div>
         </div>
     </section>
 }
@@ -786,6 +746,20 @@
                                 <span class="homepage-spotlight-rail__count">
                                     <span class="js-countup" data-target="@column.Listings.Count">0</span> @T("ilan", "listings", "объявлений", "إعلان")
                                 </span>
+                                @if (column.Key == "vitrin")
+                                {
+                                    <a class="homepage-spotlight-rail__view-all" asp-action="Index" asp-controller="Home" asp-route-showResults="true" asp-route-listingType="all">
+                                        <span>@T("Tümünü Gör", "View All", "Посмотреть все", "عرض الكل", "مشاهده همه")</span>
+                                        <i class="bi bi-arrow-left"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="homepage-spotlight-rail__view-all" asp-action="Index" asp-controller="Home" asp-route-showResults="true">
+                                        <span>@T("Tümünü Gör", "View All", "Посмотреть все", "عرض الكل", "مشاهده همه")</span>
+                                        <i class="bi bi-arrow-left"></i>
+                                    </a>
+                                }
                                 <span class="homepage-spotlight-rail__page-indicator" data-spotlight-page-indicator></span>
                             </div>
                         </div>
@@ -1059,7 +1033,7 @@
                 updateSubCategoryOptions();
             };
 
-            categorySelect?.addEventListener('change', function () {
+categorySelect?.addEventListener('change', function () {
                 updateSubCategoryOptions();
             });
 
@@ -1079,12 +1053,6 @@
                     applyListingTypeFilter(listingType, presetCategory);
                 });
             });
-
-            const applyInitialCategoryFilter = () => {
-                applyListingTypeFilter(listingTypeSelect.value, categorySelect.value || 'all');
-            };
-
-            applyInitialCategoryFilter();
 
             // Initial visibility and wiring for sort controls
             toggleSortVisibility();

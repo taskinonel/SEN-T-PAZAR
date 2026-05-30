@@ -110,6 +110,8 @@ public class Listing
     public bool IsApproved { get; set; } = false;
     public int ViewCount { get; set; } = 0;
     public bool IsClosed { get; set; } = false;
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
     // Yayın süresi ve hatırlatıcı
     public DateTime? PublishUntil { get; set; }
     public bool ExpiryReminderSent { get; set; } = false;

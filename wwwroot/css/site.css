@@ -751,7 +751,8 @@ button:hover, .cta:hover {
   transition: background var(--transition-fast), opacity var(--transition-fast);
 }
 
-.search-panel__listing-tab.is-active {
+.search-panel__listing-tab.is-active,
+.search-panel__listing-tab[aria-pressed="true"] {
   background: #163b76;
 }
 
@@ -5460,6 +5461,26 @@ body.cookie-consent-open .back-to-top {
   color: #173150;
   font-size: 0.74rem;
   font-weight: 800;
+}
+
+.homepage-spotlight-rail__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0.2rem 0.78rem;
+  border-radius: 999px;
+  background: #007acc;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.homepage-spotlight-rail__view-all:hover {
+  background: #0a5fa0;
+  color: #fff;
 }
 
 .homepage-spotlight__badge {

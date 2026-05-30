@@ -486,14 +486,14 @@ private void PreparePublishViewData()
         keyword = NormalizeSearchKeyword(keyword);
 
 
-        var dbListings = _context.Listings
-            .Include(x => x.Images)
-            .Include(x => x.Reviews)
-            .AsSplitQuery()
-            .Where(x => x.IsApproved && !x.IsClosed)
-            .AsEnumerable()
-            .Where(x => !IsLikelySeedListing(x))
-            .ToList();
+var dbListings = _context.Listings
+             .Include(x => x.Images)
+             .Include(x => x.Reviews)
+             .AsSplitQuery()
+             .Where(x => x.IsApproved && !x.IsClosed && !x.IsDeleted)
+             .AsEnumerable()
+             .Where(x => !IsLikelySeedListing(x))
+             .ToList();
 
             var allListings = OrderByPromotionPriority(dbListings.Select(MapListingToPropertyCard).ToList()).ToList();
         var nowUtc = DateTime.UtcNow;
@@ -1033,12 +1033,12 @@ private void PreparePublishViewData()
         // Favori sayısı (kaç kişi favorilere eklemiş)
         ViewData["FavoritesCount"] = _context.UserFavorites.Count(f => f.ListingId == id);
 
-        var relatedSource = _context.Listings
-            .AsNoTracking()
-            .Include(x => x.Images)
-            .Include(x => x.Reviews)
-            .Where(x => x.IsApproved && !x.IsClosed && x.Id != dbListing.Id)
-            .ToList();
+var relatedSource = _context.Listings
+             .AsNoTracking()
+             .Include(x => x.Images)
+             .Include(x => x.Reviews)
+             .Where(x => x.IsApproved && !x.IsClosed && !x.IsDeleted && x.Id != dbListing.Id)
+             .ToList();
 
         var nowUtc = DateTime.UtcNow;
 

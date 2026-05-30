@@ -581,7 +581,7 @@ namespace SEN_T_PAZAR.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> Dashboard(string tab = "overview", int? threadId = null, string filter = "all")
+        public async Task<IActionResult> Dashboard(string tab = "overview", int? threadId = null, string filter = "all", bool showDeleted = false)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -639,6 +639,7 @@ namespace SEN_T_PAZAR.Controllers
                 }
             }
             
+            ViewData["ShowDeleted"] = showDeleted;
             return View(model);
         }
 
@@ -1062,7 +1063,7 @@ var model = new ListingEditViewModel
             }
         }
 
-        private static async Task<string?> SaveOptimizedImageAsync(IFormFile file, string uploadsFolder, string webRelativeDirectory = "/uploads")
+        private async Task<string?> SaveOptimizedImageAsync(IFormFile file, string uploadsFolder, string webRelativeDirectory = "/uploads")
         {
             var extension = Path.GetExtension(file.FileName);
             if (string.IsNullOrWhiteSpace(extension))
@@ -1084,44 +1085,70 @@ var model = new ListingEditViewModel
             var outputName = $"{Guid.NewGuid():N}.jpg";
             var outputPath = Path.Combine(uploadsFolder, outputName);
 
-            // Copy to memory stream because form file streams are forward-only and non-seekable
-            await using var inputStream = file.OpenReadStream();
-            using var memoryStream = new MemoryStream();
-            await inputStream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            using var image = await Image.LoadAsync(memoryStream);
-
-            // Strip EXIF/metadata to avoid leaking sensitive data
             try
             {
-                image.Metadata.ExifProfile = null;
-            }
-            catch
-            {
-                // ignore
-            }
-
-            if (image.Width > MaxUploadImageDimension || image.Height > MaxUploadImageDimension)
-            {
-                image.Mutate(x => x.Resize(new ResizeOptions
+                // Copy to memory stream because form file streams are forward-only and non-seekable
+                // (IsValidImageFileAsync already read the stream above)
+                await using var inputStream = file.OpenReadStream();
+                using var memoryStream = new MemoryStream();
+                await inputStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                try
                 {
-                    Size = new Size(MaxUploadImageDimension, MaxUploadImageDimension),
-                    Mode = ResizeMode.Max,
-                    Sampler = KnownResamplers.Lanczos3
-                }));
+                    using var image = await Image.LoadAsync(memoryStream);
+
+                    // Strip EXIF/metadata to avoid leaking sensitive data
+                    try
+                    {
+                        image.Metadata.ExifProfile = null;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    if (image.Width > MaxUploadImageDimension || image.Height > MaxUploadImageDimension)
+                    {
+                        image.Mutate(x => x.Resize(new ResizeOptions
+                        {
+                            Size = new Size(MaxUploadImageDimension, MaxUploadImageDimension),
+                            Mode = ResizeMode.Max,
+                            Sampler = KnownResamplers.Lanczos3
+                        }));
+                    }
+
+                    var encoder = new JpegEncoder
+                    {
+                        Quality = UploadJpegQuality
+                    };
+
+                    await image.SaveAsJpegAsync(outputPath, encoder);
+                    var normalizedDirectory = string.IsNullOrWhiteSpace(webRelativeDirectory)
+                        ? "/uploads"
+                        : webRelativeDirectory.TrimEnd('/');
+                    return normalizedDirectory + "/" + outputName;
+                }
+                catch (SixLabors.ImageSharp.UnknownImageFormatException imgEx)
+                {
+                    _logger.LogWarning(imgEx, "Unsupported image format: {FileName} ({Length} bytes)", file.FileName, file.Length);
+                    return null;
+                }
+                catch (System.IO.InvalidDataException invEx)
+                {
+                    _logger.LogWarning(invEx, "Invalid image data: {FileName} ({Length} bytes)", file.FileName, file.Length);
+                    return null;
+                }
+                catch (Exception innerEx) when (innerEx.GetType().Namespace?.StartsWith("SixLabors", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    _logger.LogWarning(innerEx, "ImageSharp processing error: {FileName} ({Length} bytes)", file.FileName, file.Length);
+                    return null;
+                }
             }
-
-            var encoder = new JpegEncoder
+            catch (Exception ex)
             {
-                Quality = UploadJpegQuality
-            };
-
-            await image.SaveAsJpegAsync(outputPath, encoder);
-            var normalizedDirectory = string.IsNullOrWhiteSpace(webRelativeDirectory)
-                ? "/uploads"
-                : webRelativeDirectory.TrimEnd('/');
-            return normalizedDirectory + "/" + outputName;
+                // rethrow unexpected exceptions (e.g., IO permission issues)
+                throw;
+            }
         }
 
         private static async Task<bool> IsValidImageFileAsync(IFormFile file)
@@ -1174,13 +1201,40 @@ var model = new ListingEditViewModel
                 return NotFound();
             }
 
-            var images = await _db.ListingImages.Where(x => x.ListingId == id).ToListAsync();
-            _db.ListingImages.RemoveRange(images);
-            _db.Listings.Remove(listing);
+            listing.IsDeleted = true;
+            listing.DeletedAt = DateTime.UtcNow;
+            listing.IsClosed = true;
             await _db.SaveChangesAsync();
 
             TempData["DashboardSuccess"] = T("İlan silindi.", "Listing deleted.", "Объявление удалено.", "تم حذف الإعلان.", "آگهی حذف شد.");
             return RedirectToAction(nameof(Dashboard), new { tab = "listings" });
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreListing(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            var listing = await _db.Listings.FirstOrDefaultAsync(x => x.Id == id && x.IsDeleted);
+            if (listing == null || (listing.UserId != user.Id && listing.Phone != user.PhoneNumber && listing.FullName != user.FullName))
+            {
+                return NotFound();
+            }
+
+            listing.IsDeleted = false;
+            listing.DeletedAt = null;
+            listing.IsClosed = false;
+            listing.DealStatus = "open";
+            await _db.SaveChangesAsync();
+
+            TempData["DashboardSuccess"] = T("İlan geri getirildi.", "Listing restored.", "Объявление восстановлено.", "تم استعادة الإعلان.", "آگهی بازگردانده شد.");
+            return RedirectToAction(nameof(Dashboard), new { tab = "listings", showDeleted = true });
         }
 
         [Authorize]
@@ -1461,7 +1515,7 @@ var model = new ListingEditViewModel
             return candidate;
         }
 
-        private async Task<AccountDashboardViewModel> BuildDashboardViewModel(ApplicationUser user)
+        private async Task<AccountDashboardViewModel> BuildDashboardViewModel(ApplicationUser user, bool showDeleted = false)
         {
             if (!string.IsNullOrWhiteSpace(user.AvatarUrl) &&
                 user.AvatarUrl.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase) &&
@@ -1480,40 +1534,43 @@ var model = new ListingEditViewModel
             }
 
             var myListings = await _db.Listings
-                .Where(x => x.UserId == user.Id || x.Phone == user.PhoneNumber || x.FullName == user.FullName)
-                .OrderByDescending(x => x.CreatedAt)
-                .Take(50)
-                .Select(x => new MyListingCardViewModel
-                {
-                    Id = x.Id,
-                    Title = x.Title,
-                    Category = x.Category,
-                    Type = x.Type,
-                    City = x.City,
-                    PriceAmount = x.PriceAmount,
-                    PriceCurrency = x.PriceCurrency,
-                    IsApproved = x.IsApproved,
-                    ViewCount = x.ViewCount,
-                    FavoritesCount = _db.UserFavorites.Count(f => f.ListingId == x.Id),
-                    IsClosed = x.IsClosed,
-                    DealStatus = x.DealStatus,
-                    CreatedAt = x.CreatedAt,
-                    IsFeatured = x.IsFeatured,
-                    IsVitrin = x.IsVitrin,
-                    FeaturedExpiryDate = x.FeaturedExpiryDate,
-                    VitrinExpiryDate = x.VitrinExpiryDate,
-                    CoverImageUrl = _db.ListingImages
-                        .Where(i => i.ListingId == x.Id)
-                        .OrderBy(i => i.Id)
-                        .Select(i => i.FilePath)
-                        .FirstOrDefault(),
-                    RawFilePath = _db.ListingImages
-                        .Where(i => i.ListingId == x.Id)
-                        .OrderBy(i => i.Id)
-                        .Select(i => i.FilePath)
-                        .FirstOrDefault()
-                })
-                .ToListAsync();
+                 .Where(x => x.UserId == user.Id || x.Phone == user.PhoneNumber || x.FullName == user.FullName)
+                 .Where(x => showDeleted || !x.IsDeleted)
+                 .OrderByDescending(x => x.CreatedAt)
+                 .Take(50)
+                 .Select(x => new MyListingCardViewModel
+                 {
+                     Id = x.Id,
+                     Title = x.Title,
+                     Category = x.Category,
+                     Type = x.Type,
+                     City = x.City,
+                     PriceAmount = x.PriceAmount,
+                     PriceCurrency = x.PriceCurrency,
+                     IsApproved = x.IsApproved,
+                     ViewCount = x.ViewCount,
+                     FavoritesCount = _db.UserFavorites.Count(f => f.ListingId == x.Id),
+                     IsClosed = x.IsClosed,
+                     IsDeleted = x.IsDeleted,
+                     DealStatus = x.DealStatus,
+                     CreatedAt = x.CreatedAt,
+                     DeletedAt = x.DeletedAt,
+                     IsFeatured = x.IsFeatured,
+                     IsVitrin = x.IsVitrin,
+                     FeaturedExpiryDate = x.FeaturedExpiryDate,
+                     VitrinExpiryDate = x.VitrinExpiryDate,
+                     CoverImageUrl = _db.ListingImages
+                         .Where(i => i.ListingId == x.Id)
+                         .OrderBy(i => i.Id)
+                         .Select(i => i.FilePath)
+                         .FirstOrDefault(),
+                     RawFilePath = _db.ListingImages
+                         .Where(i => i.ListingId == x.Id)
+                         .OrderBy(i => i.Id)
+                         .Select(i => i.FilePath)
+                         .FirstOrDefault()
+                 })
+                 .ToListAsync();
 
             // CoverImageUrl'leri absolute URL'ye çevir
             foreach (var listing in myListings)
@@ -1536,12 +1593,12 @@ var model = new ListingEditViewModel
 
             var stats = new DashboardStatsViewModel
             {
-                TotalListings = myListings.Count,
-                ApprovedListings = myListings.Count(x => x.IsApproved),
-                PendingListings = myListings.Count(x => !x.IsApproved),
-                TotalViews = myListings.Sum(x => Math.Max(0, x.ViewCount)),
-                FeaturedListings = myListings.Count(x => x.IsFeatured && (x.FeaturedExpiryDate == null || x.FeaturedExpiryDate > DateTime.UtcNow)),
-                VitrinListings = myListings.Count(x => x.IsVitrin && (x.VitrinExpiryDate == null || x.VitrinExpiryDate > DateTime.UtcNow))
+                TotalListings = myListings.Count(x => !x.IsDeleted),
+                ApprovedListings = myListings.Count(x => x.IsApproved && !x.IsDeleted),
+                PendingListings = myListings.Count(x => !x.IsApproved && !x.IsDeleted),
+                TotalViews = myListings.Where(x => !x.IsDeleted).Sum(x => Math.Max(0, x.ViewCount)),
+                FeaturedListings = myListings.Count(x => x.IsFeatured && !x.IsDeleted && (x.FeaturedExpiryDate == null || x.FeaturedExpiryDate > DateTime.UtcNow)),
+                VitrinListings = myListings.Count(x => x.IsVitrin && !x.IsDeleted && (x.VitrinExpiryDate == null || x.VitrinExpiryDate > DateTime.UtcNow))
             };
 
             // Kullanıcı paketlerini al
